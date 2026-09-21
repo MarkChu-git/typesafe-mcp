@@ -42,7 +42,7 @@ jobs:
       - name: Verify
         run: |
           bunx tsc --noEmit
-          oxlint
+          bunx oxlint
           bun test
 
       - name: Check version is unpublished
