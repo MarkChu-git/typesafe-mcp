@@ -1,0 +1,14 @@
+---
+description: This MCP server is for every MCP host, not Cursor-only
+alwaysApply: true
+---
+
+# Audience: every MCP agent
+
+This repo ships an MCP **server**. Cursor is one client. The product is for **any MCP host / agent** (Claude Desktop, Claude Code, Codex, Windsurf, Cline, custom stdio/HTTP clients, etc.).
+
+- First transport is **stdio** (`bun run src/index.ts`). That is what local agents spawn.
+- Streamable HTTP is a later remote/share option, not the first-period product.
+- Docs, examples, error copy, and Linear issues must not say “Cursor only”. Host-specific snippets (e.g. `examples/cursor.mcp.json`) are examples of the same stdio spawn.
+- Do not list Claude Desktop as a non-goal. It is a stdio host; document it alongside other hosts.
+- Config errors tell the user to set `TYPESAFE_API_KEY` in the **MCP server env** (host spawn `env` or process environment), never “Cursor mcp.json” only.

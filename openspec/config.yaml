@@ -5,10 +5,11 @@ context: |
   All artifacts must be written in zh.
   Keep OpenSpec structural headings and SHALL/MUST keywords in English.
 
-  Project: typesafe-mcp — MCP wrapper research for TypeSafe AI's Jev System One model.
+  Project: typesafe-mcp — MCP server wrapping TypeSafe AI's Jev System One model.
   Jev is a hosted decision model (not an LLM). It returns Choice / Score / Noul answers.
-  Do not implement MCP server product code until the user asks. Research lives in docs/research-jev-typesafe-mcp.md.
-  Stack when implementation starts: TypeScript, @typesafe-ai/sdk, official MCP TypeScript SDK, Zod.
+  Audience: every MCP host / agent (Cursor, Claude Desktop, Claude Code, Codex, Windsurf, Cline, custom). Not Cursor-only.
+  First transport is stdio. Streamable HTTP is later (remote / shared).
+  Stack: Bun, TypeScript, @typesafe-ai/sdk, @modelcontextprotocol/server v2, Zod, oxlint.
   Secrets: TYPESAFE_API_KEY via environment only. Never commit keys.
 
 # Per-artifact rules (optional)

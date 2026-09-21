@@ -1,0 +1,9 @@
+# Git workflow
+
+本仓库使用 GitHub Flow + Conventional Commits。细节见根目录 `CONTRIBUTING.md`。
+
+- 从 `main` 开短分支：`feature/`、`fix/`、`docs/`、`chore/`
+- 提交信息：`<type>(<scope>): <subject>`
+- 不要把 `.env`、API key、token 提交进 git
+- 不要 force push `main`，不要 `--no-verify`
+- 不要改 git config

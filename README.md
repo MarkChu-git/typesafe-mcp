@@ -8,16 +8,26 @@ This repository is **not** a finished MCP product yet. The first deliverable is 
 
 - **Jev**: TypeSafe AI's hosted decision model (`jev-latest` / `jev-1.13.0`). It evaluates a `state` plus typed questions (Choice / Score / Noul) and returns structured answers, probabilities, and confidence. It does **not** generate text, code, or explanations.
 - **TypeSafe**: the company and API (`https://api.typesafe.ai/v1/systemone`) plus official JS/Python SDKs. The name is not a generic TypeScript MCP library.
-- **This repo**: a private place to design, then later implement, a type-safe MCP wrapper so agents can call Jev as tools.
+- **This repo**: a type-safe MCP wrapper so **any agent** can call Jev as tools.
 
 ## Status
 
 - Research complete (see `docs/research-jev-typesafe-mcp.md`)
-- GitHub Flow + Conventional Commits configured
-- MCP server implementation not started on purpose
+- GitHub Flow + Conventional Commits; `main` requires PR + the **CI** check
+- P0 stdio server: `jev_models` and `jev_check` (see `src/`)
+
+## Stack
+
+- **Runtime and package manager: Bun only.** Do not use Node, npm, pnpm, yarn, `npx`, or Python for this repo.
+- **Audience:** any MCP host (Cursor, Claude Desktop / Claude Code, Codex, Windsurf, Cline, custom agents). First release is **stdio**; Streamable HTTP is later for remote sharing.
+- **Lint:** **oxlint only** (`.oxlintrc.json`). Do not add ESLint or Biome. Types: `bunx tsc --noEmit`.
+- **SDK:** official JS/TS client `@typesafe-ai/sdk` (not `typesafe-sdk` / Python).
+- **MCP:** official TypeScript SDK `@modelcontextprotocol/server` (v2; supports Bun).
+- Install and run with `bun add`, `bun install`, `bun`, `bunx`.
+- **CI:** `.github/workflows/ci.yml` — Bun `1.4.2`, frozen lockfile, `tsc --noEmit`, oxlint, `bun test` (skips `tests/integration/`).
 
 ## Next
 
 1. Confirm API access (`TYPESAFE_API_KEY` from [console.typesafe.ai](https://console.typesafe.ai))
-2. Confirm tool surface (thin primitives vs opinionated gates)
-3. Scaffold a TypeScript MCP server with `@typesafe-ai/sdk` + official MCP TypeScript SDK
+2. Wire the stdio spawn into any MCP host (`examples/stdio.mcp.json`)
+3. P1: `jev_classify` / `jev_score` / `jev_ask`

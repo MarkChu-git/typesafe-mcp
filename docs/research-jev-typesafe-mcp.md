@@ -45,8 +45,8 @@ Jev **不能**：写邮件、写代码、解释理由、出图、开放生成。
 
 官方客户端：
 
-- JS/TS：`npm install @typesafe-ai/sdk`（Node 20+），默认读 `TYPESAFE_API_KEY`
-- Python：`pip install typesafe-sdk`
+- JS/TS：`@typesafe-ai/sdk`（文档写 Node 20+；本仓库用 **Bun** 安装和运行），默认读 `TYPESAFE_API_KEY`。HTTP 走可注入的 `fetch`。
+- Python：`typesafe-sdk`（本仓库不用）
 
 官方也提供 agent skill（给写 TypeSafe **应用**用，不是 MCP 服务器模板）：[docs.typesafe.ai/agent-skill](https://docs.typesafe.ai/agent-skill.md)。
 
@@ -77,7 +77,7 @@ Jev **不能**：写邮件、写代码、解释理由、出图、开放生成。
 ### 方案 A（推荐）：TypeScript MCP 薄封装官方 SDK
 
 ```
-Cursor / Claude / 其他 MCP 客户端
+任意 MCP 客户端（Cursor / Claude Desktop / Claude Code / Codex / Windsurf / Cline / 自建）
         │ stdio（本地）或 Streamable HTTP（远程）
         ▼
 typesafe-mcp（本仓库）
@@ -92,11 +92,12 @@ structured answers + probabilities + confidence
 
 | 项 | 建议 |
 | --- | --- |
-| 语言 | TypeScript（Node 20+），`"type": "module"` |
-| MCP | 官方 `@modelcontextprotocol/server`（v2）或当前稳定 SDK |
-| TypeSafe | `@typesafe-ai/sdk`（`choice` / `score` / `noul` + `TypeSafeClient`） |
+| 运行时 / 包管理 | **只用 Bun**（`bun add` / `bun` / `bunx`）。不用 Node、npm、pnpm、yarn、npx |
+| 语言 | TypeScript ESM |
+| MCP | 官方 `@modelcontextprotocol/server`（v2；官方支持 Bun） |
+| TypeSafe | `@typesafe-ai/sdk`（`choice` / `score` / `noul` + `TypeSafeClient`）。不用 Python SDK |
 | 校验 | Zod：一份 schema → JSON Schema + handler 类型 |
-| 传输 | 先 stdio（Cursor 本地）；需要共享再加 Streamable HTTP |
+| 传输 | 先 stdio（任意本地 MCP host）；需要共享再加 Streamable HTTP |
 | 鉴权 | 只读环境变量 `TYPESAFE_API_KEY`；禁止 tool 参数传 key |
 | 模型默认 | 开发用 `jev-latest`；生产阈值钉死 `jev-1.13.0` |
 
@@ -124,7 +125,7 @@ structured answers + probabilities + confidence
 
 ### 方案 B：Python MCP + `typesafe-sdk`
 
-同样薄封装，FastMCP / 官方 Python MCP SDK。适合已有 Python agent 栈。在 Cursor 里不如 TS 顺；类型推断也够用，但和本仓库「typesafe-mcp」的 TS 语义弱一点。
+本仓库已规定 **只用 Bun**，此方案排除。即使没有这条约束，和本仓库 TypeScript MCP 方向也不匹配。
 
 ### 方案 C：复用 / fork 现成 `jev-mcp`
 
@@ -140,11 +141,11 @@ structured answers + probabilities + confidence
 
 ## 6. 推荐做法
 
-**做方案 A：本仓库自研 TypeScript MCP，薄封装官方 SDK，工具对齐三种 primitive。**
+**做方案 A：本仓库自研 Bun + TypeScript MCP，薄封装官方 JS SDK，工具对齐三种 primitive。**
 
 理由：
 
-- 和 TypeSafe 官方 JS SDK、官方 MCP TS SDK 对齐，类型能从问题定义一路推到答案
+- 和 TypeSafe 官方 JS SDK、官方 MCP TS SDK（明确支持 Bun）对齐，类型能从问题定义一路推到答案
 - 仓库名、私有 GitHub、后续自研控制都匹配
 - 现成 `jev-mcp` 可当对照，不必当依赖
 - 第一期范围小，能很快验证「agent 能否用 Jev 做路由 / 审核」
@@ -154,13 +155,13 @@ structured answers + probabilities + confidence
 ## 7. 建议实现顺序（确认后再写代码）
 
 1. 用户确认：有无 `TYPESAFE_API_KEY` / 是否过 waitlist；工具集；stdio only 还是也要 HTTP
-2. `package.json` + TS ESM + `@typesafe-ai/sdk` + MCP server SDK + Zod
+2. `package.json` + Bun + TS ESM + `@typesafe-ai/sdk` + `@modelcontextprotocol/server` + Zod（`bun add`，提交 `bun.lock`）
 3. 实现 `jev_models`（不花钱探活）和 `jev_check`
 4. 补 `jev_classify`、`jev_score`、`jev_ask`
 5. 代码侧 gating helper（阈值默认 0.8 / 0.5，可覆盖）
-6. Cursor `mcp.json`：stdio + `TYPESAFE_API_KEY` 注入
+6. 各 MCP host 的 stdio 配置：同一 spawn + `TYPESAFE_API_KEY` 注入（见 `examples/stdio.mcp.json`）
 7. Fixture / 录制测试（无 key 时不打真实 API）
-8. 再考虑 HTTP transport、Claude Desktop、opinionated tools
+8. 再考虑 HTTP transport、opinionated tools。Claude Desktop 已是 stdio 客户端，不是这一步才做。
 
 ## 8. 风险、缺口、需要确认的点
 
@@ -184,7 +185,7 @@ structured answers + probabilities + confidence
 
 1. 是否已有 `TYPESAFE_API_KEY`，还是还在 waitlist？
 2. 自研方案 A，还是先试用现成 `jev-mcp`？
-3. 第一期只要 Cursor stdio，还是同时要 Claude Desktop / 远程 HTTP？
+3. ~~第一期只要 Cursor stdio，还是同时要 Claude Desktop / 远程 HTTP？~~ **已确认：给所有 agent。第一期 stdio；HTTP 后置。Claude Desktop 走 stdio。**
 4. 工具只要四种 primitive，还是要 `gate` / `screen` / `match`？
 5. 主要判断语言是英文还是中文？（影响题面设计和验收）
 6. 有没有具体第一个场景（例如：拦截危险 shell、给 ticket 路由、给检索结果打分）？
