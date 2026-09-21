@@ -19,7 +19,13 @@ describe("stdio entry", () => {
       await client.connect(transport);
       try {
         const listed = await client.listTools();
-        expect(listed.tools.map((t) => t.name)).toEqual(["jev_models", "jev_check"]);
+        expect(listed.tools.map((t) => t.name)).toEqual([
+          "jev_models",
+          "jev_check",
+          "jev_classify",
+          "jev_score",
+          "jev_ask",
+        ]);
       } finally {
         await client.close();
       }

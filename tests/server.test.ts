@@ -8,7 +8,7 @@ describe("createServer", () => {
     resetClient();
   });
 
-  test("lists jev_models and jev_check, then jev_check succeeds", async () => {
+  test("lists all 5 tools in a stable order, then jev_check succeeds", async () => {
     const ff = fakeFetch({
       "/v1/models": { body: loadFixture("models.ok.json") },
       "/v1/systemone": { body: loadFixture("check.yes095.json") },
@@ -19,7 +19,13 @@ describe("createServer", () => {
     });
     try {
       const listed = await client.listTools();
-      expect(listed.tools.map((t) => t.name)).toEqual(["jev_models", "jev_check"]);
+      expect(listed.tools.map((t) => t.name)).toEqual([
+        "jev_models",
+        "jev_check",
+        "jev_classify",
+        "jev_score",
+        "jev_ask",
+      ]);
       for (const tool of listed.tools) {
         expect(tool.description?.toLowerCase()).toContain("does not generate text");
       }
