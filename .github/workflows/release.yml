@@ -66,7 +66,14 @@ jobs:
 
       - name: Verify published artifact
         run: |
-          sleep 10
+          # OIDC publishes are processed asynchronously — poll until visible.
+          for i in $(seq 1 24); do
+            if npm view "typesafe-mcp@${{ steps.version.outputs.version }}" version >/dev/null 2>&1; then
+              break
+            fi
+            [ "$i" -eq 24 ] && { echo "::error::version not visible on npm after 2min"; exit 1; }
+            sleep 5
+          done
           npm view "typesafe-mcp@${{ steps.version.outputs.version }}" version
           printf '%s\n' \
             '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"ci","version":"0"}}}' \
