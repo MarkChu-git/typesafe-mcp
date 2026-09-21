@@ -38,9 +38,8 @@ coverage/
 # Cache
 .cache/
 
-# Tool local state (generated artifacts may still be committed)
-graphify-out/.graphify_python
-graphify-out/cache/
+# Tool local state — generated knowledge graph, local-only
+graphify-out/
 .gitnexus/
 .teamai/config.yaml
 .teamai/token
