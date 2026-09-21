@@ -1,5 +1,7 @@
 # Required status check name: "CI" (job name). Keep this in sync with
 # branch protection / CONTRIBUTING.md.
+# `platform` is advisory: promote `platform (macos-latest)` and
+# `platform (windows-latest)` to required checks once green on main.
 name: CI
 
 on:
@@ -21,11 +23,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Bun
         id: setup-bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: "1.4.2"
 
@@ -60,3 +62,37 @@ jobs:
         if: hashFiles('package.json') != ''
         run: bun test --pass-with-no-tests --path-ignore-patterns='**/integration/**'
         # Do not set TYPESAFE_API_KEY. Live tests under tests/integration/ stay skipped.
+
+  # This server runs over stdio on the user's own machine, so macOS/Windows
+  # are real targets. Advisory until proven green; see header comment.
+  platform:
+    name: platform (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: "1.4.2"
+
+      - name: Install
+        if: hashFiles('package.json') != ''
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        if: hashFiles('package.json') != ''
+        run: bunx tsc --noEmit
+
+      - name: Lint
+        if: hashFiles('.oxlintrc.json') != '' && (hashFiles('src/**/*.ts') != '' || hashFiles('tests/**/*.ts') != '')
+        run: bunx oxlint
+
+      - name: Test
+        if: hashFiles('package.json') != ''
+        run: bun test --pass-with-no-tests --path-ignore-patterns='**/integration/**'

@@ -55,6 +55,19 @@ When `package.json` exists, CI:
 
 `TYPESAFE_API_KEY` is not set in CI. Live tests under `tests/integration/` are excluded.
 
+Other workflows (all advisory unless added to required checks):
+
+| Workflow | Check name(s) | Purpose |
+| --- | --- | --- |
+| `ci.yml` `platform` job | `platform (macos-latest)`, `platform (windows-latest)` | Cross-OS verification; this server runs over stdio on users' machines |
+| `codeql.yml` | `Analyze` | CodeQL static analysis, PR + main + weekly |
+| `security.yml` | `Dependency audit`, `Workflow audit` | `bun audit`, PR dependency review, actionlint + zizmor |
+| `pr-title.yml` | `Conventional title` | Conventional Commits on PR titles (squash-merge gate) |
+
+No CI secrets are needed. To smoke-test against the real TypeSafe API, run `bun run test:integration` locally with `TYPESAFE_API_KEY` set.
+
+Recommended additions to required checks once green on `main`: `Conventional title`, both `platform` legs.
+
 ## Branch protection on `main`
 
 | Rule | Setting |
