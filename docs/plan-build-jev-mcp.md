@@ -1,10 +1,10 @@
 # typesafe-mcp 实现手册：怎么造这个 MCP
 
 日期：2026-09-21
-状态：规划完成，未开始实现。OpenSpec change：`openspec/changes/build-jev-mcp/`（proposal / specs / design / tasks）。
+状态：P0 已实现（stdio `jev_models` / `jev_check` + fixture 测试）。P1/P2 未做。OpenSpec change：`openspec/changes/build-jev-mcp/`（proposal / specs / design / tasks）。 CI 工作流由独立 PR 负责，见该 CI PR，本手册不重复配置。
 前置阅读：`docs/research-jev-typesafe-mcp.md`（为什么这么做）、`README.md`、`CONTRIBUTING.md`。
 
-本手册回答「具体怎么做」：到文件路径、类型、Zod schema、每个工具的 JSON 入参 / 出参、SDK 调用、Cursor 配置、测试固定件和每一步的 `bun` 命令。与 OpenSpec 产物冲突时，以 specs 为行为契约、以本手册为实现细节。
+本手册回答「具体怎么做」：到文件路径、类型、Zod schema、每个工具的 JSON 入参 / 出参、SDK 调用、任意 MCP host 的 stdio 配置、测试固定件和每一步的 `bun` 命令。与 OpenSpec 产物冲突时，以 specs 为行为契约、以本手册为实现细节。
 
 ---
 
@@ -12,15 +12,15 @@
 
 | 项 | 决定 |
 | --- | --- |
-| 产品 | 自研 MCP 服务器，薄封装 TypeSafe 官方 JS SDK，让 Cursor 的 agent 把 Jev 当「带概率的 if」 |
+| 产品 | 自研 MCP 服务器，薄封装 TypeSafe 官方 JS SDK，让 **任意 MCP host / agent** 把 Jev 当「带概率的 if」。Cursor 只是其中一个客户端 |
 | 运行时 | **只用 Bun**（`bun` / `bunx` / `bun add` / `bun test` / `bun.lock`）。禁 Node、npm、pnpm、yarn、npx |
 | Lint | **只用 oxlint**（`.oxlintrc.json`）。禁 ESLint、Biome。类型仍用 `tsc --noEmit` |
 | 语言 | TypeScript ESM，`bun run src/index.ts` 直跑，不构建 |
 | MCP | `@modelcontextprotocol/server` v2（`McpServer` + `serveStdio`），`zod/v4` |
 | TypeSafe | `@typesafe-ai/sdk` v0.6.x：`TypeSafeClient`、`systemOne`、`models.list`、`choice` / `score` / `noul` |
-| 传输 | 第一期只有 stdio（Cursor 本地）。HTTP / Claude Desktop 非目标 |
+| 传输 | 第一期只有 **stdio**（任意本地 MCP host spawn）。Streamable HTTP 留给远程共享。Claude Desktop 等是 stdio 客户端，不是非目标 |
 | 工具 | `jev_models`、`jev_check`、`jev_classify`、`jev_score`、`jev_ask`（不做 gate / screen / match） |
-| 密钥 | 只读 `TYPESAFE_API_KEY`；工具参数禁止传 key；不提交 `.env` / `.cursor/mcp.json` |
+| 密钥 | 只读 `TYPESAFE_API_KEY`；工具参数禁止传 key；不提交 `.env` / 本机 host 配置 |
 | 模型 | 默认 `jev-latest`；生产建议钉 `jev-1.13.0`；结果回报实际 `model` |
 | gating | 代码算 `act / review / abstain`，默认 `0.8 / 0.5`；Choice/Score 用 `confidence`，Noul 用 `|p−0.5|×2` |
 | 测试 | `bun test`；注入 `fetch` 回放 fixture；有 key 才跑集成 |
@@ -71,7 +71,9 @@ typesafe-mcp/
 │   ├── stdio.test.ts            拉起真实 bun 进程；慢测
 │   └── integration/live.test.ts 有 TYPESAFE_API_KEY 才跑
 ├── examples/
-│   └── cursor.mcp.json          Cursor 配置示例（占位密钥、占位绝对路径）
+│   ├── stdio.mcp.json           通用 stdio spawn（占位密钥、占位绝对路径）
+│   ├── cursor.mcp.json          Cursor 同形示例
+│   └── claude-desktop.json      Claude Desktop 同形示例
 ├── scripts/
 │   └── record-fixture.ts        （可选）有 key 时录制真实响应为 fixture，去掉响应头
 └── docs/
@@ -228,7 +230,7 @@ export function getClient(deps: ClientDeps = {}): TypeSafeClient {
   const cfg: RuntimeConfig = readConfig(deps.env);
   if (!cfg.apiKey) {
     throw new ConfigError(
-      `TYPESAFE_API_KEY is not set. Add it to the MCP server "env" in your Cursor mcp.json. Get a key at https://console.typesafe.ai`,
+      "TYPESAFE_API_KEY is not set. Add it to the MCP server env in your host config (stdio spawn env). Get a key at https://console.typesafe.ai",
     );
   }
   cached = new TypeSafeClient({
@@ -285,7 +287,7 @@ process.on("unhandledRejection", (e) => { console.error("[typesafe-mcp] unhandle
 serveStdio(() => createServer());
 ```
 
-铁律：**stdout 只给 JSON-RPC**。任何日志用 `console.error`。一个 `console.log` 就会让 Cursor 解析失败。
+铁律：**stdout 只给 JSON-RPC**。任何日志用 `console.error`。一个 `console.log` 就会让任意 MCP host 解析失败。
 
 ---
 
@@ -695,7 +697,7 @@ export function toToolError(err: unknown, ctx: { tool: string }) {
 
 | 判定顺序 | 条件 | category | hint |
 | --- | --- | --- | --- |
-| 1 | `err instanceof ConfigError` | `CONFIG` | Set TYPESAFE_API_KEY in the MCP server env (Cursor mcp.json → env). Get a key at console.typesafe.ai. |
+| 1 | `err instanceof ConfigError` | `CONFIG` | Set TYPESAFE_API_KEY in the MCP server env (host config → env, or the process environment). Get a key at console.typesafe.ai. |
 | 2 | `err instanceof ZodError` | `VALIDATION` | `issues.map(i => path.join('.') + ': ' + message)` |
 | 3 | `AuthenticationError` \| `PermissionDeniedError`（401/403） | `AUTH` | TYPESAFE_API_KEY was rejected. Check the key and account status; run jev_models to verify. |
 | 4 | `UnprocessableEntityError` \| `BadRequestError`（422/400） | `INVALID_REQUEST` | The API rejected the request body. + body 的 `detail`/`message`（脱敏） |
@@ -733,7 +735,7 @@ outputSchema.parse(structured)              → handler 内先 parse，SDK 再�
 { content: [{ type: "text", text: JSON.stringify(structured) }], structuredContent: structured }
 ```
 
-三处保证：Zod 在入口（SDK 自动）；TS 在中间（SDK 泛型推断）；Zod 在出口（`outputSchema`）。任何一处形状漂移都在 `bunx tsc --noEmit` 或 `bun test` 阶段暴露，而不是在 Cursor 里出现难以排查的字符串。
+三处保证：Zod 在入口（SDK 自动）；TS 在中间（SDK 泛型推断）；Zod 在出口（`outputSchema`）。任何一处形状漂移都在 `bunx tsc --noEmit` 或 `bun test` 阶段暴露，而不是在 host 里出现难以排查的字符串。
 
 ---
 
@@ -869,9 +871,11 @@ await c.close();
 
 ---
 
-## 10. Cursor 配置
+## 10. MCP host 配置（stdio）
 
-### 10.1 `examples/cursor.mcp.json`
+产品是 **stdio MCP server**。Cursor 只是其中一个客户端。同一 spawn 适用于 Claude Desktop、Claude Code、Codex、Windsurf、Cline、自建 agent。Streamable HTTP 是后续远程选项。
+
+### 10.1 `examples/stdio.mcp.json`（规范形态）
 
 ```json
 {
@@ -888,22 +892,26 @@ await c.close();
 }
 ```
 
+`examples/cursor.mcp.json` 与 `examples/claude-desktop.json` 是同一 JSON，只是目标文件不同（Cursor：`mcp.json`；Claude Desktop：`claude_desktop_config.json`）。
+
 ### 10.2 放哪里
 
-| 位置 | 文件 | 适用 | 提交？ |
-| --- | --- | --- | --- |
-| 用户级 | `~/.cursor/mcp.json` | 个人开发、密钥只在本机 | 不在仓库内 |
-| 项目级 | `<repo>/.cursor/mcp.json` | 团队约定同一 server 名 | **已在 `.gitignore`**（`.cursor/mcp.json`、`.mcp.json`），不会被提交 |
+| Host | 常见位置 | 提交？ |
+| --- | --- | --- |
+| 任意（规范） | 该 host 的 MCP server `env` 或进程环境 | 密钥永不进 git |
+| Cursor | 用户级 `~/.cursor/mcp.json`；项目级 `.cursor/mcp.json`（已 gitignore） | 不提交密钥 |
+| Claude Desktop | `~/Library/Application Support/Claude/claude_desktop_config.json`（macOS） | 不提交密钥 |
+| Claude Code / 其他 | 各自主机文档里的 MCP config | 不提交密钥 |
 
-README 要明确：`examples/cursor.mcp.json` 只放占位符；真密钥只进本机 mcp.json 或 shell env，绝不进任何被 git 跟踪的文件。
+README 要明确：`examples/` 只放占位符；真密钥只进本机 host 配置或 shell env。
 
 ### 10.3 注意事项
 
-- `args` 用**绝对路径**：Cursor 启动子进程时 cwd 不保证是仓库根。
-- GUI 启动的 Cursor 不一定继承 shell 的 PATH；找不到 `bun` 时把 `command` 换成 `which bun` 的绝对路径（例如 `/Users/<you>/.bun/bin/bun`）。
-- 修改 mcp.json 后在 Cursor 的 MCP 设置面板重启该 server。
+- `args` 用**绝对路径**：GUI host 启动子进程时 cwd 不保证是仓库根。
+- GUI 启动的 host 不一定继承 shell 的 PATH；找不到 `bun` 时把 `command` 换成 `which bun` 的绝对路径（例如 `/Users/<you>/.bun/bin/bun`）。
+- 改完配置后按该 host 的方式重启 MCP server。
 - 生产 / 团队共享阈值时把 `TYPESAFE_DEFAULT_MODEL` 设为 `jev-1.13.0`，避免 `jev-latest` 漂移。
-- 本地调试可用 `bun run inspect`（MCP Inspector）而不必每次重启 Cursor。
+- 本地调试可用 `bun run inspect`（MCP Inspector），不必绑死某一个 IDE。
 
 ---
 
@@ -930,7 +938,7 @@ README 要明确：`examples/cursor.mcp.json` 只放占位符；真密钥只进�
 | 3.4 | `src/tools/check.ts` | 1 文件 + fixtures + 测试 | 0.95→act/true；0.52→abstain；缺 key→CONFIG | `bun test tests/tools.check.test.ts` |
 | 3.5 | `src/server.ts` | 1 文件 + 测试 | 进程内列出 2 工具并调用成功 | `bun test tests/server.test.ts` |
 | 3.6 | `src/index.ts` | 1 文件 + 测试 | `< /dev/null` 退出 0；stdio 拿到列表 | `bun run src/index.ts < /dev/null; echo $?`；`bun run test:stdio` |
-| 3.7 | `examples/cursor.mcp.json` + 本机 `~/.cursor/mcp.json` | 1 文件 | Cursor 面板显示已连接、2 工具、无 key 时 `CONFIG` 文案 | 手工，记录到 PR |
+| 3.7 | `examples/stdio.mcp.json` + 各 host 同形示例 | 若干文件 | Inspector 或任一 host：已连接、工具可见、无 key 时 `CONFIG` | 手工，记录到 PR |
 | 3.8 | 提交 | — | 全绿；无密钥文件 | `bun test && bunx tsc --noEmit && git status` |
 
 提交示例：`chore(scaffold): bun project with mcp server skeleton`、`feat(tools): add jev_models and jev_check`、`test(core): gating, errors, schemas`。
@@ -957,15 +965,15 @@ README 要明确：`examples/cursor.mcp.json` 只放占位符；真密钥只进�
 | 5.2 | helpers | `tests/helpers/fakeFetch.ts`、`mcp.ts` | 所有工具测试改用 helper 后仍全绿 | `bun test` |
 | 5.3 | 集成开关 | `tests/integration/live.test.ts` | 无 key 显示 skipped | `bun run test:integration` |
 | 5.4 | 错误路径端到端 | `tests/server.errors.test.ts` | 429×3 / 529×3 / 超时 → 对应 token；之后 `tools/list` 仍成功 | `bun test tests/server.errors.test.ts` |
-| 5.5 | README | `README.md` | 安装、运行、Cursor 配置、5 工具速查、gating、钉版、中文提示、安全提示；每条命令可直接执行 | 人工逐条跑 |
+| 5.5 | README | `README.md` | 安装、运行、任意 MCP host 的 stdio 配置、5 工具速查、gating、钉版、中文提示、安全提示；每条命令可直接执行 | 人工逐条跑 |
 | 5.6 | （可选）录制脚本 | `scripts/record-fixture.ts` | 无 key 时提示并 exit 1 | `bun run record` |
-| 5.7 | 提交 + PR | — | 全绿；PR 附 Cursor 手工验收 | `bun test && bunx tsc --noEmit` |
+| 5.7 | 提交 + PR | — | 全绿；PR 附任一 host 或 Inspector 手工验收 | `bun test && bunx tsc --noEmit` |
 
-提交示例：`test(tools): fixtures, helpers, error paths`、`docs(readme): usage and cursor setup`。
+提交示例：`test(tools): fixtures, helpers, error paths`、`docs(readme): usage and mcp host setup`。
 
 ### P3 — 非目标（只登记）
 
-Streamable HTTP（`createMcpHandler` + `Bun.serve` 或 `@modelcontextprotocol/hono`）、Claude Desktop、对象型 `instructions`、opinionated 工具（gate / screen / match）、`bun build --target=bun` 单文件分发、npm 发布。写进 README Roadmap，标「未实现」。
+Streamable HTTP（`createMcpHandler` + `Bun.serve` 或 `@modelcontextprotocol/hono`）、对象型 `instructions`、opinionated 工具（gate / screen / match）、`bun build --target=bun` 单文件分发、npm 发布。写进 README Roadmap，标「未实现」。Claude Desktop 不是这项：它走 stdio。
 
 ---
 
@@ -980,11 +988,11 @@ Streamable HTTP（`createMcpHandler` + `Bun.serve` 或 `@modelcontextprotocol/ho
 | R5 | confidence 只描述分布集中度，Jev 会自信地错 | 中 / 中 | 暴露 `probabilities`、`certainty`、`thresholds`；描述明确 decision 是代码阈值；默认 0.8 偏保守 |
 | R6 | `jev-latest` 随发版漂移，阈值失效 | 中 / 中 | 结果回报实际 `model`；README 建议钉 `jev-1.13.0` |
 | R7 | MCP v2 要求 `zod/v4`；旧 zod 无此子路径 | 低 / 中 | `bun add zod@^4`，`bun.lock` 锁定 |
-| R8 | Cursor 找不到 `bun` | 中 / 低 | 文档写绝对路径；stdio 测试用同一命令行 |
+| R8 | GUI host 找不到 `bun` | 中 / 低 | 文档写绝对路径；stdio 测试用同一命令行 |
 | R9 | 大 state 触发 32k / 64k 上限 | 低 / 中 | 不在服务器截断；422 → `INVALID_REQUEST` + 提示缩小 state |
 | R10 | 与多个第三方 `jev-mcp` 同名同构 | 低 / 低 | 差异点：官方 SDK、structured content、可测 gating、密钥隔离；README 写明 |
 
-已决定、不再翻案：自研而非 fork；Bun only；stdio only；5 个 primitive 工具；密钥只走 env；gating 在代码；默认 `jev-latest` / 生产钉 `jev-1.13.0`；GitHub Flow + Conventional Commits。
+已决定、不再翻案：自研而非 fork；Bun only；第一期 stdio（任意 MCP host）；5 个 primitive 工具；密钥只走 env；gating 在代码；默认 `jev-latest` / 生产钉 `jev-1.13.0`；GitHub Flow + Conventional Commits。不是 Cursor-only。
 
 ---
 

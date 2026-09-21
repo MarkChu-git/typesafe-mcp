@@ -8,7 +8,7 @@
 - MCP 用官方 `@modelcontextprotocol/server` v2（实现 2026-07-28 协议，官方声明支持 Bun），schema 用 Zod v4（`import * as z from "zod/v4"`）。
 - TypeSafe 用官方 `@typesafe-ai/sdk`（v0.6.x）。已核对的公开 API：`new TypeSafeClient(config?)`、`client.systemOne({ state, questions, model? }, options?)`、`client.models.list()`、helper `choice(instructions, criteria)` / `score(instructions, criteria)` / `noul(instructions?, criteria?)`、结果 `SystemOneResult<Q>` = `{ answers: { [K]: ResultFor<Q[K]> }, model, usage }`；错误类 `APIError`（含 `status`、`body`、`requestId`）及子类 `AuthenticationError`、`PermissionDeniedError`、`UnprocessableEntityError`、`RateLimitError`、`InternalServerError`、`NotFoundError`、`BadRequestError`，以及 `APIConnectionError`、`APITimeoutError`、`APIUserAbortError`。
 - SDK 的 `TypeSafeClientConfig.fetch` 可注入，默认全局 `fetch`；构造函数在密钥缺失或 runtime 不支持时会抛错。
-- 第一期只做 Cursor stdio；密钥只从 `TYPESAFE_API_KEY` 读。
+- 第一期传输只有 stdio（任意 MCP host 本地 spawn）；密钥只从 `TYPESAFE_API_KEY` 读。Cursor 是其中一个客户端，不是唯一受众。
 - Jev 上下文：64k / 请求，`state` + 最长一题 32k；Score 2–10 级；Choice ≤ 255 选项；JS SDK v0.6.0 起 Score criteria 是有序数组。
 
 ## Goals / Non-Goals
@@ -55,7 +55,9 @@ tests/
   helpers/        fakeFetch(fixtureMap)、inProcessClient(createServer)
   *.test.ts       每个 src 模块一个测试文件
 examples/
-  cursor.mcp.json Cursor 配置示例（占位密钥）
+  stdio.mcp.json        通用 stdio spawn 示例（占位密钥）
+  cursor.mcp.json       Cursor 一份同形配置
+  claude-desktop.json   Claude Desktop 一份同形配置
 ```
 
 **理由**：`schemas.ts` 单独成文件是因为它是类型链路的源头，被工具、测试、文档三方引用；`questions.ts` 把「MCP 入参 → SDK 问题」的转换集中，是 `jev_ask` 与单问工具共用的唯一路径；`gating.ts` / `errors.ts` 不依赖 MCP 与 SDK 类型之外的任何东西，可纯单测。`server.ts` 导出 `createServer()` 工厂而不在 `index.ts` 内联，是为了测试能用 `@modelcontextprotocol/client` 进程内驱动，也为 P3 HTTP 直接复用。
@@ -64,9 +66,9 @@ examples/
 
 ### D2. 运行方式：`bun run src/index.ts` 直跑 TS，不做构建
 
-`package.json` 的 `bin` 指向 `src/index.ts`（首行 `#!/usr/bin/env bun`），Cursor 配置 `command: "bun"`, `args: ["run", "<abs>/src/index.ts"]`。不引入 `tsc` 构建产物、不提交 `dist/`。`tsc --noEmit` 只做类型检查（`bun run typecheck`）。
+`package.json` 的 `bin` 指向 `src/index.ts`（首行 `#!/usr/bin/env bun`），host 配置 `command: "bun"`, `args: ["run", "<abs>/src/index.ts"]`。不引入 `tsc` 构建产物、不提交 `dist/`。`tsc --noEmit` 只做类型检查（`bun run typecheck`）。
 
-**理由**：Bun 原生跑 TS，省掉构建步骤和 `dist/` 同步问题；Cursor 每次启动进程都是最新源码。**备选**：`bun build --target=bun` 产出单文件——留给 P3 发布时再考虑。
+**理由**：Bun 原生跑 TS，省掉构建步骤和 `dist/` 同步问题；host 每次 spawn 进程都是最新源码。**备选**：`bun build --target=bun` 产出单文件——留给 P3 发布时再考虑。
 
 ### D3. 一份 Zod，四处复用（类型安全链路）
 
@@ -126,13 +128,13 @@ const res = await client.systemOne({ state: input.state, questions, model: input
 - 缺 key 时 `getClient()` 抛 `ConfigError`，由 `errors.ts` 映射为 `CONFIG ...`；服务器仍正常启动，`tools/list` 正常。
 - 工具 input schema 用 `z.object({...})` 默认 strip 未知键；额外再对 `apiKey` / `authorization` / `api_key` 键做显式拒绝（`.strict()` 或 refine）以满足 spec 的「密钥当参数被拒」场景。
 
-**备选**：启动时校验密钥、缺失即退出——Cursor 会显示服务器不可用且无提示，用户难排查。否决。
+**备选**：启动时校验密钥、缺失即退出——host 会显示服务器不可用且无提示，用户难排查。否决。
 
 ### D7. 错误映射表
 
 | 来源 | 判定 | 类别 token | 文案要点 |
 | --- | --- | --- | --- |
-| `ConfigError` | 本地 | `CONFIG` | set `TYPESAFE_API_KEY` in mcp.json env |
+| `ConfigError` | 本地 | `CONFIG` | set `TYPESAFE_API_KEY` in the MCP server env |
 | `ZodError` / refine | 本地 | `VALIDATION` | 参数名（批量含题 id） |
 | `AuthenticationError` / `PermissionDeniedError` | `status` 401/403 | `AUTH` | key rejected |
 | `UnprocessableEntityError` / `BadRequestError` | 422/400 | `INVALID_REQUEST` | 附 body 的字段说明（脱敏后） |
@@ -153,9 +155,9 @@ const res = await client.systemOne({ state: input.state, questions, model: input
 - 集成（真实 API）：`tests/integration/*.test.ts` 顶部 `if (!process.env.TYPESAFE_API_KEY) test.skip(...)`；只调 `jev_models` 和一条最小 `jev_check`，控制花费。
 - stdio 端到端：一条 smoke 测试用 `StdioClientTransport({ command: "bun", args: ["run", "src/index.ts"] })` 拉起真实进程，仅断言 `tools/list` 的 5 个名字与 stdout 干净；标记为慢测，`bun test --filter stdio` 单独跑。
 
-### D9. Cursor 配置形态
+### D9. 任意 MCP host 的 stdio 配置形态
 
-`examples/cursor.mcp.json`：
+第一期产品是 **stdio MCP server**。Cursor、Claude Desktop、Claude Code、Codex、Windsurf、Cline 以及自建 agent 都是客户端，spawn 命令相同。`examples/stdio.mcp.json` 为规范形态：
 
 ```json
 {
@@ -172,9 +174,10 @@ const res = await client.systemOne({ state: input.state, questions, model: input
 }
 ```
 
-- 用户级 `~/.cursor/mcp.json` 适合个人开发（密钥只在本机）；项目级 `.cursor/mcp.json` 已被 `.gitignore` 忽略，可放但不会被提交。README 明确：不要在 `examples/` 或任何被跟踪文件里写真密钥。
-- `args` 必须是绝对路径：Cursor 启动子进程的 cwd 不保证是仓库根。
-- 若 `bun` 不在 Cursor 继承的 PATH 中，`command` 写 `bun` 的绝对路径（`which bun`）。
+- 密钥只进本机 host 配置或 process env；`examples/` 只放占位符。项目级 `.cursor/mcp.json` / `.mcp.json` 已被 `.gitignore` 忽略。
+- `args` 必须是绝对路径：多数 GUI host 启动子进程的 cwd 不保证是仓库根。
+- 若 `bun` 不在该 host 继承的 PATH 中，`command` 写 `bun` 的绝对路径（`which bun`）。
+- Claude Desktop：把同一 `mcpServers` 块放进 `claude_desktop_config.json`（见 `examples/claude-desktop.json`）。这不是单独的传输层，也不是 P3。
 
 ### D10. 分支与提交切片
 
@@ -194,12 +197,12 @@ const res = await client.systemOne({ state: input.state, questions, model: input
 - [R5 分布集中度 ≠ 可执行] confidence 只描述分布集中，Jev 可能自信地错。→ 结果暴露 `probabilities`、`certainty`、`thresholds`；描述里明确「decision 是代码阈值，不是模型判断」；默认 0.8 偏保守。
 - [R6 `jev-latest` 漂移] 别名换版本后阈值失效。→ 每个结果回报实际 `model`；README 建议生产钉 `jev-1.13.0`（`TYPESAFE_DEFAULT_MODEL` 或 per-call `model`）。
 - [R7 MCP v2 与 Zod v4 版本耦合] `zod/v4` 子路径要求 zod ≥ 3.25 或 4.x。→ 直接 `bun add zod@^4`；`bun.lock` 锁定。
-- [R8 Cursor 找不到 `bun`] GUI 启动的 Cursor 未必继承 shell PATH。→ 文档要求写绝对路径；smoke 测试用相同命令行验证。
+- [R8 GUI host 找不到 `bun`] GUI 启动的客户端未必继承 shell PATH。→ 文档要求写绝对路径；smoke 测试用相同命令行验证。
 - [R9 大 state 触发 32k/64k 上限] → 不在服务器截断（会改变语义）；把 422 映射为 `INVALID_REQUEST` 并提示缩小 state；描述里写明上限。
 
 ## Migration Plan
 
-绿地项目，无迁移。回滚 = 关闭 Cursor 里的 `jev` server 条目或切回 `main`。
+绿地项目，无迁移。回滚 = 关闭任意 MCP host 里的 `jev` server 条目或切回 `main`。
 
 ## Open Questions
 

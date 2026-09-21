@@ -2,14 +2,14 @@
 
 ## Purpose
 
-定义 typesafe-mcp 服务器进程如何启动、如何通过 stdio 与 Cursor 通信、如何从环境获取 TypeSafe 密钥与默认模型，以及日志和进程生命周期约束。
+定义 typesafe-mcp 服务器进程如何启动、如何通过 stdio 与任意 MCP host 通信、如何从环境获取 TypeSafe 密钥与默认模型，以及日志和进程生命周期约束。
 
 ## ADDED Requirements
 
 ### Requirement: Server runs as a Bun stdio process
 The system SHALL start with a single Bun command（`bun run <entry>`）and SHALL speak MCP JSON-RPC over stdin/stdout. The system MUST NOT write anything other than protocol messages to stdout; all diagnostics MUST go to stderr.
 
-#### Scenario: Cursor launches the server
+#### Scenario: An MCP host launches the server
 - **WHEN** an MCP host spawns the server with `command: bun` and the entry file path
 - **THEN** the process completes MCP initialization and answers `tools/list` with exactly the five tools `jev_models`、`jev_check`、`jev_classify`、`jev_score`、`jev_ask`
 

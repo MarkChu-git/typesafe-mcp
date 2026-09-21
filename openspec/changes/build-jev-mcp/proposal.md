@@ -2,7 +2,7 @@
 
 ## Why
 
-调研（`docs/research-jev-typesafe-mcp.md`）已确认方向：自研一个 Bun + TypeScript 的 MCP 服务器，薄封装 TypeSafe 官方 JS SDK，让 Cursor 里的 agent 能把 Jev 当成「带概率的 if」来调用（路由、审核、打分、guardrail）。仓库目前只有文档、没有任何服务器代码。本 change 把调研结论落成可执行的实现规格：先在 Cursor 本地 stdio 跑通 5 个 primitive 工具，并把 `act | review | abstain` 阈值判断放在代码里，为后续业务场景提供可测、类型安全的基础。
+调研（`docs/research-jev-typesafe-mcp.md`）已确认方向：自研一个 Bun + TypeScript 的 MCP 服务器，薄封装 TypeSafe 官方 JS SDK，让 **任意 MCP host / agent**（Cursor、Claude Desktop / Claude Code、Codex、Windsurf、Cline、自建 agent）能把 Jev 当成「带概率的 if」来调用（路由、审核、打分、guardrail）。本 change 把调研结论落成可执行的实现规格：先在本地 **stdio** 跑通 5 个 primitive 工具，并把 `act | review | abstain` 阈值判断放在代码里，为后续业务场景提供可测、类型安全的基础。Cursor 只是其中一个客户端。
 
 ## What Changes
 
@@ -19,8 +19,8 @@
 - 新增错误映射：SDK 错误（401/403、422、429、529、超时、连接失败）与本地校验错误（空 questions、非法 criteria、缺 key）统一映射成带修复提示的 `isError: true` 工具结果，永不把密钥或请求头回显到结果里。
 - 新增类型安全链路：一份 Zod schema 同时产出 MCP `inputSchema` / `outputSchema` 与 handler 类型；SDK `choice/score/noul` helper 构造 `Questions`，`ResultFor` 推断答案类型；结果通过 `structuredContent` 返回。
 - 新增 `bun test` 测试：无密钥时用注入 `fetch` 的 fixture 回放；有 `TYPESAFE_API_KEY` 时才跑集成用例，否则 skip。
-- 新增 Cursor 配置示例 `examples/cursor.mcp.json`（`command: bun`，`env` 注入密钥）与 README 用法段落。`.gitignore` 已忽略 `.cursor/mcp.json`，保持不提交。
-- 非目标（记录，不实现）：Streamable HTTP、Claude Desktop、`jev_gate` / `jev_screen` / `jev_match`、文本生成、Python SDK、Node/npm 工具链。
+- 新增 stdio 配置示例：`examples/stdio.mcp.json`（通用 `mcpServers` 形态）、`examples/cursor.mcp.json`、`examples/claude-desktop.json`（同一 spawn：`command: bun`，`env` 注入密钥）与 README 用法段落。密钥只进本机 host 配置或 process env，不进 git。
+- 非目标（记录，不实现）：Streamable HTTP（远程共享）、`jev_gate` / `jev_screen` / `jev_match`、文本生成、Python SDK、Node/npm 工具链。Claude Desktop 等本地 host **不是**非目标：它们走同一条 stdio。
 
 ## Capabilities
 
@@ -37,8 +37,8 @@
 
 ## Impact
 
-- 代码：新增 `package.json`、`tsconfig.json`、`bun.lock`、`src/**`、`tests/**`、`examples/cursor.mcp.json`；修改 `README.md`（用法与配置）。
+- 代码：新增 `package.json`、`tsconfig.json`、`bun.lock`、`src/**`、`tests/**`、`examples/stdio.mcp.json` 及各 host 示例；修改 `README.md`（用法与配置）。
 - 依赖：`@typesafe-ai/sdk`（v0.6.x，JS SDK 2026-09-15 起 Score criteria 为有序数组）、`@modelcontextprotocol/server`（v2，实现 2026-07-28 协议，官方支持 Bun）、`zod`（v4，MCP v2 通过 `zod/v4` 导入）；开发依赖 `@modelcontextprotocol/client`（进程内测试）、`typescript`、`@types/bun`。
 - 外部系统：TypeSafe API `POST /v1/systemone`、`GET /v1/models`；需要用户持有 early-access `TYPESAFE_API_KEY`。
-- 客户端：Cursor（stdio）。用户需在用户级或项目级 `mcp.json` 配置 `bun` 命令与密钥。
+- 客户端：任何能 spawn stdio MCP 的 host。用户在该 host 的 server `env`（或进程环境）里配置 `bun` 命令与 `TYPESAFE_API_KEY`。
 - 流程：按 CONTRIBUTING，从 `main` 开 `feature/build-jev-mcp` 分支，Conventional Commits，按 P0 → P1 → P2 分批 PR。
