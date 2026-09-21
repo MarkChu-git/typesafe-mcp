@@ -85,6 +85,22 @@ export const noulCriteriaSchema = z
   .optional()
   .describe("Optional descriptions of the yes/no outcomes. Keep them aligned with the question.");
 
+export const optionsSchema = z
+  .record(z.string().min(1), z.string().nullable())
+  .refine((o) => Object.keys(o).length >= 2, "at least 2 options are required")
+  .refine((o) => Object.keys(o).length <= 255, "at most 255 options are allowed")
+  .describe(
+    "Closed set of options: label → short rubric (or null). 2–255 entries. Jev must pick exactly one.",
+  );
+
+export const levelsSchema = z
+  .array(z.string().nullable())
+  .min(2)
+  .max(10)
+  .describe(
+    "Ordered rubric levels, index 0 first. 2–10 entries. Returned score is a probability-weighted value across indices.",
+  );
+
 export const modelsInput = z.strictObject({});
 export const modelsOutput = z.object({
   models: z.array(
@@ -115,7 +131,119 @@ export const checkOutput = z.object({
   ...metaFields,
 });
 
+export const classifyInput = z
+  .strictObject({
+    state: stateSchema,
+    question: questionSchema,
+    options: optionsSchema,
+    model: modelSchema,
+    ...thresholdsFields,
+  })
+  .superRefine(refineThresholds);
+
+export const classifyOutput = z.object({
+  type: z.literal("choice"),
+  choice: z.string(),
+  probabilities: z.record(z.string(), z.number()),
+  confidence: z.number().min(0).max(1),
+  ...gateFields,
+  ...metaFields,
+});
+
+export const scoreInput = z
+  .strictObject({
+    state: stateSchema,
+    question: questionSchema,
+    levels: levelsSchema,
+    model: modelSchema,
+    ...thresholdsFields,
+  })
+  .superRefine(refineThresholds);
+
+export const scoreOutput = z.object({
+  type: z.literal("score"),
+  score: z.number(),
+  legend: z.record(z.string(), z.string().nullable()),
+  probabilities: z.record(z.string(), z.number()),
+  confidence: z.number().min(0).max(1),
+  ...gateFields,
+  ...metaFields,
+});
+
+const askNoulQuestion = z.strictObject({
+  type: z.literal("noul").describe("Yes/no question."),
+  question: questionSchema,
+  criteria: noulCriteriaSchema,
+});
+const askChoiceQuestion = z.strictObject({
+  type: z.literal("choice").describe("Pick exactly one key from `options`."),
+  question: questionSchema,
+  options: optionsSchema,
+});
+const askScoreQuestion = z.strictObject({
+  type: z.literal("score").describe("Rate on the ordered `levels` rubric."),
+  question: questionSchema,
+  levels: levelsSchema,
+});
+
+export const askQuestionSchema = z.discriminatedUnion("type", [
+  askNoulQuestion,
+  askChoiceQuestion,
+  askScoreQuestion,
+]);
+
+export const askInput = z
+  .strictObject({
+    state: stateSchema,
+    questions: z
+      .record(z.string().min(1), askQuestionSchema)
+      .refine((q) => Object.keys(q).length >= 1, "at least one question is required")
+      .describe(
+        "Map of your own question ids → question. All are answered in ONE request against the same state. Batching is ~10x cheaper and faster than separate calls.",
+      ),
+    model: modelSchema,
+    ...thresholdsFields,
+  })
+  .superRefine(refineThresholds);
+
+const askNoulAnswer = z.object({
+  type: z.literal("noul"),
+  probability: z.number().min(0).max(1),
+  answer: z.boolean(),
+  ...gateFields,
+});
+const askChoiceAnswer = z.object({
+  type: z.literal("choice"),
+  choice: z.string(),
+  probabilities: z.record(z.string(), z.number()),
+  confidence: z.number().min(0).max(1),
+  ...gateFields,
+});
+const askScoreAnswer = z.object({
+  type: z.literal("score"),
+  score: z.number(),
+  legend: z.record(z.string(), z.string().nullable()),
+  probabilities: z.record(z.string(), z.number()),
+  confidence: z.number().min(0).max(1),
+  ...gateFields,
+});
+
+export const askOutput = z.object({
+  answers: z.record(
+    z.string(),
+    z.discriminatedUnion("type", [askNoulAnswer, askChoiceAnswer, askScoreAnswer]),
+  ),
+  ...metaFields,
+});
+
 export type ModelsInput = z.infer<typeof modelsInput>;
 export type ModelsOutput = z.infer<typeof modelsOutput>;
 export type CheckInput = z.infer<typeof checkInput>;
 export type CheckOutput = z.infer<typeof checkOutput>;
+export type ClassifyInput = z.infer<typeof classifyInput>;
+export type ClassifyOutput = z.infer<typeof classifyOutput>;
+export type ScoreInput = z.infer<typeof scoreInput>;
+export type ScoreOutput = z.infer<typeof scoreOutput>;
+export type AskQuestion = z.infer<typeof askQuestionSchema>;
+export type AskInput = z.infer<typeof askInput>;
+export type AskOutput = z.infer<typeof askOutput>;
