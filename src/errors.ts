@@ -65,7 +65,7 @@ export function classify(err: unknown): ClassifiedError {
   if (err instanceof ConfigError) {
     return {
       category: "CONFIG",
-      hint: "Set TYPESAFE_API_KEY in the MCP server env (Cursor mcp.json → env). Get a key at console.typesafe.ai.",
+      hint: "Set TYPESAFE_API_KEY in the MCP server env (host config → env, or the process environment). Get a key at console.typesafe.ai.",
     };
   }
   if (err instanceof z.ZodError) {

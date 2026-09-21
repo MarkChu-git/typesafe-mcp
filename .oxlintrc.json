@@ -23,6 +23,7 @@
     },
     {
       "files": ["tests/**/*.ts", "scripts/**/*.ts"],
+      "plugins": ["typescript", "unicorn", "oxc"],
       "rules": {
         "no-console": "off"
       }

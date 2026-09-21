@@ -10,7 +10,10 @@ export interface Thresholds {
 
 type Answer = NoulResponse | ChoiceResponse | ScoreResponse;
 
-export function thresholdsFrom(input: { act_above?: number; review_above?: number }): Thresholds {
+export function thresholdsFrom(input: {
+  act_above?: number | undefined;
+  review_above?: number | undefined;
+}): Thresholds {
   return {
     act_above: input.act_above ?? DEFAULT_THRESHOLDS.act_above,
     review_above: input.review_above ?? DEFAULT_THRESHOLDS.review_above,

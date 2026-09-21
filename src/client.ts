@@ -16,7 +16,7 @@ export function getClient(deps: ClientDeps = {}): TypeSafeClient {
   const cfg: RuntimeConfig = readConfig(deps.env);
   if (!cfg.apiKey) {
     throw new ConfigError(
-      "TYPESAFE_API_KEY is not set. Add it to the MCP server \"env\" in your Cursor mcp.json. Get a key at https://console.typesafe.ai",
+      "TYPESAFE_API_KEY is not set. Add it to the MCP server env in your host config (stdio spawn env). Get a key at https://console.typesafe.ai",
     );
   }
   cached = new TypeSafeClient({

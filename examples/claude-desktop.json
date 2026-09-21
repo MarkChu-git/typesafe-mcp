@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "jev": {
+      "command": "bun",
+      "args": ["run", "/ABSOLUTE/PATH/TO/typesafe-mcp/src/index.ts"],
+      "env": {
+        "TYPESAFE_API_KEY": "<paste-your-key-here>",
+        "TYPESAFE_DEFAULT_MODEL": "jev-latest"
+      }
+    }
+  }
+}
