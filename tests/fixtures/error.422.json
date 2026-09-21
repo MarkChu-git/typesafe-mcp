@@ -1,0 +1,8 @@
+{
+  "detail": [
+    {
+      "loc": ["body", "questions", "q", "criteria"],
+      "msg": "invalid criteria: choice options must be an object mapping labels to descriptions"
+    }
+  ]
+}
