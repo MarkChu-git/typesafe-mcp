@@ -111,3 +111,24 @@ git config commit.template .gitmessage
 ```
 
 Do not store API keys, `.env` files, or credentials in git.
+
+## Releasing
+
+`typesafe-mcp` publishes to npm via `.github/workflows/release.yml` (manual `workflow_dispatch`, `main` only). The workflow re-runs the full CI gate, publishes with `--provenance`, tags `v<version>`, and creates a GitHub release.
+
+Release steps:
+
+```bash
+git checkout -b chore/release-vX.Y.Z main
+npm version X.Y.Z --no-git-tag-version   # bumps package.json only
+git commit -am "chore(release): vX.Y.Z" && git push -u origin HEAD
+gh pr create --title "chore(release): vX.Y.Z" --body "Release vX.Y.Z"
+# merge the PR, then: Actions → Release → Run workflow (branch: main)
+```
+
+The workflow fails early if `typesafe-mcp@X.Y.Z` already exists on npm — the version bump is the only required manual step.
+
+**One-time npm setup** (choose one):
+
+- *Preferred — Trusted Publishing (OIDC, no secret):* npmjs.com → `typesafe-mcp` → Settings → Publishing access → Trusted Publisher → GitHub Actions → repo `MarkChu-git/typesafe-mcp`, workflow filename `release.yml`. Then `npm publish` in CI exchanges the GitHub OIDC token automatically; 2FA is bypassed for that workflow only.
+- *Fallback — token:* create a Granular Access Token with publish rights on `typesafe-mcp` and "Bypass 2FA", store it as repo secret `NPM_TOKEN`. The workflow uses it automatically when present.
