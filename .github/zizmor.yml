@@ -1,0 +1,9 @@
+# zizmor's ref-version-mismatch audit mis-resolves the tag on our
+# zizmorcore/zizmor-action pin: it reports "tag points to commit
+# 320fcdd9c860", but refs/tags/v0.6.4 verifiably points to cc914d7f
+# (lightweight tag -> commit). False positive; pin is correct.
+rules:
+  ref-version-mismatch:
+    ignore:
+      - security.yml
+      - .github/workflows/security.yml
