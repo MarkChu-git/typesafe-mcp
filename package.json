@@ -1,20 +1,41 @@
 {
   "name": "typesafe-mcp",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "MCP server exposing TypeSafe AI's Jev decision model (Choice / Score / Noul) as typed tools.",
-  "license": "UNLICENSED",
+  "license": "MIT",
+  "author": "Hanyang Chu (https://github.com/MarkChu-git)",
+  "homepage": "https://github.com/MarkChu-git/typesafe-mcp#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MarkChu-git/typesafe-mcp.git"
+  },
+  "bugs": "https://github.com/MarkChu-git/typesafe-mcp/issues",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "mcp-server",
+    "typesafe",
+    "jev",
+    "decision-making",
+    "ai-agent"
+  ],
   "packageManager": "bun@1.4.2",
   "engines": {
     "bun": ">=1.2.0"
   },
   "bin": {
-    "typesafe-mcp": "./src/index.ts"
+    "typesafe-mcp": "./dist/typesafe-mcp.js"
   },
+  "files": [
+    "dist",
+    "examples"
+  ],
   "scripts": {
     "start": "bun run src/index.ts",
     "dev": "bun --watch run src/index.ts",
+    "build": "bun build src/index.ts --target=bun --outfile=dist/typesafe-mcp.js",
+    "prepack": "bun run build",
     "typecheck": "bunx tsc --noEmit",
     "lint": "oxlint",
     "test": "bun test --path-ignore-patterns='**/integration/**'",
