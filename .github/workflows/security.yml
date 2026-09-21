@@ -1,0 +1,75 @@
+# Supply-chain and workflow-file security. Public repo: dependency review
+# and code scanning are free here.
+name: Security
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  schedule:
+    # Weekly: newly disclosed vulns can hit an unchanged bun.lock.
+    - cron: "33 4 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deps:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: "1.4.2"
+
+      - name: Install
+        if: hashFiles('package.json') != ''
+        run: bun install --frozen-lockfile
+
+      - name: Audit installed packages
+        if: hashFiles('bun.lock') != '' || hashFiles('bun.lockb') != ''
+        run: bun audit
+
+      # Gates the PR diff: no new vulnerable/flagged dependency can be added.
+      - name: Dependency review
+        if: github.event_name == 'pull_request'
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+
+  workflows:
+    name: Workflow audit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write # reviewdog PR annotations
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: actionlint
+        uses: reviewdog/action-actionlint@15efc1428b707b04b3f19198d7b5a40e6417bf95 # v1.76.0
+        with:
+          fail_level: error
+          reporter: ${{ github.event_name == 'pull_request' && 'github-pr-check' || 'github-check' }}
+
+      - name: zizmor
+        uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
+        with:
+          inputs: .github/workflows
+          config: .github/zizmor.yml
+          min-severity: medium
+          min-confidence: medium
+          # Inline annotations instead of SARIF so fork PRs work without
+          # security-events permission.
+          advanced-security: "false"
+          annotations: "true"
