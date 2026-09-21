@@ -1,0 +1,84 @@
+name: Release
+
+# Manual release: bump package.json version in a release PR, merge to main,
+# then run this workflow (Actions → Release → Run workflow).
+# Auth: npm Trusted Publishing (OIDC) — no NPM_TOKEN needed once configured on
+# npmjs.com. Fallback: set an NPM_TOKEN granular access token (2FA-bypass) as a
+# repo secret and it is used automatically.
+
+on:
+  workflow_dispatch: {}
+
+permissions: {}
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: write # git tag + GitHub release
+      id-token: write # npm OIDC trusted publishing + provenance
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+
+      # Node/npm only used for the publish step — trusted publishing requires npm >= 11.5.1.
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Verify
+        run: |
+          bunx tsc --noEmit
+          oxlint
+          bun test
+
+      - name: Check version is unpublished
+        id: version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" | tee -a "$GITHUB_OUTPUT"
+          if npm view "typesafe-mcp@$VERSION" version >/dev/null 2>&1; then
+            echo "::error::typesafe-mcp@$VERSION is already published — bump package.json version first"
+            exit 1
+          fi
+
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -n "$NODE_AUTH_TOKEN" ]; then
+            npm config set //registry.npmjs.org/:_authToken "$NODE_AUTH_TOKEN"
+          fi
+          npm publish --provenance --access public
+
+      - name: Verify published artifact
+        run: |
+          sleep 10
+          npm view "typesafe-mcp@${{ steps.version.outputs.version }}" version
+          printf '%s\n' \
+            '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"ci","version":"0"}}}' \
+            | bunx "typesafe-mcp@${{ steps.version.outputs.version }}" 2>/dev/null \
+            | grep -q '"typesafe-mcp"'
+
+      - name: Tag and create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "v${{ steps.version.outputs.version }}"
+          git push origin "v${{ steps.version.outputs.version }}"
+          gh release create "v${{ steps.version.outputs.version }}" --generate-notes
