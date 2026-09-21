@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+vendor/
+.venv/
+venv/
+
+# Build outputs
+dist/
+build/
+*.o
+*.exe
+*.tsbuildinfo
+
+# Environment / secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Test coverage
+coverage/
+
+# Cache
+.cache/
+
+# Tool local state (generated artifacts may still be committed)
+graphify-out/.graphify_python
+.teamai/config.yaml
+.teamai/token
+.teamai/state.json
+.teamai/team-repo/
+.teamai/worktrees/
