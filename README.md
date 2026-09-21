@@ -24,7 +24,7 @@ Start from `main`, open a short-lived branch (`feature/`, `fix/`, `docs/`, `chor
 
 Details: [CONTRIBUTING.md](CONTRIBUTING.md). Workflow: [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 
-CI uses Bun only (`bun` / `bunx`, `oven-sh/setup-bun`). When `package.json` exists it runs `bun install --frozen-lockfile`, `bunx tsc --noEmit`, and `bun test` excluding `tests/integration/` (no `TYPESAFE_API_KEY` in CI). Until the package exists, CI still checks out and installs Bun so the required check stays green.
+CI uses Bun only (`bun` / `bunx`, `oven-sh/setup-bun`). When `package.json` exists it runs `bun install --frozen-lockfile`, `bunx tsc --noEmit`, `bunx oxlint`, and `bun test` excluding `tests/integration/` (no `TYPESAFE_API_KEY` in CI). Lint is **oxlint only** — not ESLint or Biome. Until the package exists, CI still checks out and installs Bun so the required check stays green.
 
 ## Next
 

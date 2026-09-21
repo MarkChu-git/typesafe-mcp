@@ -28,12 +28,15 @@ Required check name: **CI** (the `ci` job in `.github/workflows/ci.yml`).
 
 CI runs on pull requests and on pushes to `main`. It uses **Bun only** (`oven-sh/setup-bun`, currently Bun `1.4.2` to match local `bun --version`). Do not add `npm ci`, `npx`, or `actions/setup-node` as the package manager.
 
+**Linter: oxlint only.** Config is `.oxlintrc.json`. Do not add ESLint or Biome. Types stay with `tsc --noEmit`.
+
 When `package.json` exists, CI:
 
 1. Fails with a readable error if `bun.lock` / `bun.lockb` is missing
 2. `bun install --frozen-lockfile`
 3. `bunx tsc --noEmit`
-4. `bun test --pass-with-no-tests --path-ignore-patterns='**/integration/**'`
+4. `bunx oxlint` (when `.oxlintrc.json` exists)
+5. `bun test --pass-with-no-tests --path-ignore-patterns='**/integration/**'`
 
 `TYPESAFE_API_KEY` is not set in CI. Live tests under `tests/integration/` are excluded.
 

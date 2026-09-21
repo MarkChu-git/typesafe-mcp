@@ -52,6 +52,10 @@ jobs:
         if: hashFiles('package.json') != ''
         run: bunx tsc --noEmit
 
+      - name: Lint
+        if: hashFiles('.oxlintrc.json') != '' && (hashFiles('src/**/*.ts') != '' || hashFiles('tests/**/*.ts') != '')
+        run: bunx oxlint
+
       - name: Test
         if: hashFiles('package.json') != ''
         run: bun test --pass-with-no-tests --path-ignore-patterns='**/integration/**'

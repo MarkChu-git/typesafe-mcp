@@ -1,0 +1,31 @@
+{
+  "plugins": ["typescript", "unicorn", "oxc"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "perf": "warn"
+  },
+  "ignorePatterns": [
+    "graphify-out/**",
+    ".gitnexus/**",
+    ".teamai/**",
+    "**/node_modules/**"
+  ],
+  "globals": {
+    "Bun": "readonly"
+  },
+  "overrides": [
+    {
+      "files": ["src/**/*.ts"],
+      "rules": {
+        "no-console": ["error", { "allow": ["error"] }]
+      }
+    },
+    {
+      "files": ["tests/**/*.ts", "scripts/**/*.ts"],
+      "rules": {
+        "no-console": "off"
+      }
+    }
+  ]
+}
