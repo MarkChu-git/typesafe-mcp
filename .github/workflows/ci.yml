@@ -1,0 +1,58 @@
+# Required status check name: "CI" (job name). Keep this in sync with
+# branch protection / CONTRIBUTING.md.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: CI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        id: setup-bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.2"
+
+      - name: Skip package checks until package.json exists
+        if: hashFiles('package.json') == ''
+        run: |
+          echo "No package.json yet."
+          echo "Checkout and Bun ${{ steps.setup-bun.outputs.bun-version }} succeeded."
+          echo "Install, typecheck, and tests start once package.json is committed."
+
+      - name: Require bun.lock when package.json exists
+        if: hashFiles('package.json') != ''
+        run: |
+          if [ ! -f bun.lock ] && [ ! -f bun.lockb ]; then
+            echo "::error::package.json is present but bun.lock is missing. Commit the Bun lockfile so CI can run bun install --frozen-lockfile."
+            exit 1
+          fi
+
+      - name: Install
+        if: hashFiles('package.json') != ''
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        if: hashFiles('package.json') != ''
+        run: bunx tsc --noEmit
+
+      - name: Test
+        if: hashFiles('package.json') != ''
+        run: bun test --pass-with-no-tests --path-ignore-patterns='**/integration/**'
+        # Do not set TYPESAFE_API_KEY. Live tests under tests/integration/ stay skipped.

@@ -14,7 +14,17 @@ This repository is **not** a finished MCP product yet. The first deliverable is 
 
 - Research complete (see `docs/research-jev-typesafe-mcp.md`)
 - GitHub Flow + Conventional Commits configured
+- CI on pull requests and `main` (required check name **CI**, Bun 1.4.2)
+- `main` requires a PR, requires **CI** to pass, and blocks force-push/delete except owner emergency bypass
 - MCP server implementation not started on purpose
+
+## How to contribute
+
+Start from `main`, open a short-lived branch (`feature/`, `fix/`, `docs/`, `chore/`, …), and merge through a pull request. The **CI** check must be green. Only owner `MarkChu-git` may force-push `main` as an escape hatch; nobody else can, and `main` cannot be deleted.
+
+Details: [CONTRIBUTING.md](CONTRIBUTING.md). Workflow: [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
+
+CI uses Bun only (`bun` / `bunx`, `oven-sh/setup-bun`). When `package.json` exists it runs `bun install --frozen-lockfile`, `bunx tsc --noEmit`, and `bun test` excluding `tests/integration/` (no `TYPESAFE_API_KEY` in CI). Until the package exists, CI still checks out and installs Bun so the required check stays green.
 
 ## Next
 
