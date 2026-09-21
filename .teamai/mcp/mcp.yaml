@@ -1,0 +1,4 @@
+# Shared MCP servers for teamai pull.
+# Register the local TypeSafe/Jev MCP here after it is implemented.
+# Secrets must use ${VAR} interpolation — never commit real keys.
+servers: []

@@ -8,8 +8,11 @@ This repo uses **GitHub Flow** and [Conventional Commits](https://www.convention
 - Create short-lived branches from `main`:
   - `feature/<name>`
   - `fix/<name>`
+  - `hotfix/<name>`
   - `docs/<name>`
   - `chore/<name>`
+  - `release/<version>`
+  - `experiment/<name>` or `poc/<name>`
 - Open a pull request when ready. Merge after review and CI.
 - Do not commit directly to `main` for feature work.
 - Do not rebase shared or already-pushed branches. Rebase only local-only branches onto `main` before opening a PR.

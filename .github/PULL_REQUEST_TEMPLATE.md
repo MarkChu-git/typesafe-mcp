@@ -29,3 +29,5 @@ Before/after screenshots for UI changes.
 - [ ] No new warnings introduced
 - [ ] Tests pass locally
 - [ ] Related issues linked
+
+Closes #

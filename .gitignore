@@ -40,6 +40,8 @@ coverage/
 
 # Tool local state (generated artifacts may still be committed)
 graphify-out/.graphify_python
+graphify-out/cache/
+.gitnexus/
 .teamai/config.yaml
 .teamai/token
 .teamai/state.json
