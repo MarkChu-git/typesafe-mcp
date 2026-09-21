@@ -8,19 +8,14 @@ An MCP server that wraps **Jev**, TypeSafe AI's System One decision model, so **
 
 ## Install and run
 
-```bash
-bun install
-bun run start        # stdio server — exits immediately if stdin closes
-```
-
-The server is stdio-first: your MCP host spawns it. Copy [examples/stdio.mcp.json](examples/stdio.mcp.json), replace `/ABSOLUTE/PATH/TO/typesafe-mcp` with this repo's absolute path, and set `TYPESAFE_API_KEY` in the server `env` block. `examples/cursor.mcp.json` and `examples/claude-desktop.json` are the same JSON shape — the only difference is which host file it goes in.
+Published to npm as a single-file Bun bundle — no clone needed:
 
 ```json
 {
   "mcpServers": {
     "jev": {
-      "command": "bun",
-      "args": ["run", "/ABSOLUTE/PATH/TO/typesafe-mcp/src/index.ts"],
+      "command": "bunx",
+      "args": ["typesafe-mcp"],
       "env": {
         "TYPESAFE_API_KEY": "<paste-your-key-here>",
         "TYPESAFE_DEFAULT_MODEL": "jev-latest"
@@ -29,6 +24,17 @@ The server is stdio-first: your MCP host spawns it. Copy [examples/stdio.mcp.jso
   }
 }
 ```
+
+Paste that block into any MCP host's config (Cursor `~/.cursor/mcp.json`, Claude Desktop `claude_desktop_config.json`, Claude Code `.claude.json`, Windsurf, Cline — all the same shape). Requires [Bun](https://bun.sh) on PATH.
+
+Running from source instead:
+
+```bash
+bun install
+bun run start        # stdio server — exits immediately if stdin closes
+```
+
+then point your host at the repo path — see [examples/stdio.mcp.json](examples/stdio.mcp.json) and replace `/ABSOLUTE/PATH/TO/typesafe-mcp` with this repo's absolute path (`examples/cursor.mcp.json` and `examples/claude-desktop.json` are the same JSON shape — the only difference is which host file it goes in).
 
 Never commit real keys — `.cursor/mcp.json`, `.mcp.json`, `.env*` are gitignored. Without a key the server still connects and lists tools; calls return a `CONFIG:` error telling you where to put the key.
 
@@ -76,11 +82,11 @@ CI: `.github/workflows/ci.yml` — frozen lockfile, typecheck, oxlint, `bun test
 - **Streamable HTTP transport** (`createMcpHandler` + Hono/`Bun.serve`) for remote/shared deployments
 - **Object-shaped `instructions`** on questions (structured prompts referencing `state` fields)
 - **Opinionated tools** (`jev_gate` / `jev_screen` / `jev_match`) — pending the first business-scenario decision
-- **`bun build` single-file dist + npm publish**
 
 ## Status
 
 - P0 done: scaffold + `jev_models`/`jev_check` over stdio
 - P1 done: `jev_classify`/`jev_score`/`jev_ask`
+- Published to npm as `typesafe-mcp` — `bunx typesafe-mcp` runs the bundled single-file build (`bun run build` → `dist/`, rebuilt on `npm publish` via `prepack`)
 - Research notes: [docs/research-jev-typesafe-mcp.md](docs/research-jev-typesafe-mcp.md); plan: [docs/plan-build-jev-mcp.md](docs/plan-build-jev-mcp.md)
 - GitHub Flow + Conventional Commits; `main` requires PR + `CI`, `Conventional title`, and both `platform` checks
