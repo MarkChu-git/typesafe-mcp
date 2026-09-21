@@ -1,6 +1,6 @@
 # typesafe-mcp 项目上下文
 
-本仓库给 TypeSafe AI 的 Jev（System One 决策模型）做 MCP。当前阶段只做调研和仓库工具配置，不要写 MCP 服务器主逻辑。
+本仓库给 TypeSafe AI 的 Jev（System One 决策模型）做 MCP。目标客户端是 **所有 MCP host / agent**（Cursor、Claude Desktop / Claude Code、Codex、Windsurf、Cline、自建 agent），不是只给 Cursor。第一期传输是 stdio；Streamable HTTP 留给远程共享。
 
 调研结论见仓库根目录 `docs/research-jev-typesafe-mcp.md`。
 

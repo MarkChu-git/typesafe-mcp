@@ -77,7 +77,7 @@ Jev **不能**：写邮件、写代码、解释理由、出图、开放生成。
 ### 方案 A（推荐）：TypeScript MCP 薄封装官方 SDK
 
 ```
-Cursor / Claude / 其他 MCP 客户端
+任意 MCP 客户端（Cursor / Claude Desktop / Claude Code / Codex / Windsurf / Cline / 自建）
         │ stdio（本地）或 Streamable HTTP（远程）
         ▼
 typesafe-mcp（本仓库）
@@ -97,7 +97,7 @@ structured answers + probabilities + confidence
 | MCP | 官方 `@modelcontextprotocol/server`（v2；官方支持 Bun） |
 | TypeSafe | `@typesafe-ai/sdk`（`choice` / `score` / `noul` + `TypeSafeClient`）。不用 Python SDK |
 | 校验 | Zod：一份 schema → JSON Schema + handler 类型 |
-| 传输 | 先 stdio（Cursor 本地）；需要共享再加 Streamable HTTP |
+| 传输 | 先 stdio（任意本地 MCP host）；需要共享再加 Streamable HTTP |
 | 鉴权 | 只读环境变量 `TYPESAFE_API_KEY`；禁止 tool 参数传 key |
 | 模型默认 | 开发用 `jev-latest`；生产阈值钉死 `jev-1.13.0` |
 
@@ -125,7 +125,7 @@ structured answers + probabilities + confidence
 
 ### 方案 B：Python MCP + `typesafe-sdk`
 
-本仓库已规定 **只用 Bun**，此方案排除。即使没有这条约束，在 Cursor 里也不如 TS 顺。
+本仓库已规定 **只用 Bun**，此方案排除。即使没有这条约束，和本仓库 TypeScript MCP 方向也不匹配。
 
 ### 方案 C：复用 / fork 现成 `jev-mcp`
 
@@ -159,9 +159,9 @@ structured answers + probabilities + confidence
 3. 实现 `jev_models`（不花钱探活）和 `jev_check`
 4. 补 `jev_classify`、`jev_score`、`jev_ask`
 5. 代码侧 gating helper（阈值默认 0.8 / 0.5，可覆盖）
-6. Cursor `mcp.json`：stdio + `TYPESAFE_API_KEY` 注入
+6. 各 MCP host 的 stdio 配置：同一 spawn + `TYPESAFE_API_KEY` 注入（见 `examples/stdio.mcp.json`）
 7. Fixture / 录制测试（无 key 时不打真实 API）
-8. 再考虑 HTTP transport、Claude Desktop、opinionated tools
+8. 再考虑 HTTP transport、opinionated tools。Claude Desktop 已是 stdio 客户端，不是这一步才做。
 
 ## 8. 风险、缺口、需要确认的点
 
@@ -185,7 +185,7 @@ structured answers + probabilities + confidence
 
 1. 是否已有 `TYPESAFE_API_KEY`，还是还在 waitlist？
 2. 自研方案 A，还是先试用现成 `jev-mcp`？
-3. 第一期只要 Cursor stdio，还是同时要 Claude Desktop / 远程 HTTP？
+3. ~~第一期只要 Cursor stdio，还是同时要 Claude Desktop / 远程 HTTP？~~ **已确认：给所有 agent。第一期 stdio；HTTP 后置。Claude Desktop 走 stdio。**
 4. 工具只要四种 primitive，还是要 `gate` / `screen` / `match`？
 5. 主要判断语言是英文还是中文？（影响题面设计和验收）
 6. 有没有具体第一个场景（例如：拦截危险 shell、给 ticket 路由、给检索结果打分）？
