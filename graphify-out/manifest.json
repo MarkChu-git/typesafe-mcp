@@ -1,0 +1,437 @@
+{
+  ".cursor/hooks.json": {
+    "mtime": 1789985588.2714095,
+    "ast_hash": "eed4ae8969788409570afa09aee75366",
+    "semantic_hash": "eed4ae8969788409570afa09aee75366"
+  },
+  ".cursor/commands/opsx-apply.md": {
+    "mtime": 1789985876.8166242,
+    "ast_hash": "4d1222e9b922729ccea9d0901bbd6957",
+    "semantic_hash": "4d1222e9b922729ccea9d0901bbd6957"
+  },
+  ".cursor/commands/opsx-archive.md": {
+    "mtime": 1789985876.8172328,
+    "ast_hash": "ed2872365f48c6049940b52927a4739e",
+    "semantic_hash": "ed2872365f48c6049940b52927a4739e"
+  },
+  ".cursor/commands/opsx-explore.md": {
+    "mtime": 1789985876.8164396,
+    "ast_hash": "c16ccd9b68f990ea8baf9a8d2a079d6d",
+    "semantic_hash": "c16ccd9b68f990ea8baf9a8d2a079d6d"
+  },
+  ".cursor/commands/opsx-propose.md": {
+    "mtime": 1789985876.8173947,
+    "ast_hash": "b554467ec8bc676fd8998364d3adb358",
+    "semantic_hash": "b554467ec8bc676fd8998364d3adb358"
+  },
+  ".cursor/commands/opsx-sync.md": {
+    "mtime": 1789985876.81707,
+    "ast_hash": "5aed91b3bef8ad198210b37d120ada13",
+    "semantic_hash": "5aed91b3bef8ad198210b37d120ada13"
+  },
+  ".cursor/commands/opsx-update.md": {
+    "mtime": 1789985876.816866,
+    "ast_hash": "576d9cf7dea5ae57ca85cc5f4f21ee97",
+    "semantic_hash": "576d9cf7dea5ae57ca85cc5f4f21ee97"
+  },
+  ".cursor/skills/openspec-apply-change/SKILL.md": {
+    "mtime": 1789985876.8146,
+    "ast_hash": "2519bee2b792cce718781850141004a2",
+    "semantic_hash": "2519bee2b792cce718781850141004a2"
+  },
+  ".cursor/skills/openspec-archive-change/SKILL.md": {
+    "mtime": 1789985876.815623,
+    "ast_hash": "f6340e8a60cf8c7e1d09f6a625e2a8e1",
+    "semantic_hash": "f6340e8a60cf8c7e1d09f6a625e2a8e1"
+  },
+  ".cursor/skills/openspec-explore/SKILL.md": {
+    "mtime": 1789985876.814316,
+    "ast_hash": "dd2c58a694407728d58ded3eb1d16377",
+    "semantic_hash": "dd2c58a694407728d58ded3eb1d16377"
+  },
+  ".cursor/skills/openspec-propose/SKILL.md": {
+    "mtime": 1789985876.815829,
+    "ast_hash": "998ece47ef8b3c785146e0ba43923440",
+    "semantic_hash": "998ece47ef8b3c785146e0ba43923440"
+  },
+  ".cursor/skills/openspec-sync-specs/SKILL.md": {
+    "mtime": 1789985876.8152578,
+    "ast_hash": "5f10cc8f8717180fb0f9ef83a0a1dcfe",
+    "semantic_hash": "5f10cc8f8717180fb0f9ef83a0a1dcfe"
+  },
+  ".cursor/skills/openspec-update-change/SKILL.md": {
+    "mtime": 1789985876.814843,
+    "ast_hash": "e6e4bb6d5e8cb3d5282bdb4012b09b5f",
+    "semantic_hash": "e6e4bb6d5e8cb3d5282bdb4012b09b5f"
+  },
+  ".github/PULL_REQUEST_TEMPLATE.md": {
+    "mtime": 1789985811.9053347,
+    "ast_hash": "79f03302541e924c7d897e5a3144e070",
+    "semantic_hash": "79f03302541e924c7d897e5a3144e070"
+  },
+  ".teamai/docs/project-context.md": {
+    "mtime": 1789985994.8317711,
+    "ast_hash": "9eec283e361b2ecef9c0966ad974efaa",
+    "semantic_hash": "9eec283e361b2ecef9c0966ad974efaa"
+  },
+  ".teamai/mcp/mcp.yaml": {
+    "mtime": 1789985623.6181746,
+    "ast_hash": "84cea7ce20bd99916ea0d0a3b0a1b56f",
+    "semantic_hash": "84cea7ce20bd99916ea0d0a3b0a1b56f"
+  },
+  ".teamai/rules/git-workflow.md": {
+    "mtime": 1789985623.1516612,
+    "ast_hash": "ca76f1023da9d25c97f5832ba0a2e918",
+    "semantic_hash": "ca76f1023da9d25c97f5832ba0a2e918"
+  },
+  ".teamai/teamai.yaml": {
+    "mtime": 1789985588.2594151,
+    "ast_hash": "a7581cfd76396700253b810c4b87ead6",
+    "semantic_hash": "a7581cfd76396700253b810c4b87ead6"
+  },
+  "CONTRIBUTING.md": {
+    "mtime": 1789985994.8299778,
+    "ast_hash": "dc214088b1edee1cfd27be9887d65a06",
+    "semantic_hash": "dc214088b1edee1cfd27be9887d65a06"
+  },
+  "README.md": {
+    "mtime": 1789985994.831765,
+    "ast_hash": "f555ef32fe4fefd1381c3a1a2d927f90",
+    "semantic_hash": "f555ef32fe4fefd1381c3a1a2d927f90"
+  },
+  "docs/research-jev-typesafe-mcp.md": {
+    "mtime": 1789986009.383813,
+    "ast_hash": "7747acd7d6a3589f3086d3ec252cc1fe",
+    "semantic_hash": "7747acd7d6a3589f3086d3ec252cc1fe"
+  },
+  "openspec/config.yaml": {
+    "mtime": 1789985640.5158515,
+    "ast_hash": "42947ff9539b0ff2ad03025bced839e5",
+    "semantic_hash": "42947ff9539b0ff2ad03025bced839e5"
+  },
+  ".claude/settings.json": {
+    "mtime": 1789985986.1783745,
+    "ast_hash": "2db27879b76d56f4450f37ec85b32880",
+    "semantic_hash": ""
+  },
+  ".claude/skills/team-wiki-codebase/scripts/scan_repo.py": {
+    "mtime": 1789985999.8562884,
+    "ast_hash": "bf611d91ca84185bf7eebce3e37df9c3",
+    "semantic_hash": ""
+  },
+  ".claude/skills/team-wiki-codebase/scripts/validate_kb.py": {
+    "mtime": 1789985999.8562887,
+    "ast_hash": "f6cb25e9885b77c3886adb35683b3517",
+    "semantic_hash": ""
+  },
+  ".cursor/skills/team-wiki-codebase/scripts/scan_repo.py": {
+    "mtime": 1789985999.8585403,
+    "ast_hash": "bf611d91ca84185bf7eebce3e37df9c3",
+    "semantic_hash": ""
+  },
+  ".cursor/skills/team-wiki-codebase/scripts/validate_kb.py": {
+    "mtime": 1789985999.8586123,
+    "ast_hash": "f6cb25e9885b77c3886adb35683b3517",
+    "semantic_hash": ""
+  },
+  ".claude/rules/git-workflow.md": {
+    "mtime": 1789985999.8482578,
+    "ast_hash": "ca76f1023da9d25c97f5832ba0a2e918",
+    "semantic_hash": ""
+  },
+  ".claude/skills/gitnexus-cli/SKILL.md": {
+    "mtime": 1789985857.0846636,
+    "ast_hash": "a90c0d2c3f22909780303db1f5daa178",
+    "semantic_hash": ""
+  },
+  ".claude/skills/gitnexus-debugging/SKILL.md": {
+    "mtime": 1789985857.0834951,
+    "ast_hash": "5a6e25eee809c31a0cc7071018b62aa8",
+    "semantic_hash": ""
+  },
+  ".claude/skills/gitnexus-exploring/SKILL.md": {
+    "mtime": 1789985857.0825357,
+    "ast_hash": "d84b30f0d425f42c7278957bfe8c2498",
+    "semantic_hash": ""
+  },
+  ".claude/skills/gitnexus-guide/SKILL.md": {
+    "mtime": 1789985857.0843625,
+    "ast_hash": "51eee64e023b05990b57ea22eac4957d",
+    "semantic_hash": ""
+  },
+  ".claude/skills/gitnexus-impact-analysis/SKILL.md": {
+    "mtime": 1789985857.0830324,
+    "ast_hash": "c1bbbda0d172d9743ff81f7a66f5b80a",
+    "semantic_hash": ""
+  },
+  ".claude/skills/gitnexus-refactoring/SKILL.md": {
+    "mtime": 1789985857.0838673,
+    "ast_hash": "7bd98a42fc96205ae57283575451a142",
+    "semantic_hash": ""
+  },
+  ".claude/skills/team-wiki-codebase/README.md": {
+    "mtime": 1789985999.8559337,
+    "ast_hash": "b471913b78463c8bd798f0b21d99493d",
+    "semantic_hash": ""
+  },
+  ".claude/skills/team-wiki-codebase/SKILL.md": {
+    "mtime": 1789985999.8559592,
+    "ast_hash": "6f0b432d6ca63a8ab6de538132ce015b",
+    "semantic_hash": ""
+  },
+  ".claude/skills/team-wiki-codebase/references/agents/graph-rag-agent.md": {
+    "mtime": 1789985999.8568976,
+    "ast_hash": "729aa8a3fed9768b3e6edefbfb99b978",
+    "semantic_hash": ""
+  },
+  ".claude/skills/team-wiki-codebase/references/agents/kb-doc-generator.md": {
+    "mtime": 1789985999.8569617,
+    "ast_hash": "758e25ee49d7d4f6f92ddd11f6dbf4a2",
+    "semantic_hash": ""
+  },
+  ".claude/skills/team-wiki-codebase/references/methodology/phase0-collection.md": {
+    "mtime": 1789985999.8568687,
+    "ast_hash": "0767b7f513d2c7a7ef2bac7ff4e7bad0",
+    "semantic_hash": ""
+  },
+  ".claude/skills/team-wiki-codebase/references/methodology/phase1-reverse-engineering.md": {
+    "mtime": 1789985999.8566866,
+    "ast_hash": "70a0790fecc02895f7a2dc9dad7a1329",
+    "semantic_hash": ""
+  },
+  ".claude/skills/team-wiki-codebase/references/methodology/phase2-document-types.md": {
+    "mtime": 1789985999.8566139,
+    "ast_hash": "5876b2db68fca21748c44c2a9f377243",
+    "semantic_hash": ""
+  },
+  ".claude/skills/team-wiki-codebase/references/methodology/phase3-ai-enhancement.md": {
+    "mtime": 1789985999.8567638,
+    "ast_hash": "d5d9dbb28d0e3dc040fd8dc6a28ba1b2",
+    "semantic_hash": ""
+  },
+  ".claude/skills/team-wiki-codebase/references/methodology/phase4-quality.md": {
+    "mtime": 1789985999.8566904,
+    "ast_hash": "d3fd2d1083b12c3d45ef117ee56cefc0",
+    "semantic_hash": ""
+  },
+  ".claude/skills/team-wiki-codebase/references/templates/project-overview.md": {
+    "mtime": 1789985999.8568702,
+    "ast_hash": "28348cca735dd3d06d912ba65ca9a4e0",
+    "semantic_hash": ""
+  },
+  ".claude/skills/teamai/SKILL.md": {
+    "mtime": 1789985999.8395333,
+    "ast_hash": "1191271eb300df2862cacfda84a9933a",
+    "semantic_hash": ""
+  },
+  ".claude/skills/teamai/references/contribute-member.md": {
+    "mtime": 1789985999.8399067,
+    "ast_hash": "11c43510bfcee5178e8c4a94620d7f23",
+    "semantic_hash": ""
+  },
+  ".claude/skills/teamai/references/join-member.md": {
+    "mtime": 1789985999.8399174,
+    "ast_hash": "5744b79469cbaaa1b1d065846ffd4df7",
+    "semantic_hash": ""
+  },
+  ".claude/skills/teamai/references/manage-admin.md": {
+    "mtime": 1789985999.839911,
+    "ast_hash": "b4499a74b331c55fa5b20915fe8a7231",
+    "semantic_hash": ""
+  },
+  ".claude/skills/teamai/references/setup-admin.md": {
+    "mtime": 1789985999.840091,
+    "ast_hash": "031fd741fdebd08482b65eae338c2170",
+    "semantic_hash": ""
+  },
+  ".claude/skills/teamai/references/troubleshooting.md": {
+    "mtime": 1789985999.8400934,
+    "ast_hash": "e3c7ef8e1db6ace061d2966aa49dfba9",
+    "semantic_hash": ""
+  },
+  ".claude/skills/teamai/references/uninstall.md": {
+    "mtime": 1789985999.8399036,
+    "ast_hash": "4206e67010a0649803dff6f2be9bef5c",
+    "semantic_hash": ""
+  },
+  ".cursor/skills/team-wiki-codebase/README.md": {
+    "mtime": 1789985999.8582456,
+    "ast_hash": "b471913b78463c8bd798f0b21d99493d",
+    "semantic_hash": ""
+  },
+  ".cursor/skills/team-wiki-codebase/SKILL.md": {
+    "mtime": 1789985999.858321,
+    "ast_hash": "6f0b432d6ca63a8ab6de538132ce015b",
+    "semantic_hash": ""
+  },
+  ".cursor/skills/team-wiki-codebase/references/agents/graph-rag-agent.md": {
+    "mtime": 1789985999.8587644,
+    "ast_hash": "729aa8a3fed9768b3e6edefbfb99b978",
+    "semantic_hash": ""
+  },
+  ".cursor/skills/team-wiki-codebase/references/agents/kb-doc-generator.md": {
+    "mtime": 1789985999.8588142,
+    "ast_hash": "758e25ee49d7d4f6f92ddd11f6dbf4a2",
+    "semantic_hash": ""
+  },
+  ".cursor/skills/team-wiki-codebase/references/methodology/phase0-collection.md": {
+    "mtime": 1789985999.859068,
+    "ast_hash": "0767b7f513d2c7a7ef2bac7ff4e7bad0",
+    "semantic_hash": ""
+  },
+  ".cursor/skills/team-wiki-codebase/references/methodology/phase1-reverse-engineering.md": {
+    "mtime": 1789985999.8588934,
+    "ast_hash": "70a0790fecc02895f7a2dc9dad7a1329",
+    "semantic_hash": ""
+  },
+  ".cursor/skills/team-wiki-codebase/references/methodology/phase2-document-types.md": {
+    "mtime": 1789985999.8588574,
+    "ast_hash": "5876b2db68fca21748c44c2a9f377243",
+    "semantic_hash": ""
+  },
+  ".cursor/skills/team-wiki-codebase/references/methodology/phase3-ai-enhancement.md": {
+    "mtime": 1789985999.8590693,
+    "ast_hash": "d5d9dbb28d0e3dc040fd8dc6a28ba1b2",
+    "semantic_hash": ""
+  },
+  ".cursor/skills/team-wiki-codebase/references/methodology/phase4-quality.md": {
+    "mtime": 1789985999.8590677,
+    "ast_hash": "d3fd2d1083b12c3d45ef117ee56cefc0",
+    "semantic_hash": ""
+  },
+  ".cursor/skills/team-wiki-codebase/references/templates/project-overview.md": {
+    "mtime": 1789985999.8590689,
+    "ast_hash": "28348cca735dd3d06d912ba65ca9a4e0",
+    "semantic_hash": ""
+  },
+  ".cursor/skills/teamai/SKILL.md": {
+    "mtime": 1789985999.8444042,
+    "ast_hash": "1191271eb300df2862cacfda84a9933a",
+    "semantic_hash": ""
+  },
+  ".cursor/skills/teamai/references/contribute-member.md": {
+    "mtime": 1789985999.8449037,
+    "ast_hash": "11c43510bfcee5178e8c4a94620d7f23",
+    "semantic_hash": ""
+  },
+  ".cursor/skills/teamai/references/join-member.md": {
+    "mtime": 1789985999.8447628,
+    "ast_hash": "5744b79469cbaaa1b1d065846ffd4df7",
+    "semantic_hash": ""
+  },
+  ".cursor/skills/teamai/references/manage-admin.md": {
+    "mtime": 1789985999.8447633,
+    "ast_hash": "b4499a74b331c55fa5b20915fe8a7231",
+    "semantic_hash": ""
+  },
+  ".cursor/skills/teamai/references/setup-admin.md": {
+    "mtime": 1789985999.844914,
+    "ast_hash": "031fd741fdebd08482b65eae338c2170",
+    "semantic_hash": ""
+  },
+  ".cursor/skills/teamai/references/troubleshooting.md": {
+    "mtime": 1789985999.8447967,
+    "ast_hash": "e3c7ef8e1db6ace061d2966aa49dfba9",
+    "semantic_hash": ""
+  },
+  ".cursor/skills/teamai/references/uninstall.md": {
+    "mtime": 1789985999.844763,
+    "ast_hash": "4206e67010a0649803dff6f2be9bef5c",
+    "semantic_hash": ""
+  },
+  ".teamai/hooks/hooks.yaml": {
+    "mtime": 1789985977.7531216,
+    "ast_hash": "7ba0677680ffd57b416f545156a19a86",
+    "semantic_hash": ""
+  },
+  ".teamai/skills/teamai/SKILL.md": {
+    "mtime": 1789985972.4160328,
+    "ast_hash": "1191271eb300df2862cacfda84a9933a",
+    "semantic_hash": ""
+  },
+  ".teamai/skills/teamai/references/contribute-member.md": {
+    "mtime": 1789985973.8058412,
+    "ast_hash": "11c43510bfcee5178e8c4a94620d7f23",
+    "semantic_hash": ""
+  },
+  ".teamai/skills/teamai/references/join-member.md": {
+    "mtime": 1789985973.0776792,
+    "ast_hash": "5744b79469cbaaa1b1d065846ffd4df7",
+    "semantic_hash": ""
+  },
+  ".teamai/skills/teamai/references/manage-admin.md": {
+    "mtime": 1789985973.4369476,
+    "ast_hash": "b4499a74b331c55fa5b20915fe8a7231",
+    "semantic_hash": ""
+  },
+  ".teamai/skills/teamai/references/setup-admin.md": {
+    "mtime": 1789985972.758132,
+    "ast_hash": "031fd741fdebd08482b65eae338c2170",
+    "semantic_hash": ""
+  },
+  ".teamai/skills/teamai/references/troubleshooting.md": {
+    "mtime": 1789985974.141661,
+    "ast_hash": "e3c7ef8e1db6ace061d2966aa49dfba9",
+    "semantic_hash": ""
+  },
+  ".teamai/skills/teamai/references/uninstall.md": {
+    "mtime": 1789985974.4782917,
+    "ast_hash": "4206e67010a0649803dff6f2be9bef5c",
+    "semantic_hash": ""
+  },
+  "AGENTS.md": {
+    "mtime": 1789986161.5797007,
+    "ast_hash": "7118838e0c293869dd7c5267c588116f",
+    "semantic_hash": ""
+  },
+  "CLAUDE.md": {
+    "mtime": 1789985773.8787603,
+    "ast_hash": "742bb3e7fbcd5c148d4e138dd57227c5",
+    "semantic_hash": ""
+  },
+  "docs/plan-build-jev-mcp.md": {
+    "mtime": 1789987343.419025,
+    "ast_hash": "ec9e0665a0dc8e04fa288d2138a774a8",
+    "semantic_hash": ""
+  },
+  "openspec/changes/build-jev-mcp/.openspec.yaml": {
+    "mtime": 1789986429.2819273,
+    "ast_hash": "4e03f87220bb778e3f11f3bc549a3cd7",
+    "semantic_hash": ""
+  },
+  "openspec/changes/build-jev-mcp/design.md": {
+    "mtime": 1789986968.4569879,
+    "ast_hash": "f3c026d1fdb1148bca8108eafd857c4a",
+    "semantic_hash": ""
+  },
+  "openspec/changes/build-jev-mcp/proposal.md": {
+    "mtime": 1789986747.1846464,
+    "ast_hash": "a0f4ef8920f4eae813643cec1d87c9eb",
+    "semantic_hash": ""
+  },
+  "openspec/changes/build-jev-mcp/specs/decision-gating/spec.md": {
+    "mtime": 1789986832.5095787,
+    "ast_hash": "9e6577c2fb541737a9cbd58326877049",
+    "semantic_hash": ""
+  },
+  "openspec/changes/build-jev-mcp/specs/error-mapping/spec.md": {
+    "mtime": 1789986848.9545212,
+    "ast_hash": "cf170efaa260418d2d4f32ec47cdd15a",
+    "semantic_hash": ""
+  },
+  "openspec/changes/build-jev-mcp/specs/jev-decision-tools/spec.md": {
+    "mtime": 1789986817.7485979,
+    "ast_hash": "31a788b23e973cda59f4b493ebeb5ce8",
+    "semantic_hash": ""
+  },
+  "openspec/changes/build-jev-mcp/specs/mcp-server-runtime/spec.md": {
+    "mtime": 1789986787.079964,
+    "ast_hash": "05e4f96d0fa93bd982aab11e7b336492",
+    "semantic_hash": ""
+  },
+  "openspec/changes/build-jev-mcp/tasks.md": {
+    "mtime": 1789987042.8765223,
+    "ast_hash": "2503b9d5b9ba35613f3a2ab8ab2952a9",
+    "semantic_hash": ""
+  }
+}

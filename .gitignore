@@ -47,3 +47,8 @@ graphify-out/cache/
 .teamai/state.json
 .teamai/team-repo/
 .teamai/worktrees/
+# teamai pull writes resolved MCP tokens here — never commit
+.cursor/mcp.json
+.mcp.json
+.github/mcp.json
+

@@ -2,6 +2,23 @@
 
 This repo uses **GitHub Flow** and [Conventional Commits](https://www.conventionalcommits.org/).
 
+## Runtime
+
+**Bun only.** Do not use Node, npm, pnpm, yarn, `npx`, pip, or uv in this repository.
+
+- Install: `bun add` / `bun install`
+- Run: `bun` / `bunx`
+- Lockfile: `bun.lock` (commit it when the package exists)
+
+**Linter: oxlint only.** Do not add ESLint or Biome.
+
+- Config: `.oxlintrc.json`
+- Run: `bunx oxlint` (after `package.json` exists: `bun run lint`)
+- Install: `bun add -d oxlint`
+- Types stay with `bunx tsc --noEmit`. Do not turn on oxlint `typeAware` / `typeCheck` unless we bump TypeScript far enough for `oxlint-tsgolint`.
+
+The TypeSafe client is `@typesafe-ai/sdk`. Do not add Python `typesafe-sdk`.
+
 ## Branching
 
 - `main` is always deployable.

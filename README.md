@@ -16,8 +16,16 @@ This repository is **not** a finished MCP product yet. The first deliverable is 
 - GitHub Flow + Conventional Commits configured
 - MCP server implementation not started on purpose
 
+## Stack
+
+- **Runtime and package manager: Bun only.** Do not use Node, npm, pnpm, yarn, `npx`, or Python for this repo.
+- **Lint:** **oxlint only** (`.oxlintrc.json`). Do not add ESLint or Biome. Types: `bunx tsc --noEmit`.
+- **SDK:** official JS/TS client `@typesafe-ai/sdk` (not `typesafe-sdk` / Python).
+- **MCP:** official TypeScript SDK `@modelcontextprotocol/server` (v2; supports Bun).
+- Install and run with `bun add`, `bun install`, `bun`, `bunx`.
+
 ## Next
 
 1. Confirm API access (`TYPESAFE_API_KEY` from [console.typesafe.ai](https://console.typesafe.ai))
 2. Confirm tool surface (thin primitives vs opinionated gates)
-3. Scaffold a TypeScript MCP server with `@typesafe-ai/sdk` + official MCP TypeScript SDK
+3. Scaffold a Bun TypeScript MCP server with `@typesafe-ai/sdk` + `@modelcontextprotocol/server`

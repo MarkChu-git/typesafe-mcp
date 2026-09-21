@@ -6,5 +6,8 @@
 
 - Jev 不是聊天模型，不生成文本
 - TypeSafe 是公司/API，不是泛指 TypeScript MCP
-- 推荐后续实现：TypeScript 薄封装 `@typesafe-ai/sdk` + 官方 MCP SDK
+- 推荐后续实现：Bun + TypeScript 薄封装 `@typesafe-ai/sdk` + `@modelcontextprotocol/server`
+- **只用 Bun**（`bun` / `bunx` / `bun add`）。不要用 Node、npm、pnpm、yarn、npx、Python
+- **Linter 只用 oxlint**。不要加 ESLint / Biome。类型检查用 `tsc --noEmit`
+- 不要用 Python 的 `typesafe-sdk`
 - 密钥只用环境变量 `TYPESAFE_API_KEY`，不要写进仓库或 tool 参数

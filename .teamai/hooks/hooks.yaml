@@ -1,0 +1,3 @@
+# Team hooks — edited here, shipped with a normal commit (not teamai push).
+# teamai pull delivers them to each enabled AI tool.
+hooks: []
