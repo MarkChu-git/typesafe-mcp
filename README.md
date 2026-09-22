@@ -17,6 +17,10 @@
 
 An MCP server that wraps **Jev**, TypeSafe AI's System One decision model, so **any agent** can ask typed questions and get structured, auditable answers back — probabilities, confidence, and a threshold-gated `act / review / abstain` verdict. No generated text, no vibes.
 
+```bash
+bunx typesafe-mcp        # stdio server — add to any MCP host config, done
+```
+
 ```mermaid
 flowchart LR
     A[Agent] -->|tool call| M[typesafe-mcp]
