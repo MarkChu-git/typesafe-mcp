@@ -56,7 +56,6 @@ export const refineThresholds = (
 const commonFields = { detailed: detailedField, model: modelField, ...thresholdsFields };
 
 export const QUESTION_TYPES = ["noul", "choice", "score"] as const;
-export type QuestionType = (typeof QUESTION_TYPES)[number];
 
 /** The field each type requires; the other type-specific fields are rejected. */
 const TYPE_FIELD = { noul: "criteria", choice: "options", score: "levels" } as const;
@@ -162,15 +161,6 @@ export const modelsOutput = z.object({
   default_model: z.string(),
 });
 
-export type ModelsInput = z.infer<typeof modelsInput>;
-export type ModelsOutput = z.infer<typeof modelsOutput>;
-export type CheckInput = z.infer<typeof checkInput>;
-export type CheckOutput = z.infer<typeof checkOutput>;
-export type ClassifyInput = z.infer<typeof classifyInput>;
-export type ClassifyOutput = z.infer<typeof classifyOutput>;
-export type ScoreInput = z.infer<typeof scoreInput>;
-export type ScoreOutput = z.infer<typeof scoreOutput>;
 export type AskQuestion = z.infer<typeof askQuestionSchema>;
 export type AskInput = z.infer<typeof askInput>;
-export type AskOutput = z.infer<typeof askOutput>;
 export type JevAnswer = z.infer<typeof answerSchema>;

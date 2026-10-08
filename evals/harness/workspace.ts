@@ -8,7 +8,7 @@ export async function prepareWorkspace(
   root?: string,
 ): Promise<{
   dir: string;
-  cleanup(): Promise<void>;
+  cleanup: () => Promise<void>;
 }> {
   const baseDir = root ?? tmpdir();
   const randSuffix = Math.random().toString(36).slice(2, 11);

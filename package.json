@@ -36,12 +36,21 @@
     "dev": "bun --watch run src/index.ts",
     "build": "bun build src/index.ts --target=bun --outfile=dist/typesafe-mcp.js",
     "prepack": "bun run build",
-    "typecheck": "bunx tsc --noEmit",
-    "lint": "oxlint",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint --type-aware --deny-warnings",
     "test": "bun test --path-ignore-patterns='**/integration/**'",
     "test:all": "bun test",
     "test:integration": "bun test tests/integration",
     "test:stdio": "bun test tests/stdio.test.ts",
+    "knip": "knip",
+    "smoke": "bun scripts/ci/smoke.ts",
+    "verify:fast": "bun run typecheck && bun run lint && bun run test",
+    "verify": "bun run verify:fast && bun run knip && bun run build && bun run smoke",
+    "scan": "bun scripts/ci/scan.ts",
+    "release:pack": "bun scripts/ci/pack.ts",
+    "release:sbom": "bun scripts/ci/sbom.ts",
+    "tools:install": "bun scripts/ci/tools.ts install",
+    "tools:update": "bun scripts/ci/tools.ts update",
     "inspect": "bunx @modelcontextprotocol/inspector bun run src/index.ts",
     "eval": "bun run evals/run.ts"
   },
@@ -53,7 +62,9 @@
   "devDependencies": {
     "@modelcontextprotocol/client": "^2.0.0",
     "@types/bun": "^1.4.2",
+    "knip": "^6.40.0",
     "oxlint": "^1.83.0",
+    "oxlint-tsgolint": "^7.0.2003",
     "typescript": "^7.0.2"
   }
 }

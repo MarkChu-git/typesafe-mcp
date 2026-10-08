@@ -133,7 +133,8 @@ function fileFetch(reject: readonly string[] = []) {
   const bodies: { state: { file: string; content: string; context?: unknown } }[] = [];
   const fixture = JSON.stringify(loadFixture("check.yes095.json"));
   const fetch: Fetch = async (_input, init) => {
-    const body = JSON.parse(String(init?.body)) as (typeof bodies)[number];
+    if (typeof init?.body !== "string") throw new Error("fileFetch expects a JSON string body");
+    const body = JSON.parse(init.body) as (typeof bodies)[number];
     bodies.push(body);
     if (reject.includes(body.state.file)) {
       return new Response(JSON.stringify(loadFixture("error.422.json")), { status: 422 });

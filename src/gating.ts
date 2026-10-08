@@ -49,7 +49,7 @@ export const roundDown = (x: number, digits: number): number => {
 };
 
 const rounded = (record: Record<PropertyKey, number>): Record<string, number> =>
-  Object.fromEntries(Object.entries(record).map(([k, v]) => [String(k), round(v, 3)]));
+  Object.fromEntries(Object.entries(record).map(([k, v]) => [k, round(v, 3)]));
 
 /**
  * What the agent reads for one question: the answer, a certainty rounded down to 2 decimals and the

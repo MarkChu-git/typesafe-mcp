@@ -1,0 +1,47 @@
+{
+  "gitleaks": {
+    "repo": "gitleaks/gitleaks",
+    "version": "8.30.1",
+    "binary": "gitleaks",
+    "assets": {
+      "linux-x64": {
+        "name": "gitleaks_{version}_linux_x64.tar.gz",
+        "sha256": "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+      },
+      "darwin-arm64": {
+        "name": "gitleaks_{version}_darwin_arm64.tar.gz",
+        "sha256": "b40ab0ae55c505963e365f271a8d3846efbc170aa17f2607f13df610a9aeb6a5"
+      }
+    }
+  },
+  "osv-scanner": {
+    "repo": "google/osv-scanner",
+    "version": "2.6.0",
+    "binary": "osv-scanner",
+    "assets": {
+      "linux-x64": {
+        "name": "osv-scanner_linux_amd64",
+        "sha256": "ca69b3d3cd08f889a49dc0a383122f71cc528b83803671df5fd874d97485b108"
+      },
+      "darwin-arm64": {
+        "name": "osv-scanner_darwin_arm64",
+        "sha256": "98c460dcd37de25819babd757d04542045b6243113e209edcd4d89fedb0256b4"
+      }
+    }
+  },
+  "syft": {
+    "repo": "anchore/syft",
+    "version": "1.54.1",
+    "binary": "syft",
+    "assets": {
+      "linux-x64": {
+        "name": "syft_{version}_linux_amd64.tar.gz",
+        "sha256": "c069905b391cc4c20a5ba65ad5c10be2a7ba074f8ea6ad203e24d14e303dad47"
+      },
+      "darwin-arm64": {
+        "name": "syft_{version}_darwin_arm64.tar.gz",
+        "sha256": "b4319c3abaa87a0170ab76ee83ea2260ca34b53aecfa3ab0dd5428d2319d744f"
+      }
+    }
+  }
+}

@@ -1,0 +1,19 @@
+# gitleaks: the default rules, plus exceptions that each say why the match is not a credential.
+# Keep every exception as narrow as the false positive it covers.
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Eval task workspaces hold synthetic sample data (fake payment logs with idempotency keys)"
+paths = ['''^evals/tasks/[^/]+/workspace/''']
+
+[[allowlists]]
+description = "Planted placeholder for the TypeSafe API key in the eval harness tests"
+targetRules = ["generic-api-key"]
+regexes = ['''^test-key-12345678$''']
+
+[[allowlists]]
+description = "files.test.ts writes bare PEM header lines to prove private keys are never read"
+targetRules = ["private-key"]
+paths = ['''^tests/files\.test\.ts$''']

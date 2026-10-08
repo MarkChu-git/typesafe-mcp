@@ -105,7 +105,7 @@ describe("verifiers", () => {
     it("uses custom equality function", () => {
       const pred = { id1: 5, id2: 10 };
       const gold = { id1: 5, id2: 9 };
-      expect(itemAccuracy(pred, gold, (a, b) => (a as number) === (b as number))).toBe(0.5);
+      expect(itemAccuracy(pred, gold, (a, b) => a === b)).toBe(0.5);
     });
   });
 

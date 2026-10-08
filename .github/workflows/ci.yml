@@ -1,7 +1,6 @@
-# Required status check name: "CI" (job name). Keep this in sync with
-# branch protection / CONTRIBUTING.md.
-# `platform` is advisory: promote `platform (macos-latest)` and
-# `platform (windows-latest)` to required checks once green on main.
+# Required status checks: "CI", "platform (macos-latest)", "platform (windows-latest)"
+# (plus "Conventional title" from pr-title.yml). Renaming a job breaks branch protection.
+# Every gate is a package.json script, so `bun run verify` locally runs the same checks.
 name: CI
 
 on:
@@ -21,53 +20,37 @@ jobs:
   ci:
     name: CI
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Setup Bun
-        id: setup-bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: "1.4.2"
+          persist-credentials: false
+          fetch-depth: 0 # gitleaks scans the whole history
 
-      - name: Skip package checks until package.json exists
-        if: hashFiles('package.json') == ''
-        run: |
-          echo "No package.json yet."
-          echo "Checkout and Bun ${{ steps.setup-bun.outputs.bun-version }} succeeded."
-          echo "Install, typecheck, and tests start once package.json is committed."
-
-      - name: Require bun.lock when package.json exists
-        if: hashFiles('package.json') != ''
-        run: |
-          if [ ! -f bun.lock ] && [ ! -f bun.lockb ]; then
-            echo "::error::package.json is present but bun.lock is missing. Commit the Bun lockfile so CI can run bun install --frozen-lockfile."
-            exit 1
-          fi
+      # The Bun version comes from package.json "packageManager".
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
 
       - name: Install
-        if: hashFiles('package.json') != ''
         run: bun install --frozen-lockfile
 
-      - name: Typecheck
-        if: hashFiles('package.json') != ''
-        run: bunx tsc --noEmit
+      # typecheck, type-aware lint, unit tests, knip, single-file build, stdio smoke of dist/.
+      # TYPESAFE_API_KEY is never set here, so tests/integration/ stays skipped.
+      - name: Verify
+        run: bun run verify
 
-      - name: Lint
-        if: hashFiles('.oxlintrc.json') != '' && (hashFiles('src/**/*.ts') != '' || hashFiles('tests/**/*.ts') != '')
-        run: bunx oxlint
+      - name: Pack the npm tarball and smoke-test the installed bin
+        run: bun run release:pack "$RUNNER_TEMP/pack"
 
-      - name: Test
-        if: hashFiles('package.json') != ''
-        run: bun test --pass-with-no-tests --path-ignore-patterns='**/integration/**'
-        # Do not set TYPESAFE_API_KEY. Live tests under tests/integration/ stay skipped.
+      - name: Scan the git history for secrets
+        run: bun run scan secrets
 
-  # This server runs over stdio on the user's own machine, so macOS/Windows
-  # are real targets. Advisory until proven green; see header comment.
+  # This server runs over stdio on the user's own machine, so macOS and Windows are real targets.
   platform:
     name: platform (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -75,24 +58,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version: "1.4.2"
 
       - name: Install
-        if: hashFiles('package.json') != ''
         run: bun install --frozen-lockfile
 
-      - name: Typecheck
-        if: hashFiles('package.json') != ''
-        run: bunx tsc --noEmit
-
-      - name: Lint
-        if: hashFiles('.oxlintrc.json') != '' && (hashFiles('src/**/*.ts') != '' || hashFiles('tests/**/*.ts') != '')
-        run: bunx oxlint
-
-      - name: Test
-        if: hashFiles('package.json') != ''
-        run: bun test --pass-with-no-tests --path-ignore-patterns='**/integration/**'
+      - name: Verify
+        run: bun run verify
