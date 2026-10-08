@@ -32,7 +32,7 @@ The TypeSafe client is `@typesafe-ai/sdk`. Do not add Python `typesafe-sdk`.
   - `chore/<name>`
   - `release/<version>`
   - `experiment/<name>` or `poc/<name>`
-- Open a pull request into `main` when ready. Merge only after the required GitHub Actions check **CI** is green.
+- Open a pull request into `main` when ready. Merge only after the required checks are green; `gh pr merge --auto --squash` merges once they are.
 - Do not commit or push feature work directly to `main`.
 - Do not rebase shared or already-pushed branches. Rebase only local-only branches onto `main` before opening a PR.
 - Do not use `--no-verify`. Do not change git config in this repository.
@@ -41,7 +41,7 @@ The TypeSafe client is `@typesafe-ai/sdk`. Do not add Python `typesafe-sdk`.
 
 Every change, including docs and tooling, needs a PR.
 
-Required check name: **CI** (the `ci` job in `.github/workflows/ci.yml`).
+Required checks: **CI** (the `ci` job in `.github/workflows/ci.yml`), `platform (macos-latest)`, `platform (windows-latest)` and `Conventional title`.
 
 CI runs on pull requests and on pushes to `main`. It uses **Bun only** (`oven-sh/setup-bun`, currently Bun `1.4.2`). Do not add `npm ci`, `npx`, or `actions/setup-node` as the package manager.
 
@@ -55,7 +55,7 @@ When `package.json` exists, CI:
 
 `TYPESAFE_API_KEY` is not set in CI. Live tests under `tests/integration/` are excluded.
 
-Other workflows (all advisory unless added to required checks):
+Other workflows (`platform` and `Conventional title` are required, the rest advisory):
 
 | Workflow | Check name(s) | Purpose |
 | --- | --- | --- |
@@ -66,14 +66,15 @@ Other workflows (all advisory unless added to required checks):
 
 No CI secrets are needed. To smoke-test against the real TypeSafe API, run `bun run test:integration` locally with `TYPESAFE_API_KEY` set.
 
-Recommended additions to required checks once green on `main`: `Conventional title`, both `platform` legs.
 
 ## Branch protection on `main`
 
 | Rule | Setting |
 | --- | --- |
 | Require a pull request before merging | Yes |
-| Required status check | **CI** |
+| Required status checks | `CI`, `Conventional title`, `platform (macos-latest)`, `platform (windows-latest)` |
+| Branches up to date before merging | Yes: after another PR merges, update yours with `gh pr update-branch` and let CI rerun |
+| Auto-merge | Allowed: `gh pr merge --auto --squash` |
 | Force push | Blocked for everyone except the repository owner / admin bypass |
 | Delete `main` | Blocked |
 | Enforce rules on administrators | **No** (owner `MarkChu-git` keeps an emergency bypass) |

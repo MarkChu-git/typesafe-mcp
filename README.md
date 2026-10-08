@@ -62,6 +62,8 @@ Requires [Bun](https://bun.sh) on PATH. That's it — the host spawns a bundled 
 | `TYPESAFE_TOOLS` | `jev_ask` | Tools to expose: `all`, or a list such as `ask,models` |
 | `TYPESAFE_FILES_ROOT` | the host's MCP roots | Directory `files` may read, for hosts that do not share roots |
 
+**Upgrading from 0.1.x:** only `jev_ask` is on by default, and answers are now `{answer, certainty, decision}`. Set `TYPESAFE_TOOLS=all` to keep all five tools. The [v0.2.0 release notes](https://github.com/MarkChu-git/typesafe-mcp/releases/tag/v0.2.0) list every change.
+
 <details>
 <summary>Running from source</summary>
 
@@ -136,7 +138,7 @@ Pin `model` to a versioned id (e.g. `jev-1.13.0`) once thresholds are tuned — 
 
 Every tool definition sits in the agent's context on every model call, and every result stays there for the rest of the session, so both are kept small. Measured in Claude Code 2.1.284 (Sonnet) with `bun run eval --probes-only` and recorded API responses:
 
-| | v0.1.1 | now |
+| | 0.1.1 | 0.2.0 |
 | --- | --- | --- |
 | Tool definitions in context | 4,842 tokens (5 tools) | 1,158 tokens (`jev_ask`; 3,030 with `TYPESAFE_TOOLS=all`) |
 | `jev_ask` result, 3 mixed questions | 682 characters | 191 characters (−72%) |
@@ -176,7 +178,7 @@ bun run eval --help      # agent token-efficiency evals (see evals/README.md)
 bun run scripts/record-fixture.ts   # re-record tests/fixtures from the real API (needs key)
 ```
 
-CI: `tsc` + `oxlint` + `bun test` on Ubuntu (required) and macOS/Windows, CodeQL, dependency review, actionlint, zizmor. Releases publish via OIDC trusted publishing with `--provenance` — no long-lived npm token. See [CONTRIBUTING.md](CONTRIBUTING.md).
+CI: `tsc` + `oxlint` + `bun test` on Ubuntu, macOS and Windows, plus Conventional Commits PR titles, all required; CodeQL, dependency review, actionlint and zizmor also run. Releases publish via OIDC trusted publishing with `--provenance` — no long-lived npm token. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Roadmap
 
