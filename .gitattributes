@@ -1,2 +1,2 @@
-# Eval task fixtures are sample data, not project code
-evals/tasks/*/workspace/** linguist-vendored
+# Eval task workspaces are sample data, not project code; keep them byte-identical on every platform
+evals/tasks/*/workspace/** linguist-vendored eol=lf
