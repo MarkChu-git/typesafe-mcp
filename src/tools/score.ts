@@ -1,19 +1,18 @@
 import type { McpServer } from "@modelcontextprotocol/server";
 import { getClient, type ClientDeps } from "../client.ts";
 import { toToolError } from "../errors.ts";
-import { thresholdsFrom, withDecision } from "../gating.ts";
-import { toScoreQuestion } from "../questions.ts";
+import { ANSWER_NOTE, thresholdsFrom, toAnswer } from "../gating.ts";
+import { toScoreQuestion, toState } from "../questions.ts";
 import { ok } from "../result.ts";
 import { scoreInput, scoreOutput } from "../schemas.ts";
 
-export const SCORE_DESCRIPTION =
-  "Ask Jev to rate `state` on an ordered rubric you define (2–10 levels, index 0 first). Returns the probability-weighted score (may fall between levels), the legend, the per-level distribution and confidence. Use the score to compare against a threshold, not to reconstruct exact numbers. Jev does not generate text; `decision` is computed by this server from `confidence`.";
+export const SCORE_DESCRIPTION = `Ask Jev, TypeSafe's decision model, to rate state on ordered levels; \`answer\` is the expected level index and may fall between levels. ${ANSWER_NOTE}`;
 
 export function registerScore(server: McpServer, deps: ClientDeps = {}): void {
   server.registerTool(
     "jev_score",
     {
-      title: "Rubric score (Score)",
+      title: "Rubric score",
       description: SCORE_DESCRIPTION,
       inputSchema: scoreInput,
       outputSchema: scoreOutput,
@@ -23,23 +22,16 @@ export function registerScore(server: McpServer, deps: ClientDeps = {}): void {
       try {
         const client = getClient(deps);
         const res = await client.systemOne({
-          state: input.state,
-          questions: {
-            q: toScoreQuestion({ question: input.question, levels: input.levels }),
-          },
+          state: toState(input.state),
+          questions: { q: toScoreQuestion(input) },
           ...(input.model ? { model: input.model } : {}),
         });
-        const thresholds = thresholdsFrom({
-          act_above: input.act_above,
-          review_above: input.review_above,
+        const thresholds = thresholdsFrom(input);
+        return ok(scoreOutput.parse(toAnswer(res.answers.q, thresholds, input.detailed)), {
+          model: res.model,
+          usage: res.usage,
+          thresholds,
         });
-        return ok(
-          scoreOutput.parse({
-            ...withDecision(res.answers.q, thresholds),
-            model: res.model,
-            usage: res.usage,
-          }),
-        );
       } catch (e) {
         return toToolError(e, { tool: "jev_score" });
       }

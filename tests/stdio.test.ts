@@ -7,7 +7,7 @@ const root = join(import.meta.dir, "..");
 
 describe("stdio entry", () => {
   test(
-    "lists jev_models and jev_check over StdioClientTransport",
+    "lists the default tool over StdioClientTransport",
     async () => {
       const transport = new StdioClientTransport({
         command: "bun",
@@ -19,13 +19,7 @@ describe("stdio entry", () => {
       await client.connect(transport);
       try {
         const listed = await client.listTools();
-        expect(listed.tools.map((t) => t.name)).toEqual([
-          "jev_models",
-          "jev_check",
-          "jev_classify",
-          "jev_score",
-          "jev_ask",
-        ]);
+        expect(listed.tools.map((t) => t.name)).toEqual(["jev_ask"]);
       } finally {
         await client.close();
       }

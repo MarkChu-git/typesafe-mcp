@@ -14,6 +14,17 @@ export class ConfigError extends Error {
   override name = "ConfigError";
 }
 
+/** A `files` request that cannot be served; the message says what to change. */
+export class FilesError extends Error {
+  override name = "FilesError";
+  constructor(
+    message: string,
+    readonly category: "VALIDATION" | "CONFIG" = "VALIDATION",
+  ) {
+    super(message);
+  }
+}
+
 export type ErrorCategory =
   | "AUTH"
   | "RATE_LIMIT"
@@ -68,6 +79,7 @@ export function classify(err: unknown): ClassifiedError {
       hint: "Set TYPESAFE_API_KEY in the MCP server env (host config → env, or the process environment). Get a key at console.typesafe.ai.",
     };
   }
+  if (err instanceof FilesError) return { category: err.category, hint: err.message };
   if (err instanceof z.ZodError) {
     return {
       category: "VALIDATION",
@@ -77,7 +89,7 @@ export function classify(err: unknown): ClassifiedError {
   if (err instanceof AuthenticationError || err instanceof PermissionDeniedError) {
     const classified: ClassifiedError = {
       category: "AUTH",
-      hint: "TYPESAFE_API_KEY was rejected. Check the key and account status; run jev_models to verify.",
+      hint: "TYPESAFE_API_KEY was rejected. Check the key and its account at console.typesafe.ai.",
     };
     if (err.requestId) classified.requestId = err.requestId;
     const detail = extractDetail(err.body);

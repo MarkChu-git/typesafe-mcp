@@ -3,12 +3,16 @@ import {
   noul,
   score,
   type ChoiceQuestion,
+  type EntryType,
   type NoulQuestion,
   type Question,
   type Questions,
   type ScoreQuestion,
 } from "@typesafe-ai/sdk";
-import type { AskQuestion } from "./schemas.ts";
+import type { AskInput, AskQuestion } from "./schemas.ts";
+
+/** Tool arguments arrive as parsed JSON, so the untyped nested values of `state` are JSON values. */
+export const toState = (state: AskInput["state"]): EntryType => state as EntryType;
 
 export interface NoulQuestionInput {
   question: string;
@@ -43,14 +47,17 @@ export function toScoreQuestion(input: ScoreQuestionInput): ScoreQuestion {
   return score(input.question, [first ?? null, second ?? null, ...rest]);
 }
 
+/** `askQuestionSchema` guarantees the type's own field is present; the throws only guard direct callers. */
 export function toSdkQuestion(q: AskQuestion): Question {
   switch (q.type) {
     case "noul":
       return toNoulQuestion(q);
     case "choice":
-      return toChoiceQuestion(q);
+      if (!q.options) throw new Error("options is required when type is choice");
+      return toChoiceQuestion({ question: q.question, options: q.options });
     case "score":
-      return toScoreQuestion(q);
+      if (!q.levels) throw new Error("levels is required when type is score");
+      return toScoreQuestion({ question: q.question, levels: q.levels });
   }
 }
 

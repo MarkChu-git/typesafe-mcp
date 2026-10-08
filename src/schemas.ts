@@ -1,52 +1,41 @@
 import * as z from "zod/v4";
 
+// Input schemas become the tool definitions an agent reads on every model call, so descriptions
+// live in one place (the tool description or a single field) and nested values stay untyped.
+
 export type JsonValue = string | number | boolean | null | JsonValue[] | { [k: string]: JsonValue };
 
-export const jsonValue: z.ZodType<JsonValue> = z.lazy(() =>
-  z.union([
-    z.string(),
-    z.number(),
-    z.boolean(),
-    z.null(),
-    z.array(jsonValue),
-    z.record(z.string(), jsonValue),
-  ]),
-);
-
 export const stateSchema = z
-  .union([z.string().min(1), z.record(z.string(), jsonValue), z.array(jsonValue).min(1)])
+  .union([z.string().min(1), z.looseObject({}), z.array(z.unknown()).min(1)])
   .describe(
-    "The content Jev evaluates: a plain string, a JSON object (fields can be referenced from the question as `field`), or an array of JSON values. Send only what the question needs; irrelevant detail lowers accuracy. Max ~32k tokens together with the longest question.",
+    "What Jev judges: text, a JSON object or a JSON array. Send only what the questions need; extra detail lowers accuracy. Max ~32k tokens.",
   );
 
-export const questionSchema = z
-  .string()
-  .min(1)
-  .describe(
-    "The question in plain English (other languages work but are less accurate). Jev reads literally: state the exact condition, avoid double negatives and multi-hop reasoning. Jev does NOT generate text; it only answers this structured question.",
-  );
+export const questionSchema = z.string().min(1);
 
-export const modelSchema = z
-  .string()
-  .min(1)
-  .optional()
-  .describe("Model id or alias. Default jev-latest. Pin a versioned id like jev-1.13.0 when thresholds are tuned.");
+export const criteriaSchema = z
+  .strictObject({ true: z.string().min(1).optional(), false: z.string().min(1).optional() })
+  .describe("What yes and no mean.");
+
+export const optionsSchema = z
+  .record(z.string(), z.string().nullable())
+  .refine((o) => Object.keys(o).length >= 2, "at least 2 options are required")
+  .refine((o) => Object.keys(o).length <= 255, "at most 255 options are allowed")
+  .describe("Label → rubric or null, 2–255 labels. Jev picks exactly one.");
+
+export const levelsSchema = z
+  .array(z.string().nullable())
+  .min(2)
+  .max(10)
+  .describe("Rubric per level, index 0 first, 2–10 levels.");
+
+export const detailedField = z.boolean().optional().describe("Also return probabilities.");
+export const modelField = z.string().min(1).optional().describe("Jev model id; default from server config.");
 
 export const thresholdsFields = {
-  act_above: z
-    .number()
-    .min(0)
-    .max(1)
-    .optional()
-    .describe('Certainty at or above this → decision "act". Default 0.8. Raise for high-stakes actions.'),
-  review_above: z
-    .number()
-    .min(0)
-    .max(1)
-    .optional()
-    .describe('Certainty at or above this (but below act_above) → "review". Below → "abstain". Default 0.5.'),
+  act_above: z.number().min(0).max(1).optional(),
+  review_above: z.number().min(0).max(1).optional(),
 };
-export const thresholdFields = thresholdsFields;
 
 export const refineThresholds = (
   v: { act_above?: number | undefined; review_above?: number | undefined },
@@ -63,45 +52,105 @@ export const refineThresholds = (
   }
 };
 
-export const decisionSchema = z.enum(["act", "review", "abstain"]);
-export const thresholdsOut = z.object({ act_above: z.number(), review_above: z.number() });
-export const usageSchema = z.object({
-  input_tokens: z.number().int().nonnegative(),
-  output_tokens: z.number().int().nonnegative(),
-});
-export const metaFields = { model: z.string().min(1), usage: usageSchema };
-export const metaSchema = z.object(metaFields);
-export const gateFields = {
-  certainty: z.number().min(0).max(1),
-  decision: decisionSchema,
-  thresholds: thresholdsOut,
-};
+/** Shared tail of every question tool's input. */
+const commonFields = { detailed: detailedField, model: modelField, ...thresholdsFields };
 
-export const noulCriteriaSchema = z
-  .object({
-    true: z.string().min(1).optional().describe("What a YES (probability near 1) means."),
-    false: z.string().min(1).optional().describe("What a NO (probability near 0) means."),
+export const QUESTION_TYPES = ["noul", "choice", "score"] as const;
+export type QuestionType = (typeof QUESTION_TYPES)[number];
+
+/** The field each type requires; the other type-specific fields are rejected. */
+const TYPE_FIELD = { noul: "criteria", choice: "options", score: "levels" } as const;
+const REQUIRED = new Set(["options", "levels"]);
+
+/** One flat object instead of a union, so the agent reads `question` and its guidance once. */
+export const askQuestionSchema = z
+  .strictObject({
+    type: z.enum(QUESTION_TYPES).describe("noul: yes/no. choice: pick one key of options. score: rate on levels."),
+    question: questionSchema,
+    options: optionsSchema.optional().describe("choice only. Label → rubric or null, 2–255 labels."),
+    levels: levelsSchema.optional().describe("score only. Rubric per level, index 0 first, 2–10 levels."),
+    criteria: criteriaSchema.optional().describe("noul only. What yes and no mean."),
   })
-  .optional()
-  .describe("Optional descriptions of the yes/no outcomes. Keep them aligned with the question.");
+  .superRefine((q, ctx) => {
+    for (const field of Object.values(TYPE_FIELD)) {
+      const own = TYPE_FIELD[q.type] === field;
+      const present = q[field] !== undefined;
+      if (own && !present && REQUIRED.has(field)) {
+        ctx.addIssue({ code: "custom", path: [field], message: `required when type is ${q.type}` });
+      } else if (!own && present) {
+        ctx.addIssue({ code: "custom", path: [field], message: `not used when type is ${q.type}` });
+      }
+    }
+  });
 
-export const optionsSchema = z
-  .record(z.string().min(1), z.string().nullable())
-  .refine((o) => Object.keys(o).length >= 2, "at least 2 options are required")
-  .refine((o) => Object.keys(o).length <= 255, "at most 255 options are allowed")
+export const filesSchema = z
+  .union([z.string().min(1), z.array(z.string().min(1)).min(1).max(20)])
   .describe(
-    "Closed set of options: label → short rubric (or null). 2–255 entries. Jev must pick exactly one.",
+    "Instead of state: glob(s) relative to the project root, e.g. tickets/*.md. The server reads each file and asks it the same questions, so nothing is copied. One Jev request per file, max 100.",
   );
 
-export const levelsSchema = z
-  .array(z.string().nullable())
-  .min(2)
-  .max(10)
-  .describe(
-    "Ordered rubric levels, index 0 first. 2–10 entries. Returned score is a probability-weighted value across indices.",
-  );
+export const contextSchema = z
+  .union([z.string().min(1), z.looseObject({})])
+  .describe("With files: shared context sent with every file, e.g. the policy to apply.");
+
+export const askInput = z
+  .strictObject({
+    state: stateSchema.optional(),
+    files: filesSchema.optional(),
+    context: contextSchema.optional(),
+    questions: z
+      .record(z.string(), askQuestionSchema)
+      .refine((q) => Object.keys(q).length >= 1, "at least one question is required")
+      .describe("Your ids → questions. One request answers them all."),
+    ...commonFields,
+  })
+  .superRefine((v, ctx) => {
+    refineThresholds(v, ctx);
+    if ((v.state === undefined) === (v.files === undefined)) {
+      ctx.addIssue({ code: "custom", path: ["state"], message: "give exactly one of state or files" });
+    }
+    if (v.context !== undefined && v.files === undefined) {
+      ctx.addIssue({ code: "custom", path: ["context"], message: "context is only used with files" });
+    }
+  });
+
+export const checkInput = z
+  .strictObject({ state: stateSchema, question: questionSchema, criteria: criteriaSchema.optional(), ...commonFields })
+  .superRefine(refineThresholds);
+
+export const classifyInput = z
+  .strictObject({ state: stateSchema, question: questionSchema, options: optionsSchema, ...commonFields })
+  .superRefine(refineThresholds);
+
+export const scoreInput = z
+  .strictObject({ state: stateSchema, question: questionSchema, levels: levelsSchema, ...commonFields })
+  .superRefine(refineThresholds);
 
 export const modelsInput = z.strictObject({});
+
+export const decisionSchema = z.enum(["act", "review", "abstain"]);
+
+const gateFields = { certainty: z.number().min(0).max(1), decision: decisionSchema };
+const distribution = z.record(z.string(), z.number()).optional();
+
+export const checkOutput = z.object({
+  answer: z.boolean(),
+  ...gateFields,
+  probability: z.number().min(0).max(1).optional(),
+});
+export const classifyOutput = z.object({ answer: z.string(), ...gateFields, probabilities: distribution });
+export const scoreOutput = z.object({ answer: z.number(), ...gateFields, probabilities: distribution });
+export const answerSchema = z.union([checkOutput, classifyOutput, scoreOutput]);
+const answersSchema = z.record(z.string(), answerSchema);
+export const askOutput = z.object({
+  /** With `state`: question id → answer. */
+  answers: answersSchema.optional(),
+  /** With `files`: path → question id → answer. */
+  files: z.record(z.string(), answersSchema).optional(),
+  /** With `files`: path → why it has no answers. */
+  errors: z.record(z.string(), z.string()).optional(),
+});
+
 export const modelsOutput = z.object({
   models: z.array(
     z.object({
@@ -111,129 +160,6 @@ export const modelsOutput = z.object({
     }),
   ),
   default_model: z.string(),
-});
-
-export const checkInput = z
-  .strictObject({
-    state: stateSchema,
-    question: questionSchema,
-    criteria: noulCriteriaSchema,
-    model: modelSchema,
-    ...thresholdsFields,
-  })
-  .superRefine(refineThresholds);
-
-export const checkOutput = z.object({
-  type: z.literal("noul"),
-  probability: z.number().min(0).max(1),
-  answer: z.boolean(),
-  ...gateFields,
-  ...metaFields,
-});
-
-export const classifyInput = z
-  .strictObject({
-    state: stateSchema,
-    question: questionSchema,
-    options: optionsSchema,
-    model: modelSchema,
-    ...thresholdsFields,
-  })
-  .superRefine(refineThresholds);
-
-export const classifyOutput = z.object({
-  type: z.literal("choice"),
-  choice: z.string(),
-  probabilities: z.record(z.string(), z.number()),
-  confidence: z.number().min(0).max(1),
-  ...gateFields,
-  ...metaFields,
-});
-
-export const scoreInput = z
-  .strictObject({
-    state: stateSchema,
-    question: questionSchema,
-    levels: levelsSchema,
-    model: modelSchema,
-    ...thresholdsFields,
-  })
-  .superRefine(refineThresholds);
-
-export const scoreOutput = z.object({
-  type: z.literal("score"),
-  score: z.number(),
-  legend: z.record(z.string(), z.string().nullable()),
-  probabilities: z.record(z.string(), z.number()),
-  confidence: z.number().min(0).max(1),
-  ...gateFields,
-  ...metaFields,
-});
-
-const askNoulQuestion = z.strictObject({
-  type: z.literal("noul").describe("Yes/no question."),
-  question: questionSchema,
-  criteria: noulCriteriaSchema,
-});
-const askChoiceQuestion = z.strictObject({
-  type: z.literal("choice").describe("Pick exactly one key from `options`."),
-  question: questionSchema,
-  options: optionsSchema,
-});
-const askScoreQuestion = z.strictObject({
-  type: z.literal("score").describe("Rate on the ordered `levels` rubric."),
-  question: questionSchema,
-  levels: levelsSchema,
-});
-
-export const askQuestionSchema = z.discriminatedUnion("type", [
-  askNoulQuestion,
-  askChoiceQuestion,
-  askScoreQuestion,
-]);
-
-export const askInput = z
-  .strictObject({
-    state: stateSchema,
-    questions: z
-      .record(z.string().min(1), askQuestionSchema)
-      .refine((q) => Object.keys(q).length >= 1, "at least one question is required")
-      .describe(
-        "Map of your own question ids → question. All are answered in ONE request against the same state. Batching is ~10x cheaper and faster than separate calls.",
-      ),
-    model: modelSchema,
-    ...thresholdsFields,
-  })
-  .superRefine(refineThresholds);
-
-const askNoulAnswer = z.object({
-  type: z.literal("noul"),
-  probability: z.number().min(0).max(1),
-  answer: z.boolean(),
-  ...gateFields,
-});
-const askChoiceAnswer = z.object({
-  type: z.literal("choice"),
-  choice: z.string(),
-  probabilities: z.record(z.string(), z.number()),
-  confidence: z.number().min(0).max(1),
-  ...gateFields,
-});
-const askScoreAnswer = z.object({
-  type: z.literal("score"),
-  score: z.number(),
-  legend: z.record(z.string(), z.string().nullable()),
-  probabilities: z.record(z.string(), z.number()),
-  confidence: z.number().min(0).max(1),
-  ...gateFields,
-});
-
-export const askOutput = z.object({
-  answers: z.record(
-    z.string(),
-    z.discriminatedUnion("type", [askNoulAnswer, askChoiceAnswer, askScoreAnswer]),
-  ),
-  ...metaFields,
 });
 
 export type ModelsInput = z.infer<typeof modelsInput>;
@@ -247,3 +173,4 @@ export type ScoreOutput = z.infer<typeof scoreOutput>;
 export type AskQuestion = z.infer<typeof askQuestionSchema>;
 export type AskInput = z.infer<typeof askInput>;
 export type AskOutput = z.infer<typeof askOutput>;
+export type JevAnswer = z.infer<typeof answerSchema>;

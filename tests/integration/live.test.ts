@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { META_KEY } from "../../src/result.ts";
 import { inProcessClient } from "../helpers/mcp.ts";
 
 const apiKey = process.env.TYPESAFE_API_KEY;
@@ -10,7 +11,7 @@ describe.skipIf(!apiKey)("live TypeSafe API", () => {
     "jev_models lists models over the wire",
     async () => {
       const { client, close } = await inProcessClient({
-        env: { TYPESAFE_API_KEY: apiKey },
+        env: { TYPESAFE_API_KEY: apiKey, TYPESAFE_TOOLS: "models" },
       });
       try {
         const r = await client.callTool({ name: "jev_models", arguments: {} });
@@ -26,24 +27,29 @@ describe.skipIf(!apiKey)("live TypeSafe API", () => {
   );
 
   test(
-    "jev_check answers a minimal noul question",
+    "jev_ask answers a minimal noul question",
     async () => {
       const { client, close } = await inProcessClient({
         env: { TYPESAFE_API_KEY: apiKey },
       });
       try {
         const r = await client.callTool({
-          name: "jev_check",
+          name: "jev_ask",
           arguments: {
             state: "A customer was charged twice and asks for a refund.",
-            question: "Does this message describe a billing problem?",
+            questions: { billing: { type: "noul", question: "Does this message describe a billing problem?" } },
           },
         });
         expect(r.isError).toBeFalsy();
-        const sc = r.structuredContent as { probability: number; decision: string };
-        expect(sc.probability).toBeGreaterThanOrEqual(0);
-        expect(sc.probability).toBeLessThanOrEqual(1);
-        expect(["act", "review", "abstain"]).toContain(sc.decision);
+        const sc = r.structuredContent as { answers: Record<string, { answer: boolean; certainty: number; decision: string }> };
+        const a = sc.answers["billing"];
+        if (!a) throw new Error("no answer for billing");
+        expect(typeof a.answer).toBe("boolean");
+        expect(a.certainty).toBeGreaterThanOrEqual(0);
+        expect(a.certainty).toBeLessThanOrEqual(1);
+        expect(["act", "review", "abstain"]).toContain(a.decision);
+        const meta = r._meta?.[META_KEY] as { usage: { input_tokens: number } } | undefined;
+        expect(meta?.usage.input_tokens).toBeGreaterThan(0);
       } finally {
         await close();
       }
