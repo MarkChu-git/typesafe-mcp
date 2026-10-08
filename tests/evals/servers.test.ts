@@ -1,7 +1,7 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readlinkSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { prepareRefServer, refDir } from "../../evals/harness/servers.ts";
 
 /** Stands in for git and tar: `git archive` writes the tar, `tar -x` unpacks src/index.ts. */
@@ -42,7 +42,7 @@ describe("prepareRefServer", () => {
     const entry = await prepareRefServer(o);
     expect(entry).toBe(join(refDir(root, "v0.1.1"), "src", "index.ts"));
     expect(existsSync(entry)).toBe(true);
-    expect(readlinkSync(join(refDir(root, "v0.1.1"), "node_modules"))).toBe("/repo/node_modules");
+    expect(resolve(readlinkSync(join(refDir(root, "v0.1.1"), "node_modules")))).toBe(resolve("/repo/node_modules"));
     expect(calls.map((c) => c.slice(0, 4))).toEqual([
       ["git", "-C", "/repo", "archive"],
       ["tar", "-xf", join(refDir(root, "v0.1.1"), "src.tar"), "-C"],

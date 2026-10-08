@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { join } from "node:path";
 import { ARMS, DEFAULT_ARMS, disallowedTools, expectedTools, mcpConfig, RELEASED_REF } from "../../evals/arms.ts";
 
 describe("eval arms", () => {
@@ -20,10 +21,10 @@ describe("eval arms", () => {
 
   test("working-tree arms run src/index.ts; jev-all turns every tool on through the server env", () => {
     expect(mcpConfig(ARMS.jev, "/repo")).toEqual({
-      mcpServers: { jev: { command: "bun", args: ["run", "/repo/src/index.ts"] } },
+      mcpServers: { jev: { command: "bun", args: ["run", join("/repo", "src", "index.ts")] } },
     });
     expect(mcpConfig(ARMS["jev-all"], "/repo")).toEqual({
-      mcpServers: { jev: { command: "bun", args: ["run", "/repo/src/index.ts"], env: { TYPESAFE_TOOLS: "all" } } },
+      mcpServers: { jev: { command: "bun", args: ["run", join("/repo", "src", "index.ts")], env: { TYPESAFE_TOOLS: "all" } } },
     });
     expect(expectedTools(ARMS["jev-all"])).toHaveLength(9);
   });

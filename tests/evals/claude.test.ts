@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { ARMS } from "../../evals/arms.ts";
 import {
   buildArgs,
@@ -278,10 +278,10 @@ describe("runClaude", () => {
   test("runs command and returns lines with timestamps", async () => {
     const result = await runClaude({
       args: [],
-      cwd: "/tmp",
+      cwd: tmpdir(),
       env: {},
       timeoutMs: 5000,
-      bin: ["printf", "line1\\nline2\\n"],
+      bin: [process.execPath, "-e", "console.log('line1'); console.log('line2')"],
     });
 
     expect(result.lines.length).toBeGreaterThanOrEqual(1);
@@ -290,10 +290,10 @@ describe("runClaude", () => {
   test("handles timeout", async () => {
     const result = await runClaude({
       args: [],
-      cwd: "/tmp",
+      cwd: tmpdir(),
       env: {},
       timeoutMs: 100,
-      bin: ["sleep", "2"],
+      bin: [process.execPath, "-e", "await Bun.sleep(2000)"],
     });
 
     expect(result.timedOut).toBe(true);
@@ -302,13 +302,13 @@ describe("runClaude", () => {
   test("captures exit code", async () => {
     const result = await runClaude({
       args: [],
-      cwd: "/tmp",
+      cwd: tmpdir(),
       env: {},
       timeoutMs: 5000,
-      bin: ["true"],
+      bin: [process.execPath, "-e", "process.exit(3)"],
     });
 
-    expect(result.exitCode).toBe(0);
+    expect(result.exitCode).toBe(3);
   });
 });
 
@@ -318,7 +318,8 @@ describe("Claude Code project state cleanup", () => {
     const ws = join(mkdtempSync(join(tmpdir(), "typesafe-mcp-eval-")), "workspace");
     mkdirSync(ws);
     const dir = claudeProjectDir(ws, home);
-    expect(dir.startsWith(join(home, ".claude", "projects", "-"))).toBe(true);
+    expect(dirname(dir)).toBe(join(home, ".claude", "projects"));
+    expect(basename(dir)).toMatch(/^[A-Za-z0-9-]+$/);
     expect(dir).toContain("typesafe-mcp-eval");
     mkdirSync(join(dir, "session", "tool-results"), { recursive: true });
     expect(removeClaudeProjectDir(dir, home)).toBe(true);
