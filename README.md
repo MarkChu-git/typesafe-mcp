@@ -60,7 +60,7 @@ Requires [Bun](https://bun.sh) on PATH. That's it — the host spawns a bundled 
 | `TYPESAFE_DEFAULT_MODEL` | `jev-latest` | Model used when a call does not pass `model` |
 | `TYPESAFE_TIMEOUT_MS` | `10000` | Per-request timeout |
 | `TYPESAFE_TOOLS` | `jev_ask` | Tools to expose: `all`, or a list such as `ask,models` |
-| `TYPESAFE_FILES_ROOT` | the host's MCP roots | Directory `files` may read, for hosts that do not share roots |
+| `TYPESAFE_FILES_ROOT` | the host's MCP roots, else the directory the host starts the server in | Directory `files` may read |
 
 **Upgrading from 0.1.x:** only `jev_ask` is on by default, and answers are now `{answer, certainty, decision}`. Set `TYPESAFE_TOOLS=all` to keep all five tools. The [v0.2.0 release notes](https://github.com/MarkChu-git/typesafe-mcp/releases/tag/v0.2.0) list every change.
 
@@ -120,7 +120,7 @@ By default the server exposes one tool, `jev_ask`, which covers every question t
 
 Every question tool also takes `detailed`, `model`, `act_above` and `review_above`.
 
-**What `files` may read.** Only files under the project directory the host declares as an MCP root (Claude Code declares its working directory), or under `TYPESAFE_FILES_ROOT` when set; without either, `files` returns a `CONFIG` error. Patterns must be relative and cannot contain `..`. Hidden files and directories (`.env`, `.git/…`) and private keys (`*.pem`, `*.key`, `id_rsa`, …) are never read, even through a symlink; wildcards skip symlinks; a path that resolves outside the root is skipped; `node_modules` is skipped unless the pattern names it. At most 100 files of up to 64 KB each per call; anything skipped is listed in `errors` with the reason. Each file's content is sent to TypeSafe as one Jev request. The server reads with its own permissions, so a host rule that keeps the agent from reading a file does not stop `files`: keep secrets in hidden files or outside the root, or point `TYPESAFE_FILES_ROOT` at a narrower directory.
+**What `files` may read.** Only files under `TYPESAFE_FILES_ROOT` when set, else under the MCP roots the host declares, else under the directory the host started the server in. Roots are deprecated as of protocol 2026-07-28 and this server only gets them in older sessions, so with Claude Code, which negotiates 2026-07-28 and starts the server in the project, `files` reads the project. That last fallback never uses `/`, the home directory or a directory above it: there `files` returns a `CONFIG` error until `TYPESAFE_FILES_ROOT` is set. Patterns must be relative and cannot contain `..`. Hidden files and directories (`.env`, `.git/…`) and private keys (`*.pem`, `*.key`, `id_rsa`, …) are never read, even through a symlink; wildcards skip symlinks; a path that resolves outside the root is skipped; `node_modules` is skipped unless the pattern names it. At most 100 files of up to 64 KB each per call; anything skipped is listed in `errors` with the reason. Each file's content is sent to TypeSafe as one Jev request. The server reads with its own permissions, so a host rule that keeps the agent from reading a file does not stop `files`: keep secrets in hidden files or outside the root, or point `TYPESAFE_FILES_ROOT` at a narrower directory.
 
 ## Decision gating
 
@@ -154,7 +154,7 @@ Every failure returns `isError: true` with a category prefix:
 
 | Category | Cause |
 | --- | --- |
-| `CONFIG` | `TYPESAFE_API_KEY` missing — where to set it is in the message · `files` has no project directory (no MCP roots, no `TYPESAFE_FILES_ROOT`) |
+| `CONFIG` | `TYPESAFE_API_KEY` missing — where to set it is in the message · `files` has no project directory (no `TYPESAFE_FILES_ROOT`, no MCP roots, and the server was started in `/` or the home directory) |
 | `VALIDATION` | Bad arguments — names the offending field · a `files` pattern that matches nothing or more than 100 files |
 | `AUTH` | API rejected the key |
 | `RATE_LIMIT` | Throttled — hint: batch questions through `jev_ask` |

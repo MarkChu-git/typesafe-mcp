@@ -1,7 +1,7 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import { chmodSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { homedir, tmpdir } from "node:os";
+import { dirname, join, parse } from "node:path";
 import { pathToFileURL } from "node:url";
 import { FilesError } from "../src/errors.ts";
 import { filesRoots, MAX_FILE_BYTES, MAX_FILES, selectFiles } from "../src/files.ts";
@@ -140,17 +140,41 @@ describe("selectFiles", () => {
   );
 });
 
+/** A host that shares no MCP roots. */
+const noRoots = async () => undefined;
+
 describe("filesRoots", () => {
   test("TYPESAFE_FILES_ROOT wins without asking the client; otherwise the client's file:// roots", async () => {
     const projectDir = join(tmpdir(), "project");
+    const cwd = tempDir("files-cwd-");
     let asked = 0;
     const clientRoots = async () => {
       asked += 1;
       return [{ uri: pathToFileURL(projectDir).href }, { uri: "https://example.com/x" }];
     };
-    expect(await filesRoots({ TYPESAFE_FILES_ROOT: "/configured" }, clientRoots)).toEqual(["/configured"]);
+    expect(await filesRoots({ TYPESAFE_FILES_ROOT: "/configured" }, clientRoots, cwd)).toEqual(["/configured"]);
     expect(asked).toBe(0);
-    expect(await filesRoots({}, clientRoots)).toEqual([projectDir]);
-    expect(await filesRoots({}, async () => undefined)).toEqual([]);
+    expect(await filesRoots({}, clientRoots, cwd)).toEqual([projectDir]);
+  });
+
+  test("a host that shares no roots gets the directory it started the server in", async () => {
+    const cwd = tempDir("files-cwd-");
+    expect(await filesRoots({}, noRoots, cwd)).toEqual([cwd]);
+  });
+
+  test("never falls back to the filesystem root, the home directory or above it", async () => {
+    const home = homedir();
+    for (const cwd of [parse(home).root, dirname(home), home]) {
+      // eslint-disable-next-line no-await-in-loop -- three cases, each checked on its own
+      const error = await filesRoots({}, noRoots, cwd).catch((e: unknown) => e);
+      expect(error).toBeInstanceOf(FilesError);
+      expect((error as FilesError).category).toBe("CONFIG");
+      expect((error as FilesError).message).toContain("TYPESAFE_FILES_ROOT");
+    }
+  });
+
+  test("a host whose roots are all remote gets no fallback", async () => {
+    const cwd = tempDir("files-cwd-");
+    expect(await filesRoots({}, async () => [{ uri: "https://example.com/x" }], cwd)).toEqual([]);
   });
 });

@@ -1,6 +1,6 @@
 import { afterAll, afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Fetch } from "@typesafe-ai/sdk";
 import { resetClient } from "../src/client.ts";
@@ -251,9 +251,26 @@ describe("jev_ask with files", () => {
     }
   });
 
-  test("without MCP roots or TYPESAFE_FILES_ROOT, files is a CONFIG error and nothing is sent", async () => {
+  test("without MCP roots or TYPESAFE_FILES_ROOT, files reads under the server's working directory", async () => {
+    const root = ticketsRoot();
     const ff = fileFetch();
-    const { client, close } = await inProcessClient({ fetch: ff.fetch, env: { TYPESAFE_API_KEY: "test-key" } });
+    const { client, close } = await inProcessClient({ fetch: ff.fetch, env: { TYPESAFE_API_KEY: "test-key" }, cwd: root });
+    try {
+      const r = await client.callTool({ name: "jev_ask", arguments: { files: "tickets/a.md", questions: urgent } });
+      expect(r.isError).toBeFalsy();
+      expect(ff.bodies.map((b) => b.state.content)).toEqual(["Payouts failing for 3 days"]);
+    } finally {
+      await close();
+    }
+  });
+
+  test("started in the home directory without MCP roots or TYPESAFE_FILES_ROOT, files is a CONFIG error and nothing is sent", async () => {
+    const ff = fileFetch();
+    const { client, close } = await inProcessClient({
+      fetch: ff.fetch,
+      env: { TYPESAFE_API_KEY: "test-key" },
+      cwd: homedir(),
+    });
     try {
       const r = await client.callTool({ name: "jev_ask", arguments: { files: "*.md", questions: urgent } });
       expect(r.isError).toBe(true);

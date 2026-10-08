@@ -114,7 +114,7 @@ export function registerAsk(server: McpServer, deps: ClientDeps = {}): void {
         }
 
         const patterns = typeof input.files === "string" ? [input.files] : input.files;
-        const roots = await filesRoots(deps.env ?? process.env, () => listClientRoots(server));
+        const roots = await filesRoots(deps.env ?? process.env, () => listClientRoots(server), deps.cwd ?? process.cwd());
         const { items, skipped } = await selectFiles(patterns, roots);
         const results = await askFiles(client, items, questions, input, thresholds, signal);
         const answered = results.filter((r) => "answers" in r);
