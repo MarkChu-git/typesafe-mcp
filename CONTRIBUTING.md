@@ -126,7 +126,7 @@ gh pr create --title "chore(release): vX.Y.Z" --body "Release vX.Y.Z"
 # merge the PR, then: Actions → Release → Run workflow (branch: main)
 ```
 
-The workflow fails early if `typesafe-mcp@X.Y.Z` already exists on npm — the version bump is the only required manual step.
+The workflow fails early if `typesafe-mcp@X.Y.Z` already exists on npm — the version bump is the only required manual step. The server reads the version it reports to MCP clients (`SERVER_VERSION` in `src/config.ts`) from `package.json`, so no other file carries a version.
 
 **One-time npm setup** (choose one):
 

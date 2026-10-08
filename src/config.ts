@@ -1,5 +1,8 @@
+import pkg from "../package.json" with { type: "json" };
+
 export const SERVER_NAME = "typesafe-mcp";
-export const SERVER_VERSION = "0.1.0";
+/** Reported to MCP clients. Read from package.json (inlined by `bun build`), so a release bumps one file. */
+export const SERVER_VERSION = pkg.version;
 
 /** Env var *names* (not secret values). Split so secret scanners do not treat them as credentials. */
 export const ENV = {
