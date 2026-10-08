@@ -1,0 +1,11 @@
+{
+  "name": "ecommerce-service",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "test": "bun test",
+    "dev": "bun run src/index.ts"
+  },
+  "dependencies": {}
+}

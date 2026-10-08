@@ -35,6 +35,9 @@ logs/
 # Test coverage
 coverage/
 
+# Eval results (raw transcripts and metrics; curated reports live in docs/evals/)
+evals/results/
+
 # Cache
 .cache/
 

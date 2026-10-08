@@ -1,0 +1,9 @@
+{
+  "files": [
+    "src/payments/reversals.ts",
+    "src/refunds/executeRefund.ts",
+    "src/refunds/recordRefund.ts",
+    "src/refunds/refundProcessor.ts",
+    "src/refunds/validateRefund.ts"
+  ]
+}

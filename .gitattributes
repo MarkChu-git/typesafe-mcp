@@ -1,1 +1,2 @@
-graphify-out/graph.json merge=graphify
+# Eval task fixtures are sample data, not project code
+evals/tasks/*/workspace/** linguist-vendored
