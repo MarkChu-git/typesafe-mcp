@@ -29,7 +29,7 @@ const recordingFetch: Fetch = async (input, init) => {
   if (pending) {
     const name = pending;
     pending = undefined;
-    const body = (await res.clone().json()) as unknown;
+    const body = await res.clone().json();
     writeFileSync(join(fixturesDir, name), `${JSON.stringify(body, null, 2)}\n`);
     console.log(`wrote tests/fixtures/${name} (HTTP ${res.status})`);
   }

@@ -1,13 +1,22 @@
+# Manual release: bump package.json version in a release PR, merge to main, then
+# Actions → Release → Run workflow (branch: main). Tick "dry-run" to rehearse from any branch.
+#
+#   build    read-only: verify, pack the tarball once, smoke-test it installed, SBOM
+#   publish  environment "release": publish that exact tarball to npm with provenance, attest
+#            it and its SBOM, create the GitHub release (tag v<version>) with the files attached
+#   verify   install the version from the registry and smoke-test it over stdio
+#
+# npm auth is Trusted Publishing (OIDC), no token. Binding the trusted publisher to the
+# "release" environment on npmjs.com means only the publish job can publish.
 name: Release
 
-# Manual release: bump package.json version in a release PR, merge to main,
-# then run this workflow (Actions → Release → Run workflow).
-# Auth: npm Trusted Publishing (OIDC) — no NPM_TOKEN needed once configured on
-# npmjs.com. Fallback: set an NPM_TOKEN granular access token (2FA-bypass) as a
-# repo secret and it is used automatically.
-
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: Rehearse — build, pack, smoke-test and SBOM only; publish nothing
+        type: boolean
+        default: false
 
 permissions: {}
 
@@ -16,76 +25,205 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release:
-    name: Release
+  build:
+    name: Build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    timeout-minutes: 15
     permissions:
-      contents: write # git tag + GitHub release
-      id-token: write # npm OIDC trusted publishing + provenance
+      contents: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
+      - name: Real releases come from main
+        if: github.ref != 'refs/heads/main' && !inputs.dry-run
+        run: |
+          echo "::error::Run real releases from main, or tick dry-run to rehearse from this branch."
+          exit 1
 
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-
-      # Node/npm only used for the publish step — trusted publishing requires npm >= 11.5.1.
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version: "24"
-          registry-url: "https://registry.npmjs.org"
+          persist-credentials: false
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          no-cache: true # a release never restores a cache
 
       - name: Install
         run: bun install --frozen-lockfile
 
       - name: Verify
-        run: |
-          bunx tsc --noEmit
-          bunx oxlint
-          bun test
+        run: bun run verify
 
-      - name: Check version is unpublished
+      - name: Check the version is new
         id: version
+        env:
+          DRY_RUN: ${{ inputs.dry-run }}
         run: |
-          VERSION=$(node -p "require('./package.json').version")
-          echo "version=$VERSION" | tee -a "$GITHUB_OUTPUT"
-          if npm view "typesafe-mcp@$VERSION" version >/dev/null 2>&1; then
-            echo "::error::typesafe-mcp@$VERSION is already published — bump package.json version first"
+          VERSION=$(jq -r .version package.json)
+          if [[ ! "$VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::package.json version '$VERSION' is not semver"
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          problems=()
+          if git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" >/dev/null; then
+            problems+=("tag v$VERSION already exists")
+          fi
+          status=$(curl -s --retry 3 -o /dev/null -w '%{http_code}' "https://registry.npmjs.org/typesafe-mcp/$VERSION")
+          if [ "$status" = "200" ]; then
+            problems+=("typesafe-mcp@$VERSION is already on npm")
+          fi
+          for problem in "${problems[@]}"; do
+            if [ "$DRY_RUN" = "true" ]; then
+              echo "::warning::$problem (dry run, continuing)"
+            else
+              echo "::error::$problem: bump package.json version first"
+            fi
+          done
+          if [ "${#problems[@]}" -gt 0 ] && [ "$DRY_RUN" != "true" ]; then
             exit 1
           fi
 
-      - name: Publish to npm
+      - name: Pack the tarball and smoke-test the installed bin
+        run: bun run release:pack "$RUNNER_TEMP/release"
+
+      - name: SBOM of the production dependency tree
         env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: bun run release:sbom "$RUNNER_TEMP/release/typesafe-mcp-$VERSION.spdx.json"
+
+      - name: Upload the release files
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release
+          path: ${{ runner.temp }}/release/
+          if-no-files-found: error
+
+  publish:
+    name: Publish
+    needs: build
+    if: ${{ !inputs.dry-run }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: release
+    permissions:
+      contents: write # GitHub release and its tag
+      id-token: write # npm trusted publishing + provenance, attestations
+      attestations: write # store the provenance and SBOM attestations
+    env:
+      VERSION: ${{ needs.build.outputs.version }}
+    steps:
+      - name: Download the release files
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release
+          path: release
+
+      - name: Check the files against the build metadata
+        id: files
+        working-directory: release
+        run: |
+          TARBALL=$(jq -r .tarball build-metadata.json)
+          echo "$(jq -r .sha256 build-metadata.json)  $TARBALL" | sha256sum --check
+          if [ "$(jq -r .commit build-metadata.json)" != "$GITHUB_SHA" ] || [ "$(jq -r .version build-metadata.json)" != "$VERSION" ]; then
+            echo "::error::build-metadata.json does not describe $GITHUB_SHA / $VERSION"
+            exit 1
+          fi
+          {
+            echo "tarball=$TARBALL"
+            echo "integrity=$(jq -r .integrity build-metadata.json)"
+            echo "sbom=typesafe-mcp-$VERSION.spdx.json"
+          } >> "$GITHUB_OUTPUT"
+
+      # npm >= 11.5.1 is needed for trusted publishing; npm is used for nothing else.
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+
+      # Idempotent, so "Re-run failed jobs" can finish a release whose later step failed.
+      - name: Publish to npm
+        working-directory: release
+        env:
+          TARBALL: ${{ steps.files.outputs.tarball }}
+          INTEGRITY: ${{ steps.files.outputs.integrity }}
+          # Empty under trusted publishing, which is how v0.2.0 shipped; this also replaces the
+          # placeholder token setup-node exports. A repo secret NPM_TOKEN would act as a fallback.
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          if [ -n "$NODE_AUTH_TOKEN" ]; then
-            npm config set //registry.npmjs.org/:_authToken "$NODE_AUTH_TOKEN"
+          published=$(npm view "typesafe-mcp@$VERSION" dist.integrity 2>/dev/null || true)
+          if [ -z "$published" ]; then
+            npm publish "./$TARBALL" --provenance --access public
+          elif [ "$published" = "$INTEGRITY" ]; then
+            echo "typesafe-mcp@$VERSION already holds this exact tarball; skipping publish"
+          else
+            echo "::error::typesafe-mcp@$VERSION is already published with different contents"
+            exit 1
           fi
-          npm publish --provenance --access public
 
-      - name: Verify published artifact
+      - name: Attest build provenance
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: release/${{ steps.files.outputs.tarball }}
+
+      - name: Attest the SBOM
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: release/${{ steps.files.outputs.tarball }}
+          sbom-path: release/${{ steps.files.outputs.sbom }}
+
+      - name: Create the GitHub release
+        working-directory: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARBALL: ${{ steps.files.outputs.tarball }}
+          SBOM: ${{ steps.files.outputs.sbom }}
         run: |
-          # OIDC publishes are processed asynchronously — poll until visible.
-          for i in $(seq 1 24); do
-            if npm view "typesafe-mcp@${{ steps.version.outputs.version }}" version >/dev/null 2>&1; then
-              break
+          if gh release view "v$VERSION" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "v$VERSION" --repo "$GITHUB_REPOSITORY" --clobber "$TARBALL" "$SBOM" build-metadata.json
+          else
+            gh release create "v$VERSION" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+              --title "v$VERSION" --generate-notes "$TARBALL" "$SBOM" build-metadata.json
+          fi
+
+  verify:
+    name: Verify published
+    needs: [build, publish]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      VERSION: ${{ needs.build.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          no-cache: true
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      # Publishes become visible asynchronously.
+      - name: Wait for the registry
+        run: |
+          for _ in $(seq 1 24); do
+            status=$(curl -s -o /dev/null -w '%{http_code}' "https://registry.npmjs.org/typesafe-mcp/$VERSION")
+            if [ "$status" = "200" ]; then
+              exit 0
             fi
-            [ "$i" -eq 24 ] && { echo "::error::version not visible on npm after 2min"; exit 1; }
             sleep 5
           done
-          npm view "typesafe-mcp@${{ steps.version.outputs.version }}" version
-          printf '%s\n' \
-            '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"ci","version":"0"}}}' \
-            | bunx "typesafe-mcp@${{ steps.version.outputs.version }}" 2>/dev/null \
-            | grep -q '"typesafe-mcp"'
+          echo "::error::typesafe-mcp@$VERSION is not visible on npm after 2 minutes"
+          exit 1
 
-      - name: Tag and create GitHub release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag "v${{ steps.version.outputs.version }}"
-          git push origin "v${{ steps.version.outputs.version }}"
-          gh release create "v${{ steps.version.outputs.version }}" --generate-notes
+      - name: Smoke-test the published package
+        run: bun run smoke bunx "typesafe-mcp@$VERSION"

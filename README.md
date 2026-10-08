@@ -171,14 +171,15 @@ Bun only — no Node/npm/pnpm/yarn/`npx`.
 ```bash
 bun test                 # unit + in-process MCP tests (no key needed)
 bun run test:integration # live API — skips entirely without TYPESAFE_API_KEY
-bun run typecheck        # tsc --noEmit
-bun run lint             # oxlint
+bun run verify:fast      # tsc + type-aware oxlint + unit tests, in seconds
+bun run verify           # the CI gate: verify:fast + knip + build + stdio smoke test of dist/
+bun run scan             # gitleaks over the git history + osv-scanner over bun.lock
 bun run inspect          # MCP Inspector over stdio
 bun run eval --help      # agent token-efficiency evals (see evals/README.md)
 bun run scripts/record-fixture.ts   # re-record tests/fixtures from the real API (needs key)
 ```
 
-CI: `tsc` + `oxlint` + `bun test` on Ubuntu, macOS and Windows, plus Conventional Commits PR titles, all required; CodeQL, dependency review, actionlint and zizmor also run. Releases publish via OIDC trusted publishing with `--provenance` — no long-lived npm token. See [CONTRIBUTING.md](CONTRIBUTING.md).
+CI: `bun run verify` on Ubuntu, macOS and Windows; on Ubuntu also the packed tarball smoke-tested as installed and gitleaks over the git history; plus Conventional Commits PR titles. All of these are required. CodeQL, osv-scanner, dependency review, actionlint and zizmor also run. A release builds one tarball, smoke-tests it, publishes that file via OIDC trusted publishing with `--provenance` (no long-lived npm token), and attaches an SPDX SBOM and GitHub attestations. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Roadmap
 

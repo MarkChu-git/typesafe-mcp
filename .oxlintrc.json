@@ -16,7 +16,13 @@
     "Bun": "readonly"
   },
   "rules": {
-    "no-underscore-dangle": ["error", { "allow": ["_meta"] }]
+    "no-underscore-dangle": ["error", { "allow": ["_meta"] }],
+    // Type-aware (`oxlint --type-aware`). Opt-in upstream as well: JSON and fixture boundaries assert
+    // after parsing, and src/ validates runtime input with zod before any assertion.
+    "typescript/no-unsafe-type-assertion": "off",
+    // tsc already rejects a missing return in a function with a declared return type, and unlike this
+    // rule it understands exhaustive switches over a union.
+    "typescript/consistent-return": "off"
   },
   "overrides": [
     {
@@ -30,6 +36,14 @@
       "plugins": ["typescript", "unicorn", "oxc"],
       "rules": {
         "no-console": "off"
+      }
+    },
+    {
+      "files": ["tests/**/*.ts"],
+      "rules": {
+        // bun-types declares `expect(p).rejects.toThrow()` as void, but it returns a promise that
+        // must be awaited; dropping the await would let the assertion run after the test ends.
+        "typescript/await-thenable": "off"
       }
     }
   ]

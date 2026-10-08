@@ -14,7 +14,6 @@ export const ENV = {
 } as const;
 
 export const DEFAULT_MODEL = "jev-latest";
-export const PINNED_MODEL_HINT = "jev-1.13.0";
 export const DEFAULT_TIMEOUT_MS = 10_000;
 export const DEFAULT_THRESHOLDS = { act_above: 0.8, review_above: 0.5 } as const;
 

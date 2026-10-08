@@ -45,7 +45,7 @@ export function fakeFetch(routes: Record<string, FixtureResponse | FixtureRespon
     let parsedBody: unknown;
     if (init?.body) {
       try {
-        parsedBody = JSON.parse(String(init.body));
+        parsedBody = typeof init.body === "string" ? JSON.parse(init.body) : init.body;
       } catch {
         parsedBody = init.body;
       }

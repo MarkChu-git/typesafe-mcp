@@ -59,7 +59,7 @@ export function itemAccuracy<T>(
 
   const defaultEq = (a: T, b: T): boolean => {
     if (typeof a === "string" && typeof b === "string") {
-      return normLabel(a as string) === normLabel(b as string);
+      return normLabel(a) === normLabel(b);
     }
     return a === b;
   };
