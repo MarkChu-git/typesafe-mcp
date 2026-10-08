@@ -1,12 +1,22 @@
 import { describe, expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   DEFAULT_MODEL,
   DEFAULT_THRESHOLDS,
   DEFAULT_TIMEOUT_MS,
   parseTools,
   readConfig,
+  SERVER_VERSION,
   TOOL_NAMES,
 } from "../src/config.ts";
+
+describe("SERVER_VERSION", () => {
+  test("is the package.json version, so a release bumps one file", () => {
+    const pkg = JSON.parse(readFileSync(join(import.meta.dir, "..", "package.json"), "utf8")) as { version: string };
+    expect(SERVER_VERSION).toBe(pkg.version);
+  });
+});
 
 describe("readConfig", () => {
   test("treats a blank key as missing", () => {
