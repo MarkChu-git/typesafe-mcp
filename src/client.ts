@@ -5,6 +5,8 @@ import { ConfigError } from "./errors.ts";
 export interface ClientDeps {
   fetch?: Fetch;
   env?: Record<string, string | undefined>;
+  /** Where `files` reads when the host shares no MCP roots; the process's working directory by default. */
+  cwd?: string;
 }
 
 let cached: TypeSafeClient | undefined;

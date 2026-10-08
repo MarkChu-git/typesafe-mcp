@@ -1,6 +1,7 @@
 import { constants } from "node:fs";
 import { lstat, open, realpath, type FileHandle } from "node:fs/promises";
-import { isAbsolute, join, relative, sep } from "node:path";
+import { homedir } from "node:os";
+import { isAbsolute, join, parse, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ENV } from "./config.ts";
 import { FilesError } from "./errors.ts";
@@ -32,25 +33,43 @@ function localPath(uri: string): string | undefined {
   }
 }
 
+const within = (dir: string, path: string): boolean => path === dir || path.startsWith(dir + sep);
+
 /**
  * Directories `files` may read: `TYPESAFE_FILES_ROOT` when set, else the `file://` roots the client
- * declares (Claude Code declares its working directory). The client is only asked when needed.
+ * declares, else, when it shares no roots at all (as in a 2026-07-28 session, where roots are
+ * deprecated), the directory it started the server in; Claude Code starts it in the project. The
+ * client is only asked when needed.
  */
 export async function filesRoots(
   env: Record<string, string | undefined>,
   clientRoots: () => Promise<readonly { uri: string }[] | undefined>,
+  cwd: string,
 ): Promise<string[]> {
   const configured = env[ENV.filesRoot]?.trim();
   if (configured) return [configured];
+  const declared = await clientRoots();
+  if (declared === undefined) return [await startDir(cwd)];
   const paths: string[] = [];
-  for (const root of (await clientRoots()) ?? []) {
+  for (const root of declared) {
     const path = localPath(root.uri);
     if (path !== undefined) paths.push(path);
   }
   return paths;
 }
 
-const within = (dir: string, path: string): boolean => path === dir || path.startsWith(dir + sep);
+/** `/`, the home directory and anything above it hold more than one project, so they never stand in for one. */
+async function startDir(cwd: string): Promise<string> {
+  const dir = await realpath(cwd).catch(() => resolve(cwd));
+  const home = await realpath(homedir()).catch(() => homedir());
+  if (dir === parse(dir).root || within(dir, home)) {
+    throw new FilesError(
+      `files needs a project directory: this host shares no MCP roots and started the server in ${cwd}, so set ${ENV.filesRoot} in the server env`,
+      "CONFIG",
+    );
+  }
+  return cwd;
+}
 /** `.env`, `.git/…` and the like are never read. */
 const isHidden = (rel: string): boolean => rel.split("/").some((part) => part.startsWith("."));
 /** Private keys and keystores are never read, even when their names are not hidden. */
