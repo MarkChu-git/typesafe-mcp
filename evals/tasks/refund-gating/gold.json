@@ -1,0 +1,24 @@
+{
+  "decisions": [
+    {"id": "R01", "decision": "auto_approve"},
+    {"id": "R02", "decision": "deny"},
+    {"id": "R03", "decision": "human_review"},
+    {"id": "R04", "decision": "human_review"},
+    {"id": "R05", "decision": "auto_approve"},
+    {"id": "R06", "decision": "deny"},
+    {"id": "R07", "decision": "human_review"},
+    {"id": "R08", "decision": "auto_approve"},
+    {"id": "R09", "decision": "human_review"},
+    {"id": "R10", "decision": "deny"},
+    {"id": "R11", "decision": "human_review"},
+    {"id": "R12", "decision": "auto_approve"},
+    {"id": "R13", "decision": "human_review"},
+    {"id": "R14", "decision": "auto_approve"},
+    {"id": "R15", "decision": "deny"},
+    {"id": "R16", "decision": "auto_approve"},
+    {"id": "R17", "decision": "human_review"},
+    {"id": "R18", "decision": "human_review"},
+    {"id": "R19", "decision": "auto_approve"},
+    {"id": "R20", "decision": "auto_approve"}
+  ]
+}

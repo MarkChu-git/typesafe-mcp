@@ -1,6 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import { askInput, checkInput, classifyInput, modelsInput, scoreInput, stateSchema } from "../src/schemas.ts";
 
+const askIssues = (questions: Record<string, unknown>): string[] => {
+  const parsed = askInput.safeParse({ state: "Help!", questions });
+  return parsed.success ? [] : parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`);
+};
+
 describe("schemas batch 1", () => {
   test("rejects an empty string state", () => {
     const parsed = stateSchema.safeParse("");
@@ -102,6 +107,27 @@ describe("schemas batch 2", () => {
       .map((i) => `${i.path.join(".")}: ${i.message}`)
       .join("; ");
     expect(text).toContain("dept");
+  });
+
+  test("a question must carry its own type's field and no other type's", () => {
+    expect(askIssues({ dept: { type: "choice", question: "Which team?" } })).toEqual([
+      "questions.dept.options: required when type is choice",
+    ]);
+    expect(askIssues({ anger: { type: "score", question: "How angry?", options: { a: null, b: null } } })).toEqual([
+      "questions.anger.options: not used when type is score",
+      "questions.anger.levels: required when type is score",
+    ]);
+    expect(askIssues({ urgent: { type: "noul", question: "Urgent?", levels: ["no", "yes"] } })).toEqual([
+      "questions.urgent.levels: not used when type is noul",
+    ]);
+    expect(askIssues({ urgent: { type: "noul", question: "Urgent?", criteria: { true: "act now" } } })).toEqual([]);
+  });
+
+  test("state is text, a JSON object or a non-empty JSON array", () => {
+    expect(stateSchema.safeParse({ order: { items: [1, 2] } }).success).toBe(true);
+    expect(stateSchema.safeParse([{ id: 1 }]).success).toBe(true);
+    expect(stateSchema.safeParse([]).success).toBe(false);
+    expect(stateSchema.safeParse(42).success).toBe(false);
   });
 
   test("accepts a valid mixed batch", () => {

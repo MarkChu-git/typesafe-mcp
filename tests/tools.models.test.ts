@@ -20,7 +20,7 @@ describe("jev_models", () => {
     const ff = fakeFetch({ "/v1/models": { body: loadFixture("models.ok.json") } });
     const { client, close } = await inProcessClient({
       fetch: ff.fetch,
-      env: { TYPESAFE_API_KEY: "test-key" },
+      env: { TYPESAFE_API_KEY: "test-key", TYPESAFE_TOOLS: "models" },
     });
     try {
       const r = await client.callTool({ name: "jev_models", arguments: {} });
@@ -44,7 +44,7 @@ describe("jev_models", () => {
     });
     const { client, close } = await inProcessClient({
       fetch: ff.fetch,
-      env: { TYPESAFE_API_KEY: "test-key" },
+      env: { TYPESAFE_API_KEY: "test-key", TYPESAFE_TOOLS: "models" },
     });
     try {
       const r = await client.callTool({ name: "jev_models", arguments: {} });

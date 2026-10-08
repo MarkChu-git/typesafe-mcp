@@ -15,7 +15,7 @@
 
 <br>
 
-An MCP server that wraps **Jev**, TypeSafe AI's System One decision model, so **any agent** can ask typed questions and get structured, auditable answers back — probabilities, confidence, and a threshold-gated `act / review / abstain` verdict. No generated text, no vibes.
+An MCP server that wraps **Jev**, TypeSafe AI's System One decision model, so **any agent** can ask typed questions and get compact, auditable answers back — the answer, how certain Jev is, and a threshold-gated `act / review / abstain` verdict. No generated text, no vibes, and as few tokens of the agent's context as possible.
 
 ```bash
 bunx typesafe-mcp        # stdio server — add to any MCP host config, done
@@ -23,10 +23,10 @@ bunx typesafe-mcp        # stdio server — add to any MCP host config, done
 
 ```mermaid
 flowchart LR
-    A[Agent] -->|tool call| M[typesafe-mcp]
+    A[Agent] -->|jev_ask| M[typesafe-mcp]
     M -->|state + typed questions| J[TypeSafe Jev API]
     J --> M
-    M -->|probability · certainty · decision| A
+    M -->|answer · certainty · decision| A
 ```
 
 - **Jev** — TypeSafe AI's hosted decision model (`jev-latest` / `jev-1.13.0`). Evaluates a `state` plus typed questions (Noul / Choice / Score) and returns structured answers. It does **not** generate text, code, or explanations.
@@ -54,6 +54,14 @@ Add to any MCP host config — Cursor, Claude Desktop, Claude Code, Windsurf, Cl
 
 Requires [Bun](https://bun.sh) on PATH. That's it — the host spawns a bundled single-file build over stdio. Without a key the server still connects and lists tools; calls return a `CONFIG:` error telling you where to put it.
 
+| Env var | Default | Meaning |
+| --- | --- | --- |
+| `TYPESAFE_API_KEY` | — | Required for calls |
+| `TYPESAFE_DEFAULT_MODEL` | `jev-latest` | Model used when a call does not pass `model` |
+| `TYPESAFE_TIMEOUT_MS` | `10000` | Per-request timeout |
+| `TYPESAFE_TOOLS` | `jev_ask` | Tools to expose: `all`, or a list such as `ask,models` |
+| `TYPESAFE_FILES_ROOT` | the host's MCP roots | Directory `files` may read, for hosts that do not share roots |
+
 <details>
 <summary>Running from source</summary>
 
@@ -70,43 +78,73 @@ Point the host at the repo path instead — see [examples/stdio.mcp.json](exampl
 ## What it looks like
 
 ```jsonc
-// jev_check — "Does this ticket convey urgency?"
-// state: "Help! My payouts have been failing for 3 days."
+// jev_ask — state: "Help! My payouts have been failing for 3 days."
+// questions: urgent (noul), dept (choice: billing / technical / sales), anger (score: Calm / Frustrated / Very angry)
 {
-  "type": "noul",
-  "probability": 0.95,
-  "answer": true,
-  "certainty": 0.9,            // |0.95 − 0.5| × 2
-  "decision": "act",           // 0.9 ≥ act_above 0.8
-  "thresholds": { "act_above": 0.8, "review_above": 0.5 },
-  "model": "jev-1.13.0",
-  "usage": { "input_tokens": 307, "output_tokens": 20 }
+  "answers": {
+    "urgent": { "answer": true, "certainty": 0.9, "decision": "act" },        // p(yes) 0.95 → |0.95 − 0.5| × 2
+    "dept": { "answer": "billing", "certainty": 0.81, "decision": "act" },
+    "anger": { "answer": 1.05, "certainty": 0.92, "decision": "act" }         // expected level index
+  }
+}
+```
+
+That object is all the agent reads. Pass `"detailed": true` to add `probability` (noul) or `probabilities` (choice / score). The Jev model, token usage and the thresholds applied travel in the result's `_meta["typesafe.ai/jev"]`, which hosts keep out of the model's context.
+
+To ask the same questions of many files, pass `files` instead of `state`. The server reads the files itself, so the agent neither copies their contents nor repeats the questions per item:
+
+```jsonc
+// jev_ask — files: "tickets/*.md", context: "Urgent means a customer's money is stuck."
+{
+  "files": {
+    "tickets/T001.md": { "urgent": { "answer": true, "certainty": 0.9, "decision": "act" } },
+    "tickets/T002.md": { "urgent": { "answer": false, "certainty": 0.84, "decision": "act" } }
+  },
+  "errors": { "tickets/big.md": "81 KB is over the 64 KB limit" }   // only when something was skipped
 }
 ```
 
 ## Tools
 
-| Tool | Question type | Input | Returns |
-| --- | --- | --- | --- |
-| `jev_models` | — | — | `models[]`, `default_model` — health check, no inference tokens |
-| `jev_check` | Noul | `state`, `question` | `probability` (0–1 yes), `answer` |
-| `jev_classify` | Choice | `state`, `question`, `options` (2–255) | `choice`, `probabilities`, `confidence` |
-| `jev_score` | Score | `state`, `question`, `levels` (2–10) | `score` (expected value), `legend`, `probabilities`, `confidence` |
-| `jev_ask` | Mixed | `state`, `questions` (record keyed by your ids) | `answers` — **one** upstream call for the whole batch, ~10× cheaper |
+By default the server exposes one tool, `jev_ask`, which covers every question type. Set `TYPESAFE_TOOLS` to choose the tools instead: `all`, or a list such as `ask,check` (the list replaces the default).
 
-Every answer also carries `certainty`, `decision`, `thresholds`, `model`, and `usage`.
+| Tool | Exposed | Input | `answer` |
+| --- | --- | --- | --- |
+| `jev_ask` | default | `state` or `files` (+ optional `context`), `questions` (your ids → `{type, question, options \| levels \| criteria}`) | per question — **one** upstream call per state, or per file |
+| `jev_check` | `TYPESAFE_TOOLS` | `state`, `question`, optional `criteria` | `true` / `false` |
+| `jev_classify` | `TYPESAFE_TOOLS` | `state`, `question`, `options` (2–255) | the chosen label |
+| `jev_score` | `TYPESAFE_TOOLS` | `state`, `question`, `levels` (2–10) | expected level index (may fall between levels) |
+| `jev_models` | `TYPESAFE_TOOLS` | — | `models[]`, `default_model` — health check, no inference tokens |
+
+Every question tool also takes `detailed`, `model`, `act_above` and `review_above`.
+
+**What `files` may read.** Only files under the project directory the host declares as an MCP root (Claude Code declares its working directory), or under `TYPESAFE_FILES_ROOT` when set; without either, `files` returns a `CONFIG` error. Patterns must be relative and cannot contain `..`. Hidden files and directories (`.env`, `.git/…`) and private keys (`*.pem`, `*.key`, `id_rsa`, …) are never read, even through a symlink; wildcards skip symlinks; a path that resolves outside the root is skipped; `node_modules` is skipped unless the pattern names it. At most 100 files of up to 64 KB each per call; anything skipped is listed in `errors` with the reason. Each file's content is sent to TypeSafe as one Jev request. The server reads with its own permissions, so a host rule that keeps the agent from reading a file does not stop `files`: keep secrets in hidden files or outside the root, or point `TYPESAFE_FILES_ROOT` at a narrower directory.
 
 ## Decision gating
 
 | Field | Meaning |
 | --- | --- |
-| `certainty` | Noul: `\|probability − 0.5\| × 2` · Choice/Score: API `confidence` |
-| `decision` | `certainty ≥ act_above` → `act` · `≥ review_above` → `review` · else `abstain` |
-| `thresholds` | Defaults `act_above 0.8`, `review_above 0.5` — overridable per call (`review_above ≤ act_above`), echoed back so the gate is auditable |
+| `certainty` | Noul: `\|probability − 0.5\| × 2` · Choice/Score: API `confidence` — rounded down to 2 decimals |
+| `decision` | `certainty ≥ act_above` → `act` · `≥ review_above` → `review` · else `abstain`, taken on the rounded-down `certainty`, so the two never disagree and the gate is never looser than its thresholds |
+| thresholds | Defaults `act_above 0.8`, `review_above 0.5` — overridable per call (`review_above ≤ act_above`); the values applied are in `_meta` for audit |
 
 Pin `model` to a versioned id (e.g. `jev-1.13.0`) once thresholds are tuned — `jev-latest` can drift under a calibrated gate.
 
-**中文提示**：`question`/`state` 支持中文，官方建议英文——Jev 按字面理解，中文问题准确率略低。`decision`/`certainty`/`thresholds` 语义与语言无关。
+**中文提示**：`question`/`state` 支持中文，官方建议英文——Jev 按字面理解，中文问题准确率略低。`decision`/`certainty` 语义与语言无关。
+
+## Token efficiency
+
+Every tool definition sits in the agent's context on every model call, and every result stays there for the rest of the session, so both are kept small. Measured in Claude Code 2.1.284 (Sonnet) with `bun run eval --probes-only` and recorded API responses:
+
+| | v0.1.1 | now |
+| --- | --- | --- |
+| Tool definitions in context | 4,842 tokens (5 tools) | 1,158 tokens (`jev_ask`; 3,030 with `TYPESAFE_TOOLS=all`) |
+| `jev_ask` result, 3 mixed questions | 682 characters | 191 characters (−72%) |
+| `jev_check` / `jev_classify` / `jev_score` result | 215 / 267 / 298 characters | 48 / 54 / 49 characters |
+
+In one eval run where the agent was told to triage 30 ticket files with jev, asking per ticket took 37 calls, 31,189 characters of arguments and 14,690 output tokens; with `files` it took 2 calls, 1,846 characters and 1,912 output tokens.
+
+Claude Code shows the model a tool's `structuredContent`, not its text block, and leaves `_meta` out — which is why usage and thresholds live there. [evals/](evals/README.md) compares whole agent runs with and without jev.
 
 ## Errors
 
@@ -114,8 +152,8 @@ Every failure returns `isError: true` with a category prefix:
 
 | Category | Cause |
 | --- | --- |
-| `CONFIG` | `TYPESAFE_API_KEY` missing — where to set it is in the message |
-| `VALIDATION` | Bad arguments — names the offending field |
+| `CONFIG` | `TYPESAFE_API_KEY` missing — where to set it is in the message · `files` has no project directory (no MCP roots, no `TYPESAFE_FILES_ROOT`) |
+| `VALIDATION` | Bad arguments — names the offending field · a `files` pattern that matches nothing or more than 100 files |
 | `AUTH` | API rejected the key |
 | `RATE_LIMIT` | Throttled — hint: batch questions through `jev_ask` |
 | `OVERLOADED` / `UPSTREAM` | API-side 5xx after retries |
@@ -134,6 +172,7 @@ bun run test:integration # live API — skips entirely without TYPESAFE_API_KEY
 bun run typecheck        # tsc --noEmit
 bun run lint             # oxlint
 bun run inspect          # MCP Inspector over stdio
+bun run eval --help      # agent token-efficiency evals (see evals/README.md)
 bun run scripts/record-fixture.ts   # re-record tests/fixtures from the real API (needs key)
 ```
 

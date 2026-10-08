@@ -1,7 +1,12 @@
 import type { ChoiceResponse, NoulResponse, ScoreResponse } from "@typesafe-ai/sdk";
 import { DEFAULT_THRESHOLDS } from "./config.ts";
+import type { JevAnswer } from "./schemas.ts";
 
 export type Decision = "act" | "review" | "abstain";
+
+/** How to read an answer; shared by every question tool's description. */
+export const ANSWER_NOTE =
+  "Jev does not generate text. Each answer has `answer`, `certainty` (0–1, how sure Jev is) and `decision`: act if certainty ≥ act_above (default 0.8), review if ≥ review_above (default 0.5), else abstain.";
 
 export interface Thresholds {
   act_above: number;
@@ -32,31 +37,34 @@ export function decide(certainty: number, th: Thresholds): Decision {
   return "abstain";
 }
 
-const stringKeys = <V>(record: Record<PropertyKey, V>): Record<string, V> =>
-  Object.fromEntries(Object.entries(record).map(([k, v]) => [String(k), v]));
+export const round = (x: number, digits: number): number => {
+  const f = 10 ** digits;
+  return Math.round(x * f) / f;
+};
 
-export function withDecision(a: Answer, th: Thresholds) {
-  const certainty = certaintyOf(a);
-  const gate = { certainty, decision: decide(certainty, th), thresholds: th };
+/** Rounds down, so a shown certainty never exceeds Jev's. The epsilon absorbs float error such as 0.29 × 100 = 28.999…. */
+export const roundDown = (x: number, digits: number): number => {
+  const f = 10 ** digits;
+  return Math.floor(x * f + 1e-9) / f;
+};
+
+const rounded = (record: Record<PropertyKey, number>): Record<string, number> =>
+  Object.fromEntries(Object.entries(record).map(([k, v]) => [String(k), round(v, 3)]));
+
+/**
+ * What the agent reads for one question: the answer, a certainty rounded down to 2 decimals and the
+ * decision taken on that value, so the two never disagree and the gate is never looser than its
+ * thresholds. `detailed` adds the probabilities behind the answer.
+ */
+export function toAnswer(a: Answer, th: Thresholds, detailed = false): JevAnswer {
+  const certainty = roundDown(certaintyOf(a), 2);
+  const gate = { certainty, decision: decide(certainty, th) };
   switch (a.type) {
     case "noul":
-      return { type: "noul" as const, probability: a.noul, answer: a.noul >= 0.5, ...gate };
+      return { answer: a.noul >= 0.5, ...gate, ...(detailed ? { probability: round(a.noul, 3) } : {}) };
     case "choice":
-      return {
-        type: "choice" as const,
-        choice: a.choice,
-        probabilities: a.probabilities,
-        confidence: a.confidence,
-        ...gate,
-      };
+      return { answer: a.choice, ...gate, ...(detailed ? { probabilities: rounded(a.probabilities) } : {}) };
     case "score":
-      return {
-        type: "score" as const,
-        score: a.score,
-        legend: stringKeys(a.legend),
-        probabilities: stringKeys(a.probabilities),
-        confidence: a.confidence,
-        ...gate,
-      };
+      return { answer: round(a.score, 2), ...gate, ...(detailed ? { probabilities: rounded(a.probabilities) } : {}) };
   }
 }

@@ -1,0 +1,8 @@
+{
+  "ui.button.refund": "Request Refund",
+  "ui.error.refund_failed": "Refund processing failed. Please try again.",
+  "ui.message.refund_success": "Your refund has been processed successfully.",
+  "ui.label.refund_reason": "Reason for refund",
+  "ui.text.refund_policy": "See our refund policy for details",
+  "ui.button.cancel": "Cancel"
+}

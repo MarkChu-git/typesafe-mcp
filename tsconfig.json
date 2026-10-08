@@ -3,7 +3,7 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "lib": ["ES2022"],
+    "lib": ["ES2023"],
     "types": ["bun-types"],
     "strict": true,
     "noUncheckedIndexedAccess": true,
@@ -13,5 +13,6 @@
     "noEmit": true,
     "allowImportingTsExtensions": true
   },
-  "include": ["src", "tests", "scripts"]
+  "include": ["src", "tests", "scripts", "evals"],
+  "exclude": ["evals/tasks/*/workspace/**"]
 }

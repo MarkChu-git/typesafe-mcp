@@ -1,0 +1,10 @@
+{
+  "orders": [
+    {"id": "ord_1", "customerId": "cus_1", "amount": 100, "status": "completed"},
+    {"id": "ord_2", "customerId": "cus_2", "amount": 250, "status": "completed"}
+  ],
+  "refunds": [
+    {"id": "ref_1", "orderId": "ord_1", "amount": 100, "status": "processed"},
+    {"id": "ref_2", "orderId": "ord_2", "amount": 250, "status": "processed"}
+  ]
+}

@@ -9,10 +9,14 @@
     "graphify-out/**",
     ".gitnexus/**",
     ".teamai/**",
-    "**/node_modules/**"
+    "**/node_modules/**",
+    "evals/tasks/*/workspace/**"
   ],
   "globals": {
     "Bun": "readonly"
+  },
+  "rules": {
+    "no-underscore-dangle": ["error", { "allow": ["_meta"] }]
   },
   "overrides": [
     {
@@ -22,7 +26,7 @@
       }
     },
     {
-      "files": ["tests/**/*.ts", "scripts/**/*.ts"],
+      "files": ["tests/**/*.ts", "scripts/**/*.ts", "evals/**/*.ts"],
       "plugins": ["typescript", "unicorn", "oxc"],
       "rules": {
         "no-console": "off"

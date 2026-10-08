@@ -31,9 +31,14 @@ Thumbs.db
 # Logs
 *.log
 logs/
+# ...except eval task workspaces, which are sample data (payments.log)
+!evals/tasks/*/workspace/**
 
 # Test coverage
 coverage/
+
+# Eval results (raw transcripts and metrics; curated reports live in docs/evals/)
+evals/results/
 
 # Cache
 .cache/

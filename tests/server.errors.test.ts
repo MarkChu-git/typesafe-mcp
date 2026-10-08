@@ -10,7 +10,7 @@ const textOf = (result: { content?: Array<{ type: string; text?: string }> }): s
   return block.text;
 };
 
-const checkArgs = { state: "Help!", question: "Is this urgent?" };
+const askArgs = { state: "Help!", questions: { q: { type: "noul", question: "Is this urgent?" } } };
 
 // Never resolves on its own; rejects only when the SDK's timeout aborts the signal —
 // mirroring how a real fetch surfaces an abort.
@@ -25,7 +25,7 @@ const expectServerAlive = async (client: {
   listTools: () => Promise<{ tools: unknown[] }>;
 }): Promise<void> => {
   const listed = await client.listTools();
-  expect(listed.tools).toHaveLength(5);
+  expect(listed.tools).toHaveLength(1);
 };
 
 describe("server error paths", () => {
@@ -46,7 +46,7 @@ describe("server error paths", () => {
       env: { TYPESAFE_API_KEY: "test-key" },
     });
     try {
-      const r = await client.callTool({ name: "jev_check", arguments: checkArgs });
+      const r = await client.callTool({ name: "jev_ask", arguments: askArgs });
       expect(r.isError).toBe(true);
       expect(textOf(r)).toContain("RATE_LIMIT");
       expect(textOf(r)).toContain("jev_ask");
@@ -70,7 +70,7 @@ describe("server error paths", () => {
       env: { TYPESAFE_API_KEY: "test-key" },
     });
     try {
-      const r = await client.callTool({ name: "jev_check", arguments: checkArgs });
+      const r = await client.callTool({ name: "jev_ask", arguments: askArgs });
       expect(r.isError).toBe(true);
       expect(textOf(r)).toContain("OVERLOADED");
       expect(ff.calls).toHaveLength(3);
@@ -86,7 +86,7 @@ describe("server error paths", () => {
       env: { TYPESAFE_API_KEY: "test-key", TYPESAFE_TIMEOUT_MS: "50" },
     });
     try {
-      const r = await client.callTool({ name: "jev_check", arguments: checkArgs });
+      const r = await client.callTool({ name: "jev_ask", arguments: askArgs });
       expect(r.isError).toBe(true);
       expect(textOf(r)).toContain("TIMEOUT");
       await expectServerAlive(client);
@@ -104,7 +104,7 @@ describe("server error paths", () => {
       env: { TYPESAFE_API_KEY: "test-key" },
     });
     try {
-      const r = await client.callTool({ name: "jev_check", arguments: checkArgs });
+      const r = await client.callTool({ name: "jev_ask", arguments: askArgs });
       expect(r.isError).toBe(true);
       expect(textOf(r)).toContain("INVALID_REQUEST");
       expect(textOf(r)).toContain("questions.q.criteria");
