@@ -1,57 +1,60 @@
 username: MarkChu-git
-updatedAt: 2026-10-08T14:09:06.540Z
-skills: {}
+updatedAt: 2026-10-08T15:35:21.946Z
+skills:
+  superpowers:test-driven-development:
+    count: 1
+    lastUsed: 2026-10-08T14:09:14.924Z
 interventions:
-  sessions: 2
+  sessions: 4
   interrupt: 0
   toolReject: 0
-  correction: 2
-prompts: 147
+  correction: 4
+prompts: 193
 tokens:
-  input: 642
-  output: 659371
-  cacheRead: 114594726
-  cacheCreation: 1651489
+  input: 1758
+  output: 1638439
+  cacheRead: 297448336
+  cacheCreation: 3881623
 daily:
   2026-09-21:
-    sessionsEnded: 6
-    sessionsSucceeded: 5
-    promptTurns: 51
-    durationMs: 8804406
-    sessionsCorrected: 1
+    sessionsEnded: 12
+    sessionsSucceeded: 10
+    promptTurns: 102
+    durationMs: 17608812
+    sessionsCorrected: 2
     pricedRequests: 0
     costMicros: 0
     cacheReadTokens: 0
     cacheEligibleInputTokens: 0
   2026-09-22:
-    sessionsEnded: 1
-    sessionsSucceeded: 1
-    promptTurns: 4
-    durationMs: 1350506
+    sessionsEnded: 2
+    sessionsSucceeded: 2
+    promptTurns: 8
+    durationMs: 2701012
     sessionsCorrected: 0
     pricedRequests: 0
     costMicros: 0
     cacheReadTokens: 0
     cacheEligibleInputTokens: 0
   2026-10-07:
-    sessionsEnded: 1
+    sessionsEnded: 2
     sessionsSucceeded: 0
-    promptTurns: 20
-    durationMs: 10200817
-    sessionsCorrected: 1
-    pricedRequests: 20
-    costMicros: 2077975
-    cacheReadTokens: 114594726
-    cacheEligibleInputTokens: 116246857
+    promptTurns: 64
+    durationMs: 25317484
+    sessionsCorrected: 2
+    pricedRequests: 40
+    costMicros: 4155950
+    cacheReadTokens: 292412654
+    cacheEligibleInputTokens: 296116982
     priceVersion: anthropic-2026-09-09
   2026-10-08:
-    sessionsEnded: 0
-    sessionsSucceeded: 0
-    promptTurns: 0
-    durationMs: 0
+    sessionsEnded: 1
+    sessionsSucceeded: 1
+    promptTurns: 1
+    durationMs: 773993
     sessionsCorrected: 0
-    pricedRequests: 299
-    costMicros: 82028724
-    cacheReadTokens: 0
-    cacheEligibleInputTokens: 0
+    pricedRequests: 833
+    costMicros: 209798245
+    cacheReadTokens: 5035682
+    cacheEligibleInputTokens: 5214735
     priceVersion: anthropic-2026-09-09
