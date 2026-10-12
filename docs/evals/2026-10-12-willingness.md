@@ -40,7 +40,7 @@ bun run eval --tasks triage-tickets,repo-feature-files,refund-promises-audit,pay
 
 于是改了三处：
 
-- jev_ask 的结果新增 `unsure`：返回的记录里只要有 review 或 abstain 的答案，原文不超过 2,000 字符就附上，一次调用最多附 16,000 字符。agent 在同一轮就能看到原文，不用再开文件。refund-promises-audit 的对话记录每份一万多字符，不附。
+- jev_ask 的结果新增 `unsure`：返回的记录里只要有 review 或 abstain 的答案，原文不超过 2,000 字符就附上，一次调用最多附 16,000 字符。agent 在同一轮就能看到原文，不用再开文件。refund-promises-audit 的对话记录每份一万多字符，不附。合并前按审查意见改成按 UTF-8 字节计，并加了 `more_unsure` 统计没附原文的记录；评测数据都是英文，字节数等于字符数，上面的结果不受影响。
 - `where` 里的是非题现在也接受 `"yes"`/`"no"`。agent 筛选时有时写 `"yes"`，原来会报错，白白多一次调用；repo-feature-files 上用 `where` 筛选的 17 次运行里出过 2 次。
 - instructions 告诉 agent 结果里有 `unsure`（V4），再回应它跳过 Jev 时给的理由"仓库小，搜一下就够"：V5 写"哪怕只有几个文件"，V6 写"哪怕仓库很小"，并说明关键词只能找到提到某个主题的文件，判断不了文件是否属于它。V6 是现在的版本，993 字符。
 

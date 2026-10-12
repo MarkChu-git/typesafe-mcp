@@ -74,6 +74,7 @@ describe("selector: where", () => {
     expect(keysOf({ where: { urgent: "No" } })).toEqual(keysOf({ where: { urgent: false } }));
     expect(keysOf({ where: { urgent: { is: ["YES", false] } } })).toEqual(["t1", "t2", "t3", "t4", "t5", "t6"]);
     expect(keysOf({ where: { urgent: { is: "true", decision: "act" } } })).toEqual(["t1", "t4"]);
+    expect(keysOf({ where: { urgent: " Yes " } })).toEqual(keysOf({ where: { urgent: true } }));
   });
 
   test("{ is } says the same as the shorthand", () => {

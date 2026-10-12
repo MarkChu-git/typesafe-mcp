@@ -184,8 +184,10 @@ const SPLITTERS: Record<ItemsMode, (path: string, text: string) => Part[]> = {
   sections: bySections,
 };
 
-const bytesOf = (content: JsonValue): number =>
-  Buffer.byteLength(typeof content === "string" ? content : JSON.stringify(content));
+/** A record's text as Jev gets it: a string as is, a csv row, json item or jsonl value as JSON. */
+export const textOf = (content: JsonValue): string => (typeof content === "string" ? content : JSON.stringify(content));
+
+const bytesOf = (content: JsonValue): number => Buffer.byteLength(textOf(content));
 
 /** Jev takes about the same state from a record as from a file, so a record over the file limit is refused. */
 function withinLimit(part: Part): Part {

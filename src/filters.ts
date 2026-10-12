@@ -65,7 +65,7 @@ const YES_NO = new Map([
 ]);
 
 const asNoul = (value: boolean | string): boolean | string =>
-  typeof value === "string" ? (YES_NO.get(value.toLowerCase()) ?? value) : value;
+  typeof value === "string" ? (YES_NO.get(value.trim().toLowerCase()) ?? value) : value;
 
 type Test = (answers: Readonly<Record<string, JevAnswer>>) => boolean;
 
@@ -181,30 +181,40 @@ export function selector(options: SelectOptions, types: QuestionTypes): (records
   };
 }
 
-/** Longest record text `unsure` carries; a longer record stays out, for the agent to open if it must. */
-export const MAX_UNSURE_CHARS = 2_000;
-/** Text `unsure` carries in all, so a call over many unsure records still returns a short result. */
-export const MAX_UNSURE_TOTAL = 16_000;
+/** Largest record text `unsure` carries, in UTF-8 bytes; a larger record stays out, for the agent to open if it must. */
+export const MAX_UNSURE_BYTES = 2_000;
+/** Text `unsure` carries in all, in UTF-8 bytes, so a call over many unsure records still returns a short result. */
+export const MAX_UNSURE_TOTAL_BYTES = 16_000;
 
 /**
- * The text of each returned record with a review or abstain answer, when short, filled in result order
- * up to MAX_UNSURE_TOTAL. Agents check those records; reading them in the result saves opening them in
- * another step, which rereads the whole conversation.
+ * The text of each returned record with a review or abstain answer, when small, in result order up to
+ * MAX_UNSURE_TOTAL_BYTES; a record that no longer fits is skipped for a later, smaller one, and
+ * `more_unsure` counts every record left out. Agents check those records, and reading them in the
+ * result saves opening them in another step, which rereads the whole conversation. Bytes rather than
+ * characters keep the budget near the same number of tokens in any script.
  */
 export function unsureTexts(
   files: Selection["files"],
-  textOf: (key: string) => string | undefined,
-): { unsure?: Record<string, string> } {
+  textOf: (key: string) => string,
+): { unsure?: Record<string, string>; more_unsure?: number } {
   const unsure: Record<string, string> = {};
   let total = 0;
+  let left = 0;
   for (const [key, answers] of Object.entries(files ?? {})) {
     if (Object.values(answers).every((answer) => answer.decision === "act")) continue;
     const text = textOf(key);
-    if (text === undefined || text.length > MAX_UNSURE_CHARS || total + text.length > MAX_UNSURE_TOTAL) continue;
+    const bytes = Buffer.byteLength(text);
+    if (bytes > MAX_UNSURE_BYTES || total + bytes > MAX_UNSURE_TOTAL_BYTES) {
+      left += 1;
+      continue;
+    }
     unsure[key] = text;
-    total += text.length;
+    total += bytes;
   }
-  return Object.keys(unsure).length > 0 ? { unsure } : {};
+  return {
+    ...(Object.keys(unsure).length > 0 ? { unsure } : {}),
+    ...(left > 0 ? { more_unsure: left } : {}),
+  };
 }
 
 /** Errors the result lists; a batch that fails as a whole would otherwise repeat one reason per record. */

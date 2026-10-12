@@ -117,7 +117,8 @@ Logs, JSONL, CSV and Markdown files hold many records each. `items` splits every
   },
   "total": 486,
   "matched": 2,
-  "counts": { "incident": { "false": 484, "true": 2 } }
+  "counts": { "incident": { "false": 484, "true": 2 } },
+  "unsure": { "logs/app-07.jsonl:88": "{\"level\":\"warn\",\"msg\":\"replica lag 41s, failing over\"}" }
 }
 ```
 
@@ -158,7 +159,7 @@ Jev sees `{file, content, context}` for every record. Each record may be up to 6
 
 With any of them the result also has `total`, the records answered, and with `where` it has `matched`, the records that passed. `errors` lists at most 20 entries, and `more_errors` counts the rest.
 
-**Unsure records.** A returned record with a review or abstain answer also comes back with its text in `unsure` (record key → text) when the text is at most 2,000 characters, up to 16,000 characters per call. Agents check those records anyway, and reading them in the result saves opening them in another step, which rereads the whole conversation.
+**Unsure records.** A returned record with a review or abstain answer also comes back with its text in `unsure` (record key → text) when the text is at most 2,000 bytes of UTF-8, up to 16,000 bytes per call; `more_unsure` counts the unsure records left out. Agents check those records anyway, and reading them in the result saves opening them in another step, which rereads the whole conversation. Bytes rather than characters keep the budget near the same number of tokens in any script. This is the only part of a `files` result that carries file text, so the warning above applies to it: a short file that a host rule keeps from the agent can still reach it here when Jev is unsure about it.
 
 ## Decision gating
 
@@ -184,7 +185,7 @@ Every tool definition sits in the agent's context on every model call, and every
 
 In one eval run where the agent was told to triage 30 ticket files with jev, asking per ticket took 37 calls, 31,189 characters of arguments and 14,690 output tokens; with `files` it took 2 calls, 1,846 characters and 1,912 output tokens.
 
-The server also sends MCP instructions (993 characters) that say when to use `jev_ask`. Claude Code shows them even when it defers tool definitions, as it does in sessions with many MCP tools, where the agent otherwise sees only the tool's name. In that setting, agents that were not told to use Jev used it on 1 of 6 judgment-task runs with the earlier 394-character text and on 6 of 6 with the current one. With `jev_ask` loaded up front, as in a session with only this server, the counts were 0 of 6 and 10 of 12 ([results](docs/evals/2026-10-12-willingness.md)). `items`, `where`, `top` and `counts` grow the `jev_ask` definition from 3,165 to 4,070 characters. `where` and `top` appear as plain objects whose descriptions name their shape, because typed unions would add about 150 tokens to every call. The token figures in the table predate these fields.
+The server also sends MCP instructions (993 characters) that say when to use `jev_ask`. Claude Code shows them even when it defers tool definitions, as it does in sessions with many MCP tools, where the agent otherwise sees only the tool's name. In that setting, agents that were not told to use Jev used it on 1 of 6 judgment-task runs with the earlier 394-character text and on 12 of 12 with the current one. With `jev_ask` loaded up front, as in a session with only this server, the counts were 0 of 6 and 10 of 12 ([results](docs/evals/2026-10-12-willingness.md)). `items`, `where`, `top` and `counts` grow the `jev_ask` definition from 3,165 to 4,070 characters, and the sentence on `unsure` brings it to 4,232. `where` and `top` appear as plain objects whose descriptions name their shape, because typed unions would add about 150 tokens to every call. The token figures in the table predate these fields.
 
 Claude Code shows the model a tool's `structuredContent`, not its text block, and leaves `_meta` out — which is why usage and thresholds live there. [evals/](evals/README.md) compares whole agent runs with and without jev.
 
