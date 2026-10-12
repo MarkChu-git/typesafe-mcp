@@ -3,12 +3,14 @@ import triageTickets from "./triage-tickets/task.ts";
 import refundGating from "./refund-gating/task.ts";
 import repoFeatureFiles from "./repo-feature-files/task.ts";
 import paymentLogDuplicates from "./payment-log-duplicates/task.ts";
+import refundPromisesAudit from "./refund-promises-audit/task.ts";
 
 export const ALL_TASKS: readonly RegisteredTask[] = [
   triageTickets,
   refundGating,
   repoFeatureFiles,
   paymentLogDuplicates,
+  refundPromisesAudit,
 ];
 
 export function findTask(id: string): RegisteredTask | undefined {

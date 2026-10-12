@@ -1,13 +1,17 @@
 import { describe, it, expect } from "bun:test";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { ALL_TASKS, findTask } from "../../evals/tasks/index.ts";
 import { affectedCustomers, generate } from "../../evals/tasks/payment-log-duplicates/generate.ts";
+import {
+  buildCorpus,
+  generate as generateRefundAudit,
+} from "../../evals/tasks/refund-promises-audit/generate.ts";
 
 describe("tasks", () => {
   describe("ALL_TASKS", () => {
-    it("has exactly 4 tasks", () => {
-      expect(ALL_TASKS.length).toBe(4);
+    it("has exactly 5 tasks", () => {
+      expect(ALL_TASKS.length).toBe(5);
     });
 
     it("has unique ids", () => {
@@ -156,6 +160,89 @@ describe("tasks", () => {
     it("gold follows the task definition", () => {
       const { log, gold } = generate();
       expect(affectedCustomers(log)).toEqual(gold.customers);
+    });
+  });
+
+  describe("refund-promises-audit generator", () => {
+    const task = ALL_TASKS.find((t) => t.id === "refund-promises-audit");
+    if (!task) throw new Error("refund-promises-audit task not found");
+    const root = task.workspaceDir;
+    const listFiles = (): string[] =>
+      readdirSync(root, { recursive: true })
+        .map((entry) => String(entry))
+        .filter((entry) => statSync(join(root, entry)).isFile())
+        .toSorted();
+    const transcriptPaths = (): string[] => listFiles().filter((path) => path.startsWith("transcripts/"));
+    const read = (path: string): string => readFileSync(join(root, path), "utf8");
+    const ledgerTickets = (): Set<string> =>
+      new Set(
+        read("ledger/refunds-2026-09.csv")
+          .trim()
+          .split("\n")
+          .slice(1)
+          .map((line) => line.split(",")[1] ?? ""),
+      );
+
+    it("generate() output equals the workspace files on disk and gold.json", () => {
+      const { files, gold } = generateRefundAudit();
+      expect(listFiles()).toEqual(Object.keys(files).toSorted());
+      for (const [path, content] of Object.entries(files)) {
+        expect(read(path)).toBe(content);
+      }
+      expect(task.gold()).toEqual(gold);
+    });
+
+    it("has 100 transcripts", () => {
+      expect(transcriptPaths().length).toBe(100);
+    });
+
+    it("each transcript is 9-15 KB and at most 64 KB", () => {
+      for (const path of transcriptPaths()) {
+        const size = statSync(join(root, path)).size;
+        expect(size).toBeLessThanOrEqual(64 * 1024);
+        expect(size).toBeGreaterThanOrEqual(9_000);
+        expect(size).toBeLessThanOrEqual(15_000);
+      }
+    });
+
+    it("transcripts total 1.0-1.4 MB", () => {
+      const total = transcriptPaths().reduce((sum, path) => sum + statSync(join(root, path)).size, 0);
+      expect(total).toBeGreaterThanOrEqual(1_000_000);
+      expect(total).toBeLessThanOrEqual(1_400_000);
+    });
+
+    it("at least half of the V promise sentences avoid the word refund", () => {
+      const { gold, promises } = buildCorpus();
+      const lacking = gold.violations.filter((v) => !/refund/i.test(promises[v.ticket] ?? ""));
+      expect(lacking.length * 2).toBeGreaterThanOrEqual(gold.violations.length);
+    });
+
+    it("refund appears in at least 40 transcripts", () => {
+      const count = transcriptPaths().filter((path) => /refund/i.test(read(path))).length;
+      expect(count).toBeGreaterThanOrEqual(40);
+    });
+
+    it("every V ticket's issued flag matches the ledger", () => {
+      const { gold } = generateRefundAudit();
+      const tickets = ledgerTickets();
+      for (const violation of gold.violations) {
+        expect(tickets.has(violation.ticket)).toBe(violation.issued);
+      }
+    });
+
+    it("staff.csv has 12 agents and 4 team leads", () => {
+      const rows = read("staff.csv")
+        .trim()
+        .split("\n")
+        .slice(1)
+        .map((line) => line.split(","));
+      expect(rows.length).toBe(12);
+      expect(new Set(rows.map((row) => row[2])).size).toBe(4);
+    });
+
+    it("every team lead has at least one V ticket", () => {
+      const { gold } = generateRefundAudit();
+      expect(gold.total_by_lead.length).toBe(4);
     });
   });
 });

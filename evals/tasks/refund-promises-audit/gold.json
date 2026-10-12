@@ -1,0 +1,99 @@
+{
+  "violations": [
+    {
+      "ticket": "CH-20286",
+      "agent": "Diego Alvarez",
+      "amount": 689.18,
+      "team_lead": "Tomas Brandt",
+      "issued": true
+    },
+    {
+      "ticket": "CH-20827",
+      "agent": "Priya Shah",
+      "amount": 315.88,
+      "team_lead": "Dana Whitfield",
+      "issued": true
+    },
+    {
+      "ticket": "CH-21999",
+      "agent": "Grace Kim",
+      "amount": 746.25,
+      "team_lead": "Elena Ruiz",
+      "issued": true
+    },
+    {
+      "ticket": "CH-24217",
+      "agent": "Hannah Okafor",
+      "amount": 604,
+      "team_lead": "Dana Whitfield",
+      "issued": true
+    },
+    {
+      "ticket": "CH-24741",
+      "agent": "Mei Lin",
+      "amount": 695.22,
+      "team_lead": "Marcus Lee",
+      "issued": true
+    },
+    {
+      "ticket": "CH-26385",
+      "agent": "Samuel Adeyemi",
+      "amount": 614.85,
+      "team_lead": "Marcus Lee",
+      "issued": false
+    },
+    {
+      "ticket": "CH-27282",
+      "agent": "Ravi Patel",
+      "amount": 606,
+      "team_lead": "Elena Ruiz",
+      "issued": false
+    },
+    {
+      "ticket": "CH-28422",
+      "agent": "Nadia Haddad",
+      "amount": 574.52,
+      "team_lead": "Tomas Brandt",
+      "issued": true
+    },
+    {
+      "ticket": "CH-28675",
+      "agent": "Jonah Reyes",
+      "amount": 629.88,
+      "team_lead": "Dana Whitfield",
+      "issued": true
+    },
+    {
+      "ticket": "CH-28881",
+      "agent": "Chloe Martin",
+      "amount": 287.71,
+      "team_lead": "Elena Ruiz",
+      "issued": false
+    },
+    {
+      "ticket": "CH-29489",
+      "agent": "Liam Carter",
+      "amount": 573,
+      "team_lead": "Marcus Lee",
+      "issued": false
+    }
+  ],
+  "total_by_lead": [
+    {
+      "team_lead": "Dana Whitfield",
+      "amount": 1549.76
+    },
+    {
+      "team_lead": "Elena Ruiz",
+      "amount": 1639.96
+    },
+    {
+      "team_lead": "Marcus Lee",
+      "amount": 1883.07
+    },
+    {
+      "team_lead": "Tomas Brandt",
+      "amount": 1263.7
+    }
+  ]
+}
