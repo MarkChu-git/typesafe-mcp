@@ -179,6 +179,27 @@ describe("jev calls", () => {
     expect(m.toolCalls.map((c) => c.jev)).toEqual([true, true, false, true, false, false]);
   });
 
+  test("looking at the SDK is not using it: only code that imports it or calls the API is, and only running a script counts", () => {
+    const calls: [string, Record<string, unknown>][] = [
+      ["Bash", { command: "ls node_modules/@typesafe-ai/sdk && cat node_modules/@typesafe-ai/sdk/dist/index.d.mts" }],
+      ["Write", { file_path: "/w/notes.md", content: "Try @typesafe-ai/sdk for the policy check." }],
+      ["Write", { file_path: "/w/a.ts", content: "import { TypeSafeClient } from '@typesafe-ai/sdk';" }],
+      ["Bash", { command: "bun data.ts" }],
+      ["Bash", { command: "sed -i 's/k/K/' a.ts" }],
+      ["Bash", { command: "cd /w && bun run ./a.ts > out.json" }],
+      ["Edit", { file_path: "/w/judge.ts", old_string: "//", new_string: 'const sdk = await import("@typesafe-ai/sdk");' }],
+      ["Bash", { command: "node judge.ts" }],
+      ["Bash", { command: "cat > ask.mts <<'EOF'\nimport { TypeSafeClient } from \"@typesafe-ai/sdk\";\nEOF" }],
+      ["Bash", { command: "bun ask.mts 2>&1 | head" }],
+      ["Bash", { command: "curl -s https://api.typesafe.ai/v1/systemone -d @req.json" }],
+    ];
+    const m = parseRun(
+      calls.map(([name, input], i) => toolUse(String(i), name, input, i)),
+      { expectedTools: expectedTools(ARMS["sdk-directed"]), timedOut: false, exitCode: 0 },
+    );
+    expect(m.toolCalls.map((c) => c.jev)).toEqual([false, false, true, false, false, true, true, true, true, true, true]);
+  });
+
   test("jev MCP calls use Jev", () => {
     const m = parse("jev-ask-meta.jsonl", "jev");
     expect(m.toolCalls.filter((c) => c.name.startsWith("mcp__jev__")).every((c) => c.jev)).toBe(true);

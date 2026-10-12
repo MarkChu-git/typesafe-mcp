@@ -4,7 +4,7 @@
 
 ## 前置条件
 
-- 本机已安装并登录 Claude Code，版本不低于 2.1.284（`claude auth status` 显示已登录）。评测走你的订阅，不需要 Anthropic API key。
+- 本机已安装并登录 Claude Code，版本不低于 2.1.294（`claude auth status` 显示已登录）。SDK 组和延迟加载组依赖的设置只在这个版本上验证过。评测走你的订阅，不需要 Anthropic API key。
 - 已执行 `bun install`。jev 组从工作区源码启动 MCP 服务器，需要依赖。
 - 跑 jev 组或 SDK 组的任务时，终端里要有 `TYPESAFE_API_KEY`。只跑 `baseline`、或只用 `--probes-only` 测工具定义开销时不需要。
 - 任务目录里有 `REVIEW.md`（标准答案经过人工复核）才能正式运行。试跑可以加 `--allow-unreviewed`，报告会注明结果不能用来下结论；`--dry-run` 不受这个限制。
@@ -60,14 +60,17 @@ bun run eval --resume evals/results/<目录名>
 
 `jev-code-deferred` 最接近日常的 Claude Code 会话：装了很多 MCP 服务器时，Claude Code 会把它们的工具延迟加载，agent 起初只看到工具名和 server instructions，用 ToolSearch 加载后才能调用。评测里只有一个 MCP 服务器，所以用 `ENABLE_TOOL_SEARCH=true` 强制走这条路。`jev-code` 对应只装了这一个服务器的会话，工具少，Claude Code 一开始就加载 `jev_ask`。测调用意愿主要看这两组。
 
+编码工具组的隔离有限：沙箱只管 Bash 的写入和联网，Bash 照样能读本机的其他文件，包括评测仓库里的标准答案；Edit、Write 不经过沙箱；`TYPESAFE_API_KEY` 也在 Bash 能看到的环境变量里。目前的运行记录里没有 agent 越界，但评测机上不要放不该被读到的东西。
+
 默认跑 `baseline`、`jev`、`jev-v0.1.1`：一次评测里同时回答"接 jev 值不值"和"这版比上一个发布版省了多少"。
 
 `sdk` 和 `sdk-directed` 用来比较 MCP 和"官方 SDK 加 skill"这条路，和 MCP 组只差接入 Jev 的方式：
 
-- 工作区里多一份从本仓库依赖复制来的 `node_modules/@typesafe-ai/sdk`，以及声明这个依赖的 `package.json`。
+- 工作区里多一份从本仓库依赖复制来的 `node_modules/@typesafe-ai/sdk`，`package.json` 里声明这个依赖。
 - 加载 `evals/vendor/typesafe-plugin/`，即官方插件 typesafe-ai/skills 0.5.7 的固定副本（MIT）。其他 skill 全部关闭：设 `CLAUDE_CODE_DISABLE_BUNDLED_SKILLS=1`，再用 `skillOverrides` 关掉仍会加载的 design、doctor、plugin-authoring。`system/init` 里的 skill 列表必须正好是 `typesafe:typesafe-ai`，否则这次运行判为 invalid。
 - 多出 WebFetch（只能访问 docs.typesafe.ai）和 Skill，另有和 `jev-directed-code` 一样的编码工具：Bash 跑在 Claude Code 的沙箱里，任何命令都不用确认，但只能写工作区，联网只能访问 api.typesafe.ai 和 docs.typesafe.ai；沙箱起不来时这次运行直接失败。
-- 报告里的 jev 使用率对 SDK 组这样算：写入调用 SDK 的脚本，或者用 Bash 运行这类脚本、内联调用 SDK，都算用了 jev。
+- 报告里的 jev 使用率对 SDK 组这样算：用 Write、Edit 或 shell 重定向写入导入 SDK 或请求其 API 的代码，在 Bash 里内联这样的代码，或者用 `bun`、`node` 这类命令运行写过这种代码的脚本，都算用了 jev。用 `ls`、`cat` 看 SDK 的文件、改脚本都不算。
+- 任务自带 `package.json` 时只在它的依赖里加上 SDK，其余不动，保证 SDK 组看到的仓库和别的组一样。
 
 ## 额度控制
 
@@ -99,9 +102,9 @@ bun run eval --resume evals/results/<目录名>
 
 2026-10-08，Claude Code 2.1.284，模型别名 `sonnet` 解析为 `claude-sonnet-5-5`：
 
-- 从 Claude Code 桌面应用的终端启动时，继承的环境变量会让子进程报"未登录"。所以评测只传 `HOME`、`PATH` 等白名单变量；jev 组另外传 `TYPESAFE_API_KEY`。
+- 从 Claude Code 桌面应用的终端启动时，继承的环境变量会让子进程报"未登录"。所以评测只传 `HOME`、`PATH` 等白名单变量；jev 组和 SDK 组另外传 `TYPESAFE_API_KEY`。
 - `--restricted` 下不加载用户和项目的设置、hooks、CLAUDE.md 和技能。实测 agent 看不到用户全局 CLAUDE.md 里的指令。
-- baseline 和各 MCP 组可见的内置工具都是 Glob、Grep、Read、StructuredOutput，jev 工具见上面的组别表。
+- baseline 和各 MCP 组可见的内置工具都是 Glob、Grep、Read、StructuredOutput，jev 工具见上面的组别表。后来加的编码工具组另有 Bash、Edit、Write，延迟加载组另有 ToolSearch。
 - 第一轮上下文（`--probes-only`，Sonnet）：`baseline` 4,310 token，`jev` 5,468，`jev-all` 7,340，`jev-v0.1.1` 9,152。也就是工具定义从 v0.1.1 的 4,842 token 降到 1,158 token（其中 `files` 批量模式约占 240）。
 - 宿主会通过 MCP `roots` 告诉服务器项目目录（Claude Code 给的是它的工作目录，评测里就是工作区副本），`jev_ask` 的 `files` 只读这个目录。
 - agent 读到的是 MCP 结果的 `structuredContent`（序列化成 JSON），`content` 里的文本不会进上下文；`_meta` 也不进上下文，但会出现在 stream-json 事件的 `tool_use_result` 里。评测从那里读 Jev 的 token 用量（v0.1.1 的用量写在结果 JSON 里，同样能读到）。

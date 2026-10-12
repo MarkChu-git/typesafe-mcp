@@ -28,6 +28,27 @@ describe("installSdk", () => {
       await rm(root, { recursive: true, force: true });
     }
   });
+
+  test("keeps a task's own package.json, adding only the SDK to its dependencies, so SDK arms see the same repo", async () => {
+    const root = await mkdtemp(join(tmpdir(), "install-sdk-"));
+    const repo = join(root, "repo");
+    const ws = join(root, "ws");
+    const pkg = join(repo, "node_modules", "@typesafe-ai", "sdk");
+    await mkdir(pkg, { recursive: true });
+    await mkdir(ws);
+    await writeFile(join(pkg, "package.json"), JSON.stringify({ name: "@typesafe-ai/sdk", version: "9.9.9" }));
+    const own = { name: "ecommerce-service", scripts: { start: "bun src/index.ts" }, dependencies: { zod: "^4.0.0" } };
+    await writeFile(join(ws, "package.json"), JSON.stringify(own));
+    try {
+      await installSdk(ws, repo);
+      expect(JSON.parse(await readFile(join(ws, "package.json"), "utf8"))).toEqual({
+        ...own,
+        dependencies: { zod: "^4.0.0", "@typesafe-ai/sdk": "9.9.9" },
+      });
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
 });
 
 describe("prepareWorkspace", () => {

@@ -3,7 +3,7 @@ import { basename, dirname, join } from "node:path";
 import { allowedTools, ARMS, armSettings, builtinTools, disallowedTools, SDK_PLUGIN_DIR } from "../arms.ts";
 import type { Arm, StreamLine } from "./types.ts";
 
-export const MIN_CLI_VERSION = "2.1.284";
+export const MIN_CLI_VERSION = "2.1.294";
 export const ENV_ALLOWLIST = ["HOME", "PATH", "USER", "LOGNAME", "SHELL", "TMPDIR", "LANG"] as const;
 export const EVAL_INSTRUCTIONS =
   "You are completing a task inside the current directory. Work only with the files in this directory. When you are done, return your final answer as structured output. Use the optional feedback field for one or two sentences about which tools helped and which confused you.";

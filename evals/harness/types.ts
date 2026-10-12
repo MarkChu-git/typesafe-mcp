@@ -131,7 +131,7 @@ export interface RunMetrics {
    * input + cacheWrite + cacheRead of the model call that first used Jev: how much the agent read before
    * handing work to Jev. Null when it never did; absent in records from before this field.
    */
-  firstJevContextTokens: number | null;
+  firstJevContextTokens?: number | null;
   /** Distinct model calls (assistant message ids). */
   modelCalls: number;
   /** `result.structured_output`; null when absent. */
