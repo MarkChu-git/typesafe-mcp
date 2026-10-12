@@ -35,10 +35,17 @@ jobs:
       - name: Install
         run: bun install --frozen-lockfile
 
+      # Puts the Bend pinned in scripts/ci/tools.json (SHA-256 verified) on PATH, so the unit tests
+      # check the proofs in evals/laws/; the platform jobs skip them.
+      - name: Install Bend
+        run: bun scripts/ci/tools.ts path bend >> "$GITHUB_PATH"
+
       # typecheck, type-aware lint, unit tests, knip, single-file build, stdio smoke of dist/.
       # TYPESAFE_API_KEY is never set here, so tests/integration/ stays skipped.
       - name: Verify
         run: bun run verify
+        env:
+          BEND_NO_TELEMETRY: "1" # otherwise bend asks bend-lang.com once a day for a newer version
 
       - name: Pack the npm tarball and smoke-test the installed bin
         run: bun run release:pack "$RUNNER_TEMP/pack"

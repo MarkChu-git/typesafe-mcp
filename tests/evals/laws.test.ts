@@ -4,13 +4,14 @@ import REFUND_TASK, { REFUND_COST } from "../../evals/tasks/refund-gating/task.t
 import { weightedCost } from "../../evals/verifiers.ts";
 
 // Ties the TS scorer to the Bend model in evals/laws/, whose laws PROOF.bend proves.
-// Skipped where `bend` is not installed (CI).
+// Skipped where `bend` is not on PATH. The Ubuntu CI job installs the version pinned in
+// scripts/ci/tools.json; the macOS and Windows jobs skip.
 const bend = Bun.which("bend");
 const lawsDir = join(import.meta.dir, "..", "..", "evals", "laws");
 
-function runBend(file: string): string {
-  const out = Bun.spawnSync([bend ?? "bend", join(lawsDir, file)], { stdout: "pipe", stderr: "pipe" });
-  return `${out.stdout.toString()}\n${out.stderr.toString()}`;
+function runBend(file: string, ...args: string[]): { exitCode: number; output: string } {
+  const out = Bun.spawnSync([bend ?? "bend", join(lawsDir, file), ...args], { stdout: "pipe", stderr: "pipe" });
+  return { exitCode: out.exitCode, output: `${out.stdout.toString()}\n${out.stderr.toString()}` };
 }
 
 const LABELS = ["auto_approve", "human_review", "deny"] as const;
@@ -28,13 +29,15 @@ const tsScore = (items: readonly { gold: string; answer: string | null }[]): num
 
 describe.skipIf(!bend)("Bend laws for the weighted-cost scorer", () => {
   test("every law in LAWS.bend is proven", () => {
-    expect(runBend("PROOF.bend")).toContain("All terms check.");
+    // bend exits non-zero when any term fails to check; its success message differs between versions.
+    const { exitCode, output } = runBend("PROOF.bend", "--check-only");
+    expect(exitCode, output).toBe(0);
   });
 
   // Row per gold label: costs for no answer, auto_approve, human_review, deny; then the worst case.
   const table = new Map<string, { costs: number[]; worst: number }>();
   // describe.skipIf still runs this body to collect the tests, so only call bend when it exists.
-  const printed = bend ? (/"([^"]+)"/.exec(runBend("table.bend"))?.[1] ?? "") : "";
+  const printed = bend ? (/"([^"]+)"/.exec(runBend("table.bend").output)?.[1] ?? "") : "";
   printed.split("; ").forEach((row, i) => {
     const [costs = "", worst = ""] = row.split(" / ");
     const label = LABELS[i];

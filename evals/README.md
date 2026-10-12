@@ -106,10 +106,10 @@ bun run eval --resume evals/results/<目录名>
 需要本机安装 Bend 2。改评分规则或代价表后运行：
 
 ```bash
-bend evals/laws/PROOF.bend
+bend evals/laws/PROOF.bend --check-only
 ```
 
-显示 "All terms check." 才算通过。没有安装 `bend` 时，相关测试会自动跳过。
+退出码为 0 才算通过（2.0.36 输出 "ALL PROOFS CHECK"，更早的版本输出 "All terms check."）。CI 的 Ubuntu 任务会装上 `scripts/ci/tools.json` 里固定的 Bend 版本并跑这些测试；macOS、Windows 任务和没装 `bend` 的机器会自动跳过。
 
 ## 新增任务
 

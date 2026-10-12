@@ -179,7 +179,7 @@ bun run eval --help      # agent token-efficiency evals (see evals/README.md)
 bun run scripts/record-fixture.ts   # re-record tests/fixtures from the real API (needs key)
 ```
 
-CI: `bun run verify` on Ubuntu, macOS and Windows; on Ubuntu also the packed tarball smoke-tested as installed and gitleaks over the git history; plus Conventional Commits PR titles. All of these are required. CodeQL, osv-scanner, dependency review, actionlint and zizmor also run. A release builds one tarball, smoke-tests it, publishes that file via OIDC trusted publishing with `--provenance` (no long-lived npm token), and attaches an SPDX SBOM and GitHub attestations. See [CONTRIBUTING.md](CONTRIBUTING.md).
+CI: `bun run verify` on Ubuntu, macOS and Windows; on Ubuntu also the Bend proofs in `evals/laws/` with a pinned Bend, the packed tarball smoke-tested as installed and gitleaks over the git history; plus Conventional Commits PR titles. All of these are required. CodeQL, osv-scanner, dependency review, actionlint and zizmor also run. A release builds one tarball, smoke-tests it, publishes that file via OIDC trusted publishing with `--provenance` (no long-lived npm token), and attaches an SPDX SBOM and GitHub attestations. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Roadmap
 

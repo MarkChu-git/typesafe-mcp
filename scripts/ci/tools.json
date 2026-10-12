@@ -43,5 +43,23 @@
         "sha256": "b4319c3abaa87a0170ab76ee83ea2260ca34b53aecfa3ab0dd5428d2319d744f"
       }
     }
+  },
+  "bend": {
+    "repo": "bendlang/bend",
+    "version": "2.0.36",
+    "binary": "bend/bin/bend",
+    "keep": [
+      "bend/bend2"
+    ],
+    "assets": {
+      "linux-x64": {
+        "name": "bend-{version}-linux-x64.tar.gz",
+        "sha256": "02089dc0eed0fd5fd6d73c74cc9cffcb2c6638dd3b02ae83f7b8cc57fbe381ba"
+      },
+      "darwin-arm64": {
+        "name": "bend-{version}-darwin-arm64.tar.gz",
+        "sha256": "2876687ceb0aba836abc98b3f62c8fc9fb612d124ae2af6814d5ec937760878d"
+      }
+    }
   }
 }
