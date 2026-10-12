@@ -6,7 +6,7 @@
 
 - 本机已安装并登录 Claude Code，版本不低于 2.1.284（`claude auth status` 显示已登录）。评测走你的订阅，不需要 Anthropic API key。
 - 已执行 `bun install`。jev 组从工作区源码启动 MCP 服务器，需要依赖。
-- 跑 jev 组的任务时，终端里要有 `TYPESAFE_API_KEY`。只跑 `baseline`、或只用 `--probes-only` 测工具定义开销时不需要。
+- 跑 jev 组或 SDK 组的任务时，终端里要有 `TYPESAFE_API_KEY`。只跑 `baseline`、或只用 `--probes-only` 测工具定义开销时不需要。
 - 任务目录里有 `REVIEW.md`（标准答案经过人工复核）才能正式运行。试跑可以加 `--allow-unreviewed`，报告会注明结果不能用来下结论；`--dry-run` 不受这个限制。
 
 ## 常用命令
@@ -52,8 +52,22 @@ bun run eval --resume evals/results/<目录名>
 | `jev-directed` | 同 `jev`，系统提示要求 agent 的判断都交给 jev | `jev_ask` |
 | `jev-all` | 工作区源码，`TYPESAFE_TOOLS=all` | 全部 5 个 |
 | `jev-v0.1.1` | 上一个发布版本：用 `git archive` 取出标签 `v0.1.1` 的 `src/`，链接本仓库的 `node_modules` 运行，不联网 | 全部 5 个 |
+| `jev-directed-code` | 同 `jev-directed`，另有编码工具（沙箱里的 Bash、Edit、Write） | `jev_ask` |
+| `jev-code` | 工作区源码，有编码工具；`jev_ask` 一开始就加载，不提示 agent 用 jev | `jev_ask` |
+| `jev-code-deferred` | 同 `jev-code`，但 `jev_ask` 延迟加载 | `jev_ask`（要先用 ToolSearch 加载） |
+| `sdk` | 无。工作区里装好 `@typesafe-ai/sdk` 并加载官方 TypeSafe skill，有编码工具，系统提示说明 SDK 已安装、key 已设置 | 无，agent 自己写 bun 脚本调 SDK |
+| `sdk-directed` | 同 `sdk`，系统提示还要求判断都通过 SDK 交给 Jev | 无 |
+
+`jev-code-deferred` 最接近日常的 Claude Code 会话：装了很多 MCP 服务器时，Claude Code 会把它们的工具延迟加载，agent 起初只看到工具名和 server instructions，用 ToolSearch 加载后才能调用。评测里只有一个 MCP 服务器，所以用 `ENABLE_TOOL_SEARCH=true` 强制走这条路。`jev-code` 对应只装了这一个服务器的会话，工具少，Claude Code 一开始就加载 `jev_ask`。测调用意愿主要看这两组。
 
 默认跑 `baseline`、`jev`、`jev-v0.1.1`：一次评测里同时回答"接 jev 值不值"和"这版比上一个发布版省了多少"。
+
+`sdk` 和 `sdk-directed` 用来比较 MCP 和"官方 SDK 加 skill"这条路，和 MCP 组只差接入 Jev 的方式：
+
+- 工作区里多一份从本仓库依赖复制来的 `node_modules/@typesafe-ai/sdk`，以及声明这个依赖的 `package.json`。
+- 加载 `evals/vendor/typesafe-plugin/`，即官方插件 typesafe-ai/skills 0.5.7 的固定副本（MIT）。其他 skill 全部关闭：设 `CLAUDE_CODE_DISABLE_BUNDLED_SKILLS=1`，再用 `skillOverrides` 关掉仍会加载的 design、doctor、plugin-authoring。`system/init` 里的 skill 列表必须正好是 `typesafe:typesafe-ai`，否则这次运行判为 invalid。
+- 多出 WebFetch（只能访问 docs.typesafe.ai）和 Skill，另有和 `jev-directed-code` 一样的编码工具：Bash 跑在 Claude Code 的沙箱里，任何命令都不用确认，但只能写工作区，联网只能访问 api.typesafe.ai 和 docs.typesafe.ai；沙箱起不来时这次运行直接失败。
+- 报告里的 jev 使用率对 SDK 组这样算：写入调用 SDK 的脚本，或者用 Bash 运行这类脚本、内联调用 SDK，都算用了 jev。
 
 ## 额度控制
 
@@ -67,6 +81,7 @@ bun run eval --resume evals/results/<目录名>
 
 - `summary.md`：
   - **Token 效率摘要**：每组的平均 token/次、相对 baseline 的变化、得分变化和结论（更省且不降分、更省但降分、更费）。
+  - **调用意愿**：判断类任务上主动用了 Jev 的运行占比 × 100（意愿分，每个任务权重相同），第一次用 Jev 时上下文已经多大（越小说明越早交给 Jev），以及对照任务（`category: "control"`，比如 payment-log-duplicates）上的误用次数。只测意愿时可以加 `--max-turns 12` 省钱：被截断的运行没有答案，但用没用 Jev 照样算数。
   - **工具定义开销**：每组第一轮请求的上下文 token，差值就是工具定义占的量。
   - 各任务明细、未计入的运行、未执行的运行。
 - `metrics.json`：汇总数据。
@@ -86,7 +101,7 @@ bun run eval --resume evals/results/<目录名>
 
 - 从 Claude Code 桌面应用的终端启动时，继承的环境变量会让子进程报"未登录"。所以评测只传 `HOME`、`PATH` 等白名单变量；jev 组另外传 `TYPESAFE_API_KEY`。
 - `--restricted` 下不加载用户和项目的设置、hooks、CLAUDE.md 和技能。实测 agent 看不到用户全局 CLAUDE.md 里的指令。
-- 各组 agent 可见的内置工具都是 Glob、Grep、Read、StructuredOutput，jev 工具见上面的组别表。
+- baseline 和各 MCP 组可见的内置工具都是 Glob、Grep、Read、StructuredOutput，jev 工具见上面的组别表。
 - 第一轮上下文（`--probes-only`，Sonnet）：`baseline` 4,310 token，`jev` 5,468，`jev-all` 7,340，`jev-v0.1.1` 9,152。也就是工具定义从 v0.1.1 的 4,842 token 降到 1,158 token（其中 `files` 批量模式约占 240）。
 - 宿主会通过 MCP `roots` 告诉服务器项目目录（Claude Code 给的是它的工作目录，评测里就是工作区副本），`jev_ask` 的 `files` 只读这个目录。
 - agent 读到的是 MCP 结果的 `structuredContent`（序列化成 JSON），`content` 里的文本不会进上下文；`_meta` 也不进上下文，但会出现在 stream-json 事件的 `tool_use_result` 里。评测从那里读 Jev 的 token 用量（v0.1.1 的用量写在结果 JSON 里，同样能读到）。
@@ -94,6 +109,13 @@ bun run eval --resume evals/results/<目录名>
 - MCP 配置里给服务器的 `env` 会和 Claude Code 继承下来的环境合并，所以 `jev-all` 设了 `TYPESAFE_TOOLS` 也照样拿得到 `TYPESAFE_API_KEY`。
 - 只有这 5 个 MCP 工具时，Claude Code 会一开始就加载它们，不走延迟加载。
 - 工具输出过大时，Claude Code 会把完整输出写到 `~/.claude/projects/<工作目录对应的键>/` 下再让 agent 读取。评测在每次运行后删除这些目录，只删名字里带 `typesafe-mcp-eval` 或 `typesafe-mcp-probe` 的。
+
+2026-10-12，Claude Code 2.1.294：
+
+- 沙箱的自动放行只覆盖能事先检查的命令：`for` 循环、awk 程序、heredoc 在 `dontAsk` 下会被拒。所以编码工具组在权限规则里显式放行 Bash，效果接近跳过权限确认的会话，沙箱照样把写入限制在工作区、把联网限制在白名单域名。
+- `ENABLE_TOOL_SEARCH=true` 只有在 `--tools` 里也放行 ToolSearch 时才生效：之后 `jev_ask` 仍出现在 `system/init` 的工具列表里，但定义不进第一轮上下文（少约 1,000 token）。
+- `--disable-slash-commands` 会关掉所有 skill，所以 SDK 组不加这个参数，改用上面的办法只留下 TypeSafe skill。只设 `CLAUDE_CODE_DISABLE_BUNDLED_SKILLS` 时还剩 design、doctor、plugin-authoring 三个，不关的话会多出 17 个自带 skill。
+- 第一轮上下文（`--probes-only`，Sonnet）：`baseline` 4,533 token，`jev` 6,290，`jev-directed` 6,326，`sdk` 7,481，`sdk-directed` 7,526。`jev_ask` 加上记录拆分、`where`/`top`/`counts` 和 server instructions 后比 baseline 多 1,758 token；SDK 组的四个工具和一个 skill 多 2,948。
 
 ## 评分规则的形式化保证
 

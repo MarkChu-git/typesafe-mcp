@@ -1,7 +1,18 @@
 // Shared contracts for the eval harness.
 // Design: openspec/changes/add-agent-tool-eval/design.md (D2–D12).
 
-export const ARM_IDS = ["baseline", "jev", "jev-directed", "jev-all", "jev-v0.1.1"] as const;
+export const ARM_IDS = [
+  "baseline",
+  "jev",
+  "jev-directed",
+  "jev-all",
+  "jev-v0.1.1",
+  "jev-directed-code",
+  "jev-code",
+  "jev-code-deferred",
+  "sdk",
+  "sdk-directed",
+] as const;
 export type ArmId = (typeof ARM_IDS)[number];
 
 export const JEV_TOOLS = ["jev_ask", "jev_check", "jev_classify", "jev_score", "jev_models"] as const;
@@ -20,6 +31,18 @@ export interface Arm {
   id: ArmId;
   /** `false` = no jev MCP server. */
   jev: false | JevServer;
+  /** A coding environment: Bash in Claude Code's sandbox, Edit and Write. */
+  code?: true;
+  /**
+   * jev tools stay deferred behind ToolSearch, as in a session with many MCP servers: the agent sees
+   * only their names and the server instructions until it loads them.
+   */
+  deferred?: true;
+  /**
+   * Jev through the TypeSafe SDK instead: the SDK installed in the workspace, the official TypeSafe
+   * skill and the TypeSafe docs. Needs `code` to run the scripts.
+   */
+  sdk?: true;
   /** Appended after the shared eval instructions. */
   extraPrompt?: string;
 }
@@ -60,6 +83,11 @@ export interface ToolCallRecord {
   latencyMs: number | null;
   /** Jev input tokens reported by a jev tool (`_meta`, or the result JSON for 0.1.x); null otherwise. */
   jevInputTokens: number | null;
+  /**
+   * Part of using Jev: a jev MCP call, or writing or running code that calls the TypeSafe SDK.
+   * Absent in records written before SDK arms existed.
+   */
+  jev?: boolean;
 }
 
 /** Last `rate_limit_event.rate_limit_info` seen in the stream. */
@@ -99,6 +127,11 @@ export interface RunMetrics {
   firstTurnContextTokens: number | null;
   /** Largest input + cacheWrite + cacheRead of any single model call: how full the context got. */
   peakContextTokens: number | null;
+  /**
+   * input + cacheWrite + cacheRead of the model call that first used Jev: how much the agent read before
+   * handing work to Jev. Null when it never did; absent in records from before this field.
+   */
+  firstJevContextTokens: number | null;
   /** Distinct model calls (assistant message ids). */
   modelCalls: number;
   /** `result.structured_output`; null when absent. */

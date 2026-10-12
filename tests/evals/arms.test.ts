@@ -1,6 +1,22 @@
 import { describe, expect, test } from "bun:test";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { ARMS, DEFAULT_ARMS, disallowedTools, expectedTools, mcpConfig, RELEASED_REF } from "../../evals/arms.ts";
+import {
+  allowedTools,
+  ARMS,
+  armSettings,
+  DEFAULT_ARMS,
+  disallowedTools,
+  expectedSkills,
+  expectedTools,
+  mcpConfig,
+  RELEASED_REF,
+  SDK_DIRECTED_PROMPT,
+  SDK_NOTE,
+  SDK_PERMISSIONS,
+  SDK_PLUGIN_DIR,
+  SDK_SKILL,
+} from "../../evals/arms.ts";
 
 describe("eval arms", () => {
   test("the jev arm sees only jev_ask, as the server exposes by default", () => {
@@ -37,9 +53,91 @@ describe("eval arms", () => {
     expect(() => mcpConfig(ARMS["jev-v0.1.1"], "/repo")).toThrow("not unpacked");
   });
 
-  test("only the directed arm adds a prompt line; the default compares no jev, now and the release", () => {
+  test("of the MCP arms only the directed one adds a prompt line; the default compares no jev, now and the release", () => {
     expect(ARMS["jev-directed"].extraPrompt).toBeString();
     expect(ARMS.jev.extraPrompt).toBeUndefined();
     expect(DEFAULT_ARMS).toEqual(["baseline", "jev", "jev-v0.1.1"]);
+  });
+
+  test("SDK arms run scripts and load the TypeSafe skill instead of an MCP server", () => {
+    for (const id of ["sdk", "sdk-directed"] as const) {
+      expect(mcpConfig(ARMS[id], "/repo")).toEqual({ mcpServers: {} });
+      expect(expectedTools(ARMS[id])).toEqual([
+        "Bash",
+        "Edit",
+        "Glob",
+        "Grep",
+        "Read",
+        "Skill",
+        "StructuredOutput",
+        "WebFetch",
+        "Write",
+      ]);
+      expect(allowedTools(ARMS[id])).toEqual(["Bash", "Edit", "Write", ...SDK_PERMISSIONS]);
+      expect(armSettings(ARMS[id])).toMatchObject({ sandbox: { network: { allowedDomains: ["api.typesafe.ai"] } } });
+      expect(expectedSkills(ARMS[id])).toEqual([SDK_SKILL]);
+      expect(ARMS[id].extraPrompt).toStartWith(SDK_NOTE);
+    }
+    expect(expectedSkills(ARMS["jev-directed"])).toEqual([]);
+    expect(ARMS.sdk.extraPrompt).toBe(SDK_NOTE);
+    expect(ARMS["sdk-directed"].extraPrompt).toEndWith(SDK_DIRECTED_PROMPT);
+    expect(allowedTools(ARMS.jev)).toEqual(["mcp__jev"]);
+    expect(allowedTools(ARMS.baseline)).toEqual([]);
+    expect(existsSync(join(SDK_PLUGIN_DIR, ".claude-plugin", "plugin.json"))).toBe(true);
+    expect(existsSync(join(SDK_PLUGIN_DIR, "skills", "typesafe-ai", "SKILL.md"))).toBe(true);
+  });
+
+  test("the deferred arm mirrors a session with many MCP servers: coding tools, and jev_ask behind ToolSearch", () => {
+    const arm = ARMS["jev-code-deferred"];
+    expect(expectedTools(arm)).toEqual([
+      "Bash",
+      "Edit",
+      "Glob",
+      "Grep",
+      "Read",
+      "StructuredOutput",
+      "ToolSearch",
+      "Write",
+      "mcp__jev__jev_ask",
+    ]);
+    expect(arm.extraPrompt).toBeUndefined();
+    expect(allowedTools(arm)).toEqual(["mcp__jev", "Bash", "Edit", "Write"]);
+  });
+
+  test("jev-code is a session with only this MCP server: jev_ask loads up front next to the coding tools, and nothing tells the agent to use it", () => {
+    const arm = ARMS["jev-code"];
+    expect(expectedTools(arm)).toEqual([
+      "Bash",
+      "Edit",
+      "Glob",
+      "Grep",
+      "Read",
+      "StructuredOutput",
+      "Write",
+      "mcp__jev__jev_ask",
+    ]);
+    expect(arm.deferred).toBeUndefined();
+    expect(arm.extraPrompt).toBeUndefined();
+    expect(allowedTools(arm)).toEqual(["mcp__jev", "Bash", "Edit", "Write"]);
+    expect(armSettings(arm)).toMatchObject({ sandbox: { enabled: true, network: { allowedDomains: [] } } });
+  });
+
+  test("the code arm has the SDK arms' coding tools and sandbox but reaches Jev over MCP", () => {
+    const arm = ARMS["jev-directed-code"];
+    expect(expectedTools(arm)).toEqual([
+      "Bash",
+      "Edit",
+      "Glob",
+      "Grep",
+      "Read",
+      "StructuredOutput",
+      "Write",
+      "mcp__jev__jev_ask",
+    ]);
+    expect(expectedSkills(arm)).toEqual([]);
+    expect(allowedTools(arm)).toEqual(["mcp__jev", "Bash", "Edit", "Write"]);
+    expect(armSettings(arm)).toMatchObject({ sandbox: { enabled: true, network: { allowedDomains: [] } } });
+    expect(arm.extraPrompt).toBe(ARMS["jev-directed"].extraPrompt);
+    expect(armSettings(ARMS.baseline)).toBeNull();
   });
 });

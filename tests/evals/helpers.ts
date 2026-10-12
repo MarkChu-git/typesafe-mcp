@@ -16,6 +16,7 @@ export function metrics(over: Partial<RunMetrics> = {}): RunMetrics {
     jevTokens: 0,
     firstTurnContextTokens: null,
     peakContextTokens: 5_000,
+    firstJevContextTokens: null,
     modelCalls: 3,
     structuredOutput: {},
     terminalReason: "completed",

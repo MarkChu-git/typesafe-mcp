@@ -8,6 +8,7 @@ import {
   type RunRecord,
   type RunStatus,
   type StopReason,
+  type ToolCallRecord,
 } from "./types.ts";
 
 export interface Stat {
@@ -79,6 +80,23 @@ export interface SummaryInput {
   notRun: readonly RunKey[];
   stopped: StopReason | null;
   unreviewedTasks?: readonly string[];
+  /** Tasks where Jev does not fit (category `control`): using it there counts as misuse, not willingness. */
+  controlTasks?: readonly string[];
+}
+
+/** How readily an arm that can call Jev used it unprompted. */
+export interface Willingness {
+  arm: ArmId;
+  /** 100 × the share of counted judgment-task runs that used Jev, each task weighing the same; null without such runs. */
+  score: number | null;
+  /** Counted runs on judgment tasks, and how many of them used Jev. */
+  runs: number;
+  used: number;
+  /** Mean `firstJevContextTokens` over the judgment-task runs that used Jev: how much was read first. */
+  meanFirstJevContext: number | null;
+  /** Counted runs on control tasks, and how many of them used Jev anyway. */
+  controlRuns: number;
+  controlUsed: number;
 }
 
 const EXCLUDED: ReadonlySet<RunStatus> = new Set(["invalid", "rate_limited", "error"]);
@@ -87,7 +105,8 @@ const EPSILON = 1e-9;
 const DIRTY_FILES_SHOWN = 10;
 
 export const isCounted = (r: RunRecord): boolean => !EXCLUDED.has(r.metrics.status);
-const isJevCall = (name: string): boolean => name.startsWith("mcp__jev__");
+/** Records from before SDK arms have no `jev` flag; only jev MCP calls used Jev then. */
+const isJevCall = (call: ToolCallRecord): boolean => call.jev ?? call.name.startsWith("mcp__jev__");
 const sum = (xs: readonly number[]): number => xs.reduce((s, x) => s + x, 0);
 const mean = (xs: readonly number[]): number => (xs.length === 0 ? 0 : sum(xs) / xs.length);
 
@@ -99,7 +118,7 @@ function stat(xs: readonly number[]): Stat {
 function cellStats(task: string, arm: ArmId, group: readonly RunRecord[]): CellStats {
   const runs = group.filter(isCounted);
   const toolCounts = runs.map((r) => r.metrics.toolCalls.filter((c) => c.name !== OUTPUT_TOOL).length);
-  const jevCounts = runs.map((r) => r.metrics.toolCalls.filter((c) => isJevCall(c.name)).length);
+  const jevCounts = runs.map((r) => r.metrics.toolCalls.filter(isJevCall).length);
   const share = (k: number) => (runs.length === 0 ? 0 : k / runs.length);
   return {
     task,
@@ -114,7 +133,7 @@ function cellStats(task: string, arm: ArmId, group: readonly RunRecord[]): CellS
     jevTokens: stat(runs.map((r) => r.metrics.jevTokens)),
     jevChars: stat(
       runs.map((r) =>
-        r.metrics.toolCalls.filter((c) => isJevCall(c.name)).reduce((s, c) => s + c.argChars + c.resultChars, 0),
+        r.metrics.toolCalls.filter(isJevCall).reduce((s, c) => s + c.argChars + c.resultChars, 0),
       ),
     ),
     peakContext: stat(runs.map((r) => r.metrics.peakContextTokens ?? 0)),
@@ -350,6 +369,59 @@ function leftoverSections(input: SummaryInput): string[] {
 }
 
 /** Markdown report; token efficiency comes first because it is the project's primary metric. */
+const usedJev = (r: RunRecord): boolean => r.metrics.toolCalls.some(isJevCall);
+
+/** Willingness of every arm but baseline that has counted runs, in ARM_IDS order. */
+export function willingness(records: readonly RunRecord[], controlTasks: readonly string[]): Willingness[] {
+  const control = new Set(controlTasks);
+  const out: Willingness[] = [];
+  for (const arm of ARM_IDS) {
+    const runs = arm === "baseline" ? [] : records.filter((r) => r.arm === arm && isCounted(r));
+    if (runs.length === 0) continue;
+    const judged = runs.filter((r) => !control.has(r.task));
+    const checks = runs.filter((r) => control.has(r.task));
+    const shares = [...new Set(judged.map((r) => r.task))].map((task) => {
+      const own = judged.filter((r) => r.task === task);
+      return own.filter(usedJev).length / own.length;
+    });
+    const firsts = judged
+      .filter(usedJev)
+      .map((r) => r.metrics.firstJevContextTokens)
+      .filter((n): n is number => typeof n === "number");
+    out.push({
+      arm,
+      score: shares.length === 0 ? null : Math.round(mean(shares) * 100),
+      runs: judged.length,
+      used: judged.filter(usedJev).length,
+      meanFirstJevContext: firsts.length === 0 ? null : mean(firsts),
+      controlRuns: checks.length,
+      controlUsed: checks.filter(usedJev).length,
+    });
+  }
+  return out;
+}
+
+function willingnessSection(rows: readonly Willingness[]): string[] {
+  if (rows.length === 0) return [];
+  return [
+    "## 调用意愿",
+    "",
+    "> 意愿分：判断类任务上主动用了 Jev 的运行占比 × 100，每个任务权重相同。对照任务不该用 Jev，单独列为误用。",
+    "",
+    ...table(
+      ["组别", "意愿分", "用了 Jev 的运行", "首次用 Jev 时的上下文", "对照任务误用"],
+      rows.map((w) => [
+        w.arm,
+        w.score === null ? "—" : String(w.score),
+        `${w.used}/${w.runs}`,
+        w.meanFirstJevContext === null ? "—" : int(w.meanFirstJevContext),
+        w.controlRuns === 0 ? "—" : `${w.controlUsed}/${w.controlRuns}`,
+      ]),
+    ),
+    "",
+  ];
+}
+
 export function renderSummary(input: SummaryInput): string {
   if (input.config.tasks.length === 0) return [...headerLines(input), ...probeSection(input.probes), ""].join("\n");
   const agg = aggregate(input.records);
@@ -357,6 +429,7 @@ export function renderSummary(input: SummaryInput): string {
   return [
     ...headerLines(input),
     ...efficiencySection(agg, hasBaseline),
+    ...willingnessSection(willingness(input.records, input.controlTasks ?? [])),
     ...probeSection(input.probes),
     ...taskSections(agg, hasBaseline),
     ...leftoverSections(input),
@@ -369,6 +442,7 @@ export function buildMetricsJson(input: SummaryInput): Record<string, unknown> {
     config: input.config,
     probes: input.probes,
     aggregate: aggregate(input.records),
+    willingness: willingness(input.records, input.controlTasks ?? []),
     records: input.records,
     notRun: input.notRun,
     stopped: input.stopped,

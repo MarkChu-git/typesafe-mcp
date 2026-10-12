@@ -1,6 +1,6 @@
 import { realpathSync, rmSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
-import { ARMS, disallowedTools } from "../arms.ts";
+import { allowedTools, ARMS, armSettings, builtinTools, disallowedTools, SDK_PLUGIN_DIR } from "../arms.ts";
 import type { Arm, StreamLine } from "./types.ts";
 
 export const MIN_CLI_VERSION = "2.1.284";
@@ -17,9 +17,14 @@ export function buildEnv(
     const value = source[key];
     if (value !== undefined) env[key] = value;
   }
-  if (arm.jev && source.TYPESAFE_API_KEY !== undefined) {
+  // The jev server reads the key from this env, and so do the SDK scripts an SDK arm runs.
+  if ((arm.jev || arm.sdk) && source.TYPESAFE_API_KEY !== undefined) {
     env.TYPESAFE_API_KEY = source.TYPESAFE_API_KEY;
   }
+  // Skills are on for SDK arms, but only the TypeSafe one; armSettings turns off the rest.
+  if (arm.sdk) env.CLAUDE_CODE_DISABLE_BUNDLED_SKILLS = "1";
+  // With only one MCP server, Claude Code would load its tools up front; force the deferred path.
+  if (arm.deferred) env.ENABLE_TOOL_SEARCH = "true";
   return env;
 }
 
@@ -38,10 +43,11 @@ export function buildArgs(o: {
   args.push("--restricted");
   args.push("--strict-mcp-config");
   args.push("--mcp-config", o.mcpConfigPath);
-  args.push("--tools", "Read,Grep,Glob");
+  args.push("--tools", builtinTools(o.arm).join(","));
 
-  if (o.arm.jev) {
-    args.push("--allowedTools", "mcp__jev");
+  const allowed = allowedTools(o.arm);
+  if (allowed.length > 0) {
+    args.push("--allowedTools", ...allowed);
   }
 
   const disallowed = disallowedTools(o.arm);
@@ -49,7 +55,17 @@ export function buildArgs(o: {
     args.push("--disallowedTools", disallowed.join(" "));
   }
 
-  args.push("--disable-slash-commands");
+  // Skills stay off except the TypeSafe one an SDK arm loads.
+  if (o.arm.sdk) {
+    args.push("--plugin-dir", SDK_PLUGIN_DIR);
+  } else {
+    args.push("--disable-slash-commands");
+  }
+
+  const settings = armSettings(o.arm);
+  if (settings) {
+    args.push("--settings", JSON.stringify(settings));
+  }
   args.push("--no-session-persistence");
   args.push("--permission-mode", "dontAsk");
   args.push("--output-format", "stream-json");

@@ -1,6 +1,8 @@
 # Dependencies
 node_modules/
 vendor/
+# ...except the pinned TypeSafe plugin that the SDK eval arms load
+!evals/vendor/
 .venv/
 venv/
 

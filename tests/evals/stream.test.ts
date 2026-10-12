@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { ARMS, expectedTools } from "../../evals/arms.ts";
+import { ARMS, expectedTools, SDK_SKILL } from "../../evals/arms.ts";
 import { toProbeResult } from "../../evals/harness/probe.ts";
 import { parseRun } from "../../evals/harness/stream.ts";
 import type { ArmId, StreamLine } from "../../evals/harness/types.ts";
@@ -39,6 +39,17 @@ describe("parseRun status", () => {
     const m = parse("init-jev-all.jsonl", "baseline");
     expect(m.status).toBe("invalid");
     expect(m.errorMessage).toContain("tool list mismatch");
+  });
+
+  test("a skill list that does not match the arm makes the run invalid", () => {
+    const m = parseRun(lines("answered-read.jsonl"), {
+      expectedTools: expectedTools(ARMS.baseline),
+      expectedSkills: [SDK_SKILL],
+      timedOut: false,
+      exitCode: 0,
+    });
+    expect(m.status).toBe("invalid");
+    expect(m.errorMessage).toContain("skill list mismatch");
   });
 
   test("timeout wins over everything but invalid", () => {
@@ -117,5 +128,60 @@ describe("parseRun metrics", () => {
     expect(m.structuredOutput).toEqual({ answer: "ticket" });
     expect(m.modelCalls).toBe(2);
     expect(m.peakContextTokens).toBe(6725);
+  });
+});
+
+const toolUse = (id: string, name: string, input: Record<string, unknown>, i: number): StreamLine => ({
+  receivedAt: 1_000 + i,
+  raw: JSON.stringify({
+    type: "assistant",
+    message: { id: `m${id}`, model: "claude-sonnet-5-5", content: [{ type: "tool_use", id, name, input }] },
+  }),
+});
+
+const turn = (id: string, context: number, name: string, i: number): StreamLine => ({
+  receivedAt: 1_000 + i,
+  raw: JSON.stringify({
+    type: "assistant",
+    message: {
+      id: `m${id}`,
+      model: "claude-sonnet-5-5",
+      usage: { input_tokens: context },
+      content: [{ type: "tool_use", id, name, input: {} }],
+    },
+  }),
+});
+
+describe("jev calls", () => {
+  test("records the context of the model call that first used Jev", () => {
+    const ctx = { expectedTools: expectedTools(ARMS.jev), timedOut: false, exitCode: 0 };
+    const used = parseRun(
+      [turn("1", 4_000, "Read", 0), turn("2", 9_000, "mcp__jev__jev_ask", 1), turn("3", 12_000, "mcp__jev__jev_ask", 2)],
+      ctx,
+    );
+    expect(used.firstJevContextTokens).toBe(9_000);
+    expect(parseRun([turn("1", 4_000, "Read", 0)], ctx).firstJevContextTokens).toBeNull();
+  });
+
+  test("writing and running TypeSafe SDK code uses Jev; other scripts and reads do not", () => {
+    const calls: [string, Record<string, unknown>][] = [
+      ["Write", { file_path: "/w/audit.ts", content: 'import { TypeSafeClient } from "@typesafe-ai/sdk";' }],
+      ["Bash", { command: "bun audit.ts > answers.json" }],
+      ["Bash", { command: "bun --version" }],
+      ["Bash", { command: `bun -e 'await fetch("https://api.typesafe.ai/v1/systemone")'` }],
+      ["Write", { file_path: "/w/count.ts", content: "console.log(1)" }],
+      ["Read", { file_path: "/w/audit.ts" }],
+    ];
+    const m = parseRun(
+      calls.map(([name, input], i) => toolUse(String(i), name, input, i)),
+      { expectedTools: expectedTools(ARMS["sdk-directed"]), timedOut: false, exitCode: 0 },
+    );
+    expect(m.toolCalls.map((c) => c.jev)).toEqual([true, true, false, true, false, false]);
+  });
+
+  test("jev MCP calls use Jev", () => {
+    const m = parse("jev-ask-meta.jsonl", "jev");
+    expect(m.toolCalls.filter((c) => c.name.startsWith("mcp__jev__")).every((c) => c.jev)).toBe(true);
+    expect(m.toolCalls.some((c) => c.jev)).toBe(true);
   });
 });

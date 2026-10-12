@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { aggregate, buildMetricsJson, renderSummary } from "../../evals/harness/report.ts";
+import { aggregate, buildMetricsJson, renderSummary, willingness } from "../../evals/harness/report.ts";
 import type { ArmId, ProbeResult, RunRecord, ToolCallRecord } from "../../evals/harness/types.ts";
 import { config, record } from "./helpers.ts";
 
@@ -62,6 +62,58 @@ describe("aggregate", () => {
     expect(cell?.jevChars.mean).toBe(1_100);
     expect(cell?.peakContext.mean).toBe(5_000);
   });
+
+  test("an SDK arm counts the calls flagged as using Jev; unflagged records fall back to jev tool names", () => {
+    const call = (name: string, jev: boolean): ToolCallRecord => ({ ...jevCall, name, jevInputTokens: null, jev });
+    const sdk = aggregate([
+      run("t1", "baseline", 1, 1_000, 1),
+      record(
+        { task: "t1", arm: "sdk-directed", rep: 1 },
+        { totalTokens: 900, toolCalls: [call("Write", true), call("Bash", true), call("Bash", false)] },
+        1,
+      ),
+    ]);
+    const cell = sdk.cells.find((c) => c.arm === "sdk-directed");
+    expect(cell).toMatchObject({ jevUsageRate: 1 });
+    expect(cell?.jevCalls.mean).toBe(2);
+    expect(cell?.jevChars.mean).toBe(2_200);
+    expect(agg.cells.find((c) => c.arm === "jev-all")?.jevCalls.mean).toBe(1);
+  });
+});
+
+describe("willingness", () => {
+  const ran = (task: string, arm: ArmId, rep: number, firstJevContextTokens: number | null): RunRecord =>
+    record({ task, arm, rep }, { toolCalls: firstJevContextTokens === null ? [] : [jevCall], firstJevContextTokens });
+  const runs: RunRecord[] = [
+    ran("judge-a", "jev-code-deferred", 1, 20_000),
+    ran("judge-a", "jev-code-deferred", 2, null),
+    ran("judge-b", "jev-code-deferred", 1, 40_000),
+    ran("control", "jev-code-deferred", 1, 10_000),
+    ran("judge-a", "baseline", 1, null),
+    record({ task: "judge-b", arm: "jev-code-deferred", rep: 2 }, { status: "error", errorMessage: "boom" }, null),
+  ];
+
+  test("scores the share of judgment-task runs that used Jev, each task weighing the same; control runs count as misuse", () => {
+    expect(willingness(runs, ["control"])).toEqual([
+      {
+        arm: "jev-code-deferred",
+        score: 75,
+        runs: 3,
+        used: 2,
+        meanFirstJevContext: 30_000,
+        controlRuns: 1,
+        controlUsed: 1,
+      },
+    ]);
+  });
+
+  test("the summary and metrics.json show it for every arm that can call Jev", () => {
+    const input = { config: config(), probes: [], records: runs, notRun: [], stopped: null, controlTasks: ["control"] };
+    const md = renderSummary(input);
+    expect(md).toContain("## 调用意愿");
+    expect(md).toContain("| jev-code-deferred | 75 | 2/3 | 30,000 | 1/1 |");
+    expect(buildMetricsJson(input).willingness).toEqual(willingness(runs, ["control"]));
+  });
 });
 
 describe("renderSummary", () => {
@@ -110,8 +162,8 @@ describe("renderSummary", () => {
     expect(md).toContain("- t1__baseline__3");
   });
 
-  test("metrics json carries the aggregate", () => {
+  test("metrics json carries the aggregate and willingness", () => {
     const json = buildMetricsJson(input);
-    expect(Object.keys(json)).toEqual(["config", "probes", "aggregate", "records", "notRun", "stopped"]);
+    expect(Object.keys(json)).toEqual(["config", "probes", "aggregate", "willingness", "records", "notRun", "stopped"]);
   });
 });

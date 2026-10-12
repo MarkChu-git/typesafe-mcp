@@ -6,7 +6,27 @@ import { affectedCustomers, generate } from "../../evals/tasks/payment-log-dupli
 import {
   buildCorpus,
   generate as generateRefundAudit,
+  money,
 } from "../../evals/tasks/refund-promises-audit/generate.ts";
+
+const APPROVAL_WORDS = /approv|signed off|APR-/i;
+const MONEY_BACK = /back|refund|revers|return|credit/i;
+
+/** Lines that open an agent message. A multi-line message counts only through its first line. */
+const agentLines = (text: string): string[] =>
+  text.split("\n").filter((line) => /^\[\d{2}:\d{2}\] Agent \(/.test(line));
+
+/** Every amount in the text, in cents, in any of the four money() formats. */
+const amountsIn = (text: string): number[] =>
+  [...text.matchAll(/(?:US\$|\$|USD )(\d[\d,]*)(?:\.(\d{2}))?/g)].map(
+    (m) => Number((m[1] ?? "0").replaceAll(",", "")) * 100 + Number(m[2] ?? 0),
+  );
+
+const escapeRegExp = (text: string): string => text.replaceAll(/[$()*+.?[\]\\^{|}]/g, "\\$&");
+
+/** The amount appears as a whole amount in one of the money() formats, not as the start of a longer one. */
+const states = (text: string, cents: number): boolean =>
+  [0, 1, 2, 3].some((style) => new RegExp(`${escapeRegExp(money(cents, style))}(?!\\d|[.,]\\d)`).test(text));
 
 describe("tasks", () => {
   describe("ALL_TASKS", () => {
@@ -216,6 +236,78 @@ describe("tasks", () => {
       const { gold, promises } = buildCorpus();
       const lacking = gold.violations.filter((v) => !/refund/i.test(promises[v.ticket] ?? ""));
       expect(lacking.length * 2).toBeGreaterThanOrEqual(gold.violations.length);
+    });
+
+    it("at least half of the V promise sentences carry no amount", () => {
+      const { gold, promises } = buildCorpus();
+      const sentences = gold.violations.map((v) => promises[v.ticket]);
+      const bare = sentences.filter((sentence) => sentence !== undefined && !/[\d$]|USD/.test(sentence));
+      expect(sentences.every((sentence) => sentence !== undefined)).toBe(true);
+      expect(bare.length * 2).toBeGreaterThanOrEqual(gold.violations.length);
+    });
+
+    it("approval words appear in agent lines of at least 6 V transcripts, 2 of them as signed off", () => {
+      const { gold } = generateRefundAudit();
+      const lines = gold.violations.map((v) => agentLines(read(`transcripts/${v.ticket}.md`)));
+      expect(lines.filter((own) => own.some((line) => APPROVAL_WORDS.test(line))).length).toBeGreaterThanOrEqual(6);
+      expect(lines.flat().filter((line) => line.includes("signed off")).length).toBeGreaterThanOrEqual(2);
+    });
+
+    it("at most a third of the A approvals use approval words", () => {
+      const { approvals } = buildCorpus();
+      const sentences = Object.values(approvals);
+      expect(sentences.length).toBe(9);
+      expect(sentences.filter((sentence) => APPROVAL_WORDS.test(sentence)).length * 3).toBeLessThanOrEqual(
+        sentences.length,
+      );
+    });
+
+    it("every A approval sits in its transcript and names the agent's team lead", () => {
+      const { approvals } = buildCorpus();
+      const leads = new Map(
+        read("staff.csv")
+          .trim()
+          .split("\n")
+          .slice(1)
+          .map((line) => line.split(",") as [string, string, string])
+          .map(([agent, , lead]) => [agent, lead] as const),
+      );
+      for (const [ticket, approval] of Object.entries(approvals)) {
+        const text = read(`transcripts/${ticket}.md`);
+        const agent = /^Agent: (.+)$/m.exec(text)?.[1] ?? "";
+        expect(text).toContain(approval);
+        expect(approval).toContain(leads.get(agent) ?? "no such agent");
+      }
+    });
+
+    it("at least 15 transcripts outside the gold quote an amount over $200 next to a money-back word", () => {
+      const { gold, approvals } = buildCorpus();
+      // A conversations make real promises, so they are left out: the count is about decoys.
+      const promised = new Set([...gold.violations.map((v) => v.ticket), ...Object.keys(approvals)]);
+      const quoting = transcriptPaths().filter(
+        (path) =>
+          !promised.has(path.slice("transcripts/".length, -".md".length)) &&
+          agentLines(read(path)).some((line) => MONEY_BACK.test(line) && amountsIn(line).some((cents) => cents > 20_000)),
+      );
+      expect(quoting.length).toBeGreaterThanOrEqual(15);
+    });
+
+    it("every V transcript states the gold amount in one of the money() formats", () => {
+      const { gold } = generateRefundAudit();
+      for (const violation of gold.violations) {
+        const text = read(`transcripts/${violation.ticket}.md`);
+        expect(states(text, Math.round(violation.amount * 100))).toBe(true);
+      }
+    });
+
+    it("no V transcript states an amount other than the gold amount", () => {
+      const { gold } = generateRefundAudit();
+      for (const violation of gold.violations) {
+        const cents = Math.round(violation.amount * 100);
+        const found = amountsIn(read(`transcripts/${violation.ticket}.md`));
+        expect(found.length).toBeGreaterThan(0);
+        expect(found.every((amount) => amount === cents)).toBe(true);
+      }
     });
 
     it("refund appears in at least 40 transcripts", () => {

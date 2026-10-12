@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
-import { ARMS } from "../../evals/arms.ts";
+import { ARMS, SDK_PLUGIN_DIR, SKILL_OVERRIDES } from "../../evals/arms.ts";
 import {
   buildArgs,
   buildEnv,
@@ -37,6 +37,59 @@ describe("buildArgs", () => {
     expect(args).toContain("Read,Grep,Glob");
     expect(args).not.toContain("--allowedTools");
     expect(args).not.toContain("--disallowedTools");
+    expect(args).toContain("--disable-slash-commands");
+    expect(args).not.toContain("--plugin-dir");
+    expect(args).not.toContain("--settings");
+  });
+
+  test("SDK arms add script tools, sandboxed Bash and the TypeSafe plugin, with skills left on", () => {
+    const args = buildArgs({
+      prompt: "test",
+      arm: ARMS["sdk-directed"],
+      mcpConfigPath: "/tmp/mcp.json",
+      jsonSchema: mockSchema,
+      model: "sonnet",
+      effort: null,
+      maxTurns: 40,
+      maxBudgetUsd: 2,
+    });
+
+    expect(args).toContain("Read,Grep,Glob,Bash,Edit,Write,WebFetch,Skill");
+    expect(args).toContain("WebFetch(domain:docs.typesafe.ai)");
+    expect(args).toContain("Bash");
+    expect(args[args.indexOf("--plugin-dir") + 1]).toBe(SDK_PLUGIN_DIR);
+    const settings = JSON.parse(args[args.indexOf("--settings") + 1] ?? "");
+    expect(settings.skillOverrides).toEqual(SKILL_OVERRIDES);
+    expect(settings.sandbox).toMatchObject({
+      enabled: true,
+      autoAllowBashIfSandboxed: true,
+      failIfUnavailable: true,
+      network: { allowedDomains: ["api.typesafe.ai"] },
+    });
+    expect(args).not.toContain("--disable-slash-commands");
+  });
+
+  test("the code arm gets the same sandboxed coding tools next to jev, with skills and the network off", () => {
+    const args = buildArgs({
+      prompt: "test",
+      arm: ARMS["jev-directed-code"],
+      mcpConfigPath: "/tmp/mcp.json",
+      jsonSchema: mockSchema,
+      model: "sonnet",
+      effort: null,
+      maxTurns: 40,
+      maxBudgetUsd: 2,
+    });
+
+    expect(args).toContain("Read,Grep,Glob,Bash,Edit,Write");
+    expect(args).toContain("mcp__jev");
+    expect(args).toContain("Edit");
+    expect(args).toContain("--disable-slash-commands");
+    expect(args).not.toContain("--plugin-dir");
+    const settings = JSON.parse(args[args.indexOf("--settings") + 1] ?? "");
+    expect(settings).toEqual({
+      sandbox: { enabled: true, autoAllowBashIfSandboxed: true, failIfUnavailable: true, network: { allowedDomains: [] } },
+    });
   });
 
   test("jev-all arm allows all jev tools", () => {
@@ -125,7 +178,7 @@ describe("buildEnv", () => {
     expect(env.PYTHONPATH).toBeUndefined();
   });
 
-  test("adds TYPESAFE_API_KEY only for jev arms", () => {
+  test("adds TYPESAFE_API_KEY only for arms that call Jev, over MCP or the SDK", () => {
     const source = {
       HOME: "/home/test",
       TYPESAFE_API_KEY: "test-key-12345678",
@@ -136,6 +189,29 @@ describe("buildEnv", () => {
 
     const envJevAll = buildEnv(source, ARMS["jev-all"]);
     expect(envJevAll.TYPESAFE_API_KEY).toBe("test-key-12345678");
+
+    expect(buildEnv(source, ARMS.sdk).TYPESAFE_API_KEY).toBe("test-key-12345678");
+  });
+
+  test("deferred arms force tool search, so jev_ask stays behind ToolSearch", () => {
+    expect(buildEnv({ HOME: "/home/test" }, ARMS["jev-code-deferred"]).ENABLE_TOOL_SEARCH).toBe("true");
+    expect(buildEnv({ HOME: "/home/test" }, ARMS.jev).ENABLE_TOOL_SEARCH).toBeUndefined();
+    const args = buildArgs({
+      prompt: "test",
+      arm: ARMS["jev-code-deferred"],
+      mcpConfigPath: "/tmp/mcp.json",
+      jsonSchema: mockSchema,
+      model: "sonnet",
+      effort: null,
+      maxTurns: 40,
+      maxBudgetUsd: 2,
+    });
+    expect(args).toContain("Read,Grep,Glob,Bash,Edit,Write,ToolSearch");
+  });
+
+  test("turns bundled skills off only for SDK arms, the only arms with skills on", () => {
+    expect(buildEnv({ HOME: "/home/test" }, ARMS.sdk).CLAUDE_CODE_DISABLE_BUNDLED_SKILLS).toBe("1");
+    expect(buildEnv({ HOME: "/home/test" }, ARMS.jev).CLAUDE_CODE_DISABLE_BUNDLED_SKILLS).toBeUndefined();
   });
 
   test("does not add TYPESAFE_API_KEY if not in source", () => {

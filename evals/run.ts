@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync 
 import { homedir, tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { parseArgs } from "node:util";
-import { ARMS, DEFAULT_ARMS, expectedTools, isArmId, mcpConfig } from "./arms.ts";
+import { ARMS, DEFAULT_ARMS, expectedSkills, expectedTools, isArmId, mcpConfig } from "./arms.ts";
 import {
   buildArgs,
   buildEnv,
@@ -41,7 +41,7 @@ import {
   type RunMetrics,
   type RunRecord,
 } from "./harness/types.ts";
-import { prepareWorkspace } from "./harness/workspace.ts";
+import { installSdk, prepareWorkspace } from "./harness/workspace.ts";
 import { ALL_TASKS } from "./tasks/index.ts";
 import type { RegisteredTask } from "./tasks/types.ts";
 
@@ -189,6 +189,7 @@ async function runInWorkspace(
   const mcpPath = join(dirname(o.cwd), "mcp.json");
   const refEntry = o.arm.jev && o.arm.jev.ref ? o.servers.get(o.arm.jev.ref) : undefined;
   writeFileSync(mcpPath, JSON.stringify(mcpConfig(o.arm, REPO_ROOT, refEntry)));
+  if (o.arm.sdk) await installSdk(o.cwd, REPO_ROOT);
   const args = buildArgs({
     prompt: o.prompt,
     arm: o.arm,
@@ -207,6 +208,7 @@ async function runInWorkspace(
   });
   const metrics = parseRun(out.lines, {
     expectedTools: expectedTools(o.arm),
+    expectedSkills: expectedSkills(o.arm),
     timedOut: out.timedOut,
     exitCode: out.exitCode,
   });
@@ -234,6 +236,7 @@ function errorMetrics(message: string): RunMetrics {
     jevTokens: 0,
     firstTurnContextTokens: null,
     peakContextTokens: null,
+    firstJevContextTokens: null,
     modelCalls: 0,
     structuredOutput: null,
     terminalReason: null,
@@ -445,7 +448,7 @@ export async function main(argv: readonly string[], deps: MainDeps = defaultDeps
       repoRoot: REPO_ROOT,
       env: deps.env,
       // Listing tools needs no key, so probes alone run without one.
-      jevArms: probesOnly ? [] : arms.filter((a) => ARMS[a].jev !== false),
+      jevArms: probesOnly ? [] : arms.filter((a) => ARMS[a].jev !== false || ARMS[a].sdk === true),
     });
     if (!check.ok) {
       deps.log(check.message);
@@ -509,6 +512,7 @@ export async function main(argv: readonly string[], deps: MainDeps = defaultDeps
       notRun: result.notRun,
       stopped: result.stopped,
       unreviewedTasks: unreviewed,
+      controlTasks: tasks.filter((t) => t.category === "control").map((t) => t.id),
     };
     writeFileSync(join(dir, "summary.md"), renderSummary(summaryInput));
     await writeJson(join(dir, "metrics.json"), buildMetricsJson(summaryInput));
