@@ -238,6 +238,8 @@ export const askOutput = z.object({
   matched: z.number().optional(),
   /** With `files` and `counts`: question id → answer → how many records gave it. */
   counts: z.record(z.string(), z.record(z.string(), z.number())).optional(),
+  /** With `files`: record key → its text, for short returned records with a review or abstain answer. */
+  unsure: z.record(z.string(), z.string()).optional(),
   /** With `files`: record key → why it has no answers, at most 20 of them. */
   errors: z.record(z.string(), z.string()).optional(),
   /** With `files`: how many more errors there were than `errors` lists. */

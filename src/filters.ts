@@ -56,6 +56,17 @@ const whereError = (id: string, message: string): FilesError => new FilesError(`
 
 const TAKES: Record<QuestionType, string> = { noul: "true or false", choice: "an option label", score: "min and max" };
 
+/** The noul description calls its answers yes and no, so agents write those as often as true and false. */
+const YES_NO = new Map([
+  ["yes", true],
+  ["no", false],
+  ["true", true],
+  ["false", false],
+]);
+
+const asNoul = (value: boolean | string): boolean | string =>
+  typeof value === "string" ? (YES_NO.get(value.toLowerCase()) ?? value) : value;
+
 type Test = (answers: Readonly<Record<string, JevAnswer>>) => boolean;
 
 /** The shorthand `value` means `{ is: value }`. */
@@ -70,7 +81,7 @@ function compileCondition(id: string, info: QuestionInfo | undefined, condition:
   const { is, min, max, decision } = conditionOf(condition);
   const checks: ((answer: JevAnswer) => boolean)[] = [];
   if (is !== undefined) {
-    const wanted = [is].flat();
+    const wanted = type === "noul" ? [is].flat().map(asNoul) : [is].flat();
     const kind = type === "noul" ? "boolean" : "string";
     if (type === "score" || wanted.some((v) => typeof v !== kind)) {
       throw whereError(id, `a ${type} question takes ${TAKES[type]}`);
@@ -168,6 +179,32 @@ export function selector(options: SelectOptions, types: QuestionTypes): (records
       ...(counting ? { counts: tally(records, types) } : {}),
     };
   };
+}
+
+/** Longest record text `unsure` carries; a longer record stays out, for the agent to open if it must. */
+export const MAX_UNSURE_CHARS = 2_000;
+/** Text `unsure` carries in all, so a call over many unsure records still returns a short result. */
+export const MAX_UNSURE_TOTAL = 16_000;
+
+/**
+ * The text of each returned record with a review or abstain answer, when short, filled in result order
+ * up to MAX_UNSURE_TOTAL. Agents check those records; reading them in the result saves opening them in
+ * another step, which rereads the whole conversation.
+ */
+export function unsureTexts(
+  files: Selection["files"],
+  textOf: (key: string) => string | undefined,
+): { unsure?: Record<string, string> } {
+  const unsure: Record<string, string> = {};
+  let total = 0;
+  for (const [key, answers] of Object.entries(files ?? {})) {
+    if (Object.values(answers).every((answer) => answer.decision === "act")) continue;
+    const text = textOf(key);
+    if (text === undefined || text.length > MAX_UNSURE_CHARS || total + text.length > MAX_UNSURE_TOTAL) continue;
+    unsure[key] = text;
+    total += text.length;
+  }
+  return Object.keys(unsure).length > 0 ? { unsure } : {};
 }
 
 /** Errors the result lists; a batch that fails as a whole would otherwise repeat one reason per record. */

@@ -2,7 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/server";
 import type { EntryType, Questions, TypeSafeClient, Usage } from "@typesafe-ai/sdk";
 import { getClient, type ClientDeps } from "../client.ts";
 import { classify, FilesError, redact, toToolError } from "../errors.ts";
-import { capErrors, selector, typesOf, type Answered } from "../filters.ts";
+import { capErrors, MAX_UNSURE_CHARS, selector, typesOf, unsureTexts, type Answered } from "../filters.ts";
 import { filesRoots, MAX_FILE_BYTES, MAX_SPLIT_FILE_BYTES, selectFiles, shown } from "../files.ts";
 import { ANSWER_NOTE, thresholdsFrom, toAnswer, type Thresholds } from "../gating.ts";
 import { buildQuestions, toState } from "../questions.ts";
@@ -15,9 +15,9 @@ import { askInput, askOutput, parseTop, parseWhere, type AskInput } from "../sch
  * use jev_ask, which the tool description alone cannot do for an agent that never loads it.
  */
 export const ASK_INSTRUCTIONS =
-  "Jev answers typed questions (yes/no, pick one, rate on levels) with a certainty and an act/review/abstain gate. Use jev_ask to apply one judgment to many files or records you don't need to read yourself: triage, filtering a corpus to what matters, ranking, policy checks. Pass globs, not content, and use where, top or counts to get back only what you need. Exact matches are cheaper with grep.";
+  "Use jev_ask whenever a task needs a judgment about files or records: classifying, triaging, ranking, filtering, deciding which files belong to a feature or topic, or checking content against criteria or a policy. Ask before you read or grep them yourself, even in a small repo or with only a handful of files: one call answers all of them and keeps their text out of your context. Pass globs in files, the policy or definitions in context, and use where, top or counts to get back only what you need. Jev reads each file in full and judges meaning, so it catches what keyword searches miss or wrongly match: reworded, negated or conditional statements, and files that only mention a topic. Every answer carries a certainty and an act/review/abstain decision: act answers rarely need checking, and short records marked review or abstain come back with their text in unsure, so settle those without opening the files. Keep exact lookups, such as matching IDs or summing amounts, in grep or code.";
 
-export const ASK_DESCRIPTION = `Ask Jev, TypeSafe's decision model, typed questions about one state, or about every file or record that files matches, without reading them into your context. Ask every question about the same input in one call. Jev does not see question ids, so write each question to stand alone: plain English, literal, one judgment per question. With files, Jev sees {file, content, context}; refer to them by name, e.g. \`content\`. A score answer is the expected level index. ${ANSWER_NOTE}`;
+export const ASK_DESCRIPTION = `Ask Jev, TypeSafe's decision model, typed questions about one state, or about every file or record that files matches, without reading them into your context. Ask every question about the same input in one call. Jev does not see question ids, so write each question to stand alone: plain English, literal, one judgment per question. With files, Jev sees {file, content, context}; refer to them by name, e.g. \`content\`. A score answer is the expected level index. ${ANSWER_NOTE} With files, records with a review or abstain answer come back with their text in \`unsure\` when it is at most ${MAX_UNSURE_CHARS.toLocaleString("en-US")} characters.`;
 
 /** Jev requests in flight at once for a `files` call. */
 const REQUEST_CONCURRENCY = 8;
@@ -103,6 +103,16 @@ const failureText = (error: unknown): string => {
   return redact(`${c.category}: ${c.hint}${c.detail ? ` ${c.detail}` : ""}`);
 };
 
+/** Each record's text as Jev saw it: a string as is, a csv row or json item as JSON. */
+function textsOf(parts: readonly Part[]): (key: string) => string | undefined {
+  const contents = new Map(parts.filter(isPiece).map((part) => [part.key, part.content]));
+  return (key) => {
+    if (!contents.has(key)) return undefined;
+    const content = contents.get(key);
+    return typeof content === "string" ? content : JSON.stringify(content);
+  };
+}
+
 /** The record key and reason of an outcome without answers. */
 function problemOf(outcome: Outcome): [string, string][] {
   if ("reason" in outcome) return [[outcome.key, outcome.reason]];
@@ -159,7 +169,9 @@ export function registerAsk(server: McpServer, deps: ClientDeps = {}): void {
 
         const problems = [...Object.entries(skipped), ...outcomes.flatMap(problemOf)];
         const usage = answered.reduce((u, r) => addUsage(u, r.usage), { input_tokens: 0, output_tokens: 0 });
-        return ok(askOutput.parse({ ...select(answered), ...capErrors(problems) }), {
+        const selection = select(answered);
+        const unsure = unsureTexts(selection.files, textsOf(parts));
+        return ok(askOutput.parse({ ...selection, ...unsure, ...capErrors(problems) }), {
           model: answered[0]?.model ?? "",
           usage,
           thresholds,

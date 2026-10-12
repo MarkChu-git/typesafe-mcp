@@ -69,6 +69,13 @@ describe("selector: where", () => {
     expect(keysOf({ where: { dept: ["technical", "sales"] } })).toEqual(["t2", "t4", "t6"]);
   });
 
+  test("a noul question also takes yes and no, the words its description uses, in any case", () => {
+    expect(keysOf({ where: { urgent: "yes" } })).toEqual(keysOf({ where: { urgent: true } }));
+    expect(keysOf({ where: { urgent: "No" } })).toEqual(keysOf({ where: { urgent: false } }));
+    expect(keysOf({ where: { urgent: { is: ["YES", false] } } })).toEqual(["t1", "t2", "t3", "t4", "t5", "t6"]);
+    expect(keysOf({ where: { urgent: { is: "true", decision: "act" } } })).toEqual(["t1", "t4"]);
+  });
+
   test("{ is } says the same as the shorthand", () => {
     expect(keysOf({ where: { dept: { is: "billing" } } })).toEqual(keysOf({ where: { dept: "billing" } }));
     expect(keysOf({ where: { urgent: { is: [false] } } })).toEqual(["t2", "t6"]);
@@ -134,8 +141,8 @@ describe("selector: where is checked before any record exists", () => {
     expect(message({ where: { dept: ["billing", false] } })).toBe("where.dept: a choice question takes an option label");
     expect(message({ where: { anger: true } })).toBe("where.anger: a score question takes min and max");
     expect(message({ where: { anger: { is: "high" } } })).toBe("where.anger: a score question takes min and max");
-    expect(message({ where: { urgent: "yes" } })).toBe("where.urgent: a noul question takes true or false");
-    expect(message({ where: { urgent: { is: [true, "no"] } } })).toBe("where.urgent: a noul question takes true or false");
+    expect(message({ where: { urgent: "maybe" } })).toBe("where.urgent: a noul question takes true or false");
+    expect(message({ where: { urgent: { is: [true, "constructor"] } } })).toBe("where.urgent: a noul question takes true or false");
   });
 
   test("min and max on anything but a score", () => {

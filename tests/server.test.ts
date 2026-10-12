@@ -59,6 +59,22 @@ describe("createServer", () => {
     }
   });
 
+  test("instructions say when to reach for jev_ask in at most 1,000 characters, since hosts show them on every call", () => {
+    expect(ASK_INSTRUCTIONS.length).toBeLessThanOrEqual(1_000);
+    expect(ASK_INSTRUCTIONS).toContain("jev_ask");
+    expect(ASK_INSTRUCTIONS).toContain("review or abstain");
+  });
+
+  test("instructions keep the lines the willingness eval measured; rewording them means rerunning it", () => {
+    // Unprompted agents used Jev on judgment tasks once told to ask before reading or grepping the files
+    // themselves, even in a small repo (the reason they gave for skipping it), and to count picking a
+    // feature's files as a judgment; exact lookups left to grep kept them off the control task.
+    expect(ASK_INSTRUCTIONS).toContain("before you read or grep");
+    expect(ASK_INSTRUCTIONS).toContain("even in a small repo");
+    expect(ASK_INSTRUCTIONS).toContain("which files belong to a feature");
+    expect(ASK_INSTRUCTIONS).toMatch(/exact lookups.*in grep or code/);
+  });
+
   test("sends instructions on when to use jev_ask, only when jev_ask is exposed", async () => {
     const withAsk = await inProcessClient({ env: { TYPESAFE_API_KEY: "test-key" } });
     try {

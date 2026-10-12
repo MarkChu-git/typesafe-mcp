@@ -152,11 +152,13 @@ Jev sees `{file, content, context}` for every record. Each record may be up to 6
 
 **Filters.** They apply to every record of the call, in this order:
 
-- `where` keeps the records whose answers match every condition. Per question id: a value or a list of values (noul, choice), `{min, max}` (score), `{decision}`, or `{is, min, max, decision}` combined. A label that is not one of the question's options fails the call before any request.
+- `where` keeps the records whose answers match every condition. Per question id: a value or a list of values (noul: `true`/`false` or `"yes"`/`"no"`; choice: labels), `{min, max}` (score), `{decision}`, or `{is, min, max, decision}` combined. A label that is not one of the question's options fails the call before any request.
 - `top: {by, k}` ranks what `where` kept by a score's expected level or a noul's probability of yes, or by a weighted sum `{id: weight}`, and keeps the k highest (k ≤ 100).
 - `counts: true` adds per-answer tallies over every answered record. Without `where` or `top`, the result holds only the tallies.
 
 With any of them the result also has `total`, the records answered, and with `where` it has `matched`, the records that passed. `errors` lists at most 20 entries, and `more_errors` counts the rest.
+
+**Unsure records.** A returned record with a review or abstain answer also comes back with its text in `unsure` (record key → text) when the text is at most 2,000 characters, up to 16,000 characters per call. Agents check those records anyway, and reading them in the result saves opening them in another step, which rereads the whole conversation.
 
 ## Decision gating
 
@@ -182,7 +184,7 @@ Every tool definition sits in the agent's context on every model call, and every
 
 In one eval run where the agent was told to triage 30 ticket files with jev, asking per ticket took 37 calls, 31,189 characters of arguments and 14,690 output tokens; with `files` it took 2 calls, 1,846 characters and 1,912 output tokens.
 
-The server also sends MCP instructions (394 characters) that say when to use `jev_ask`. Claude Code shows them even when it defers tool definitions, as it does in sessions with many MCP tools, where the agent otherwise sees only the tool's name. `items`, `where`, `top` and `counts` grow the `jev_ask` definition from 3,165 to 4,070 characters. `where` and `top` appear as plain objects whose descriptions name their shape, because typed unions would add about 150 tokens to every call. The token figures in the table predate these fields.
+The server also sends MCP instructions (993 characters) that say when to use `jev_ask`. Claude Code shows them even when it defers tool definitions, as it does in sessions with many MCP tools, where the agent otherwise sees only the tool's name. In that setting, agents that were not told to use Jev used it on 1 of 6 judgment-task runs with the earlier 394-character text and on 6 of 6 with the current one. With `jev_ask` loaded up front, as in a session with only this server, the counts were 0 of 6 and 10 of 12 ([results](docs/evals/2026-10-12-willingness.md)). `items`, `where`, `top` and `counts` grow the `jev_ask` definition from 3,165 to 4,070 characters. `where` and `top` appear as plain objects whose descriptions name their shape, because typed unions would add about 150 tokens to every call. The token figures in the table predate these fields.
 
 Claude Code shows the model a tool's `structuredContent`, not its text block, and leaves `_meta` out — which is why usage and thresholds live there. [evals/](evals/README.md) compares whole agent runs with and without jev.
 

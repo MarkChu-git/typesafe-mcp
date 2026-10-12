@@ -4,6 +4,7 @@ import { homedir, tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import type { Fetch } from "@typesafe-ai/sdk";
 import { resetClient } from "../src/client.ts";
+import { MAX_UNSURE_CHARS, MAX_UNSURE_TOTAL } from "../src/filters.ts";
 import { META_KEY } from "../src/result.ts";
 import { fakeFetch, loadFixture } from "./helpers/fakeFetch.ts";
 import { clientWithRoots, inProcessClient } from "./helpers/mcp.ts";
@@ -403,6 +404,7 @@ type FilesResult = {
   total?: number;
   matched?: number;
   counts?: Record<string, Record<string, number>>;
+  unsure?: Record<string, string>;
   errors?: Record<string, string>;
   more_errors?: number;
 };
@@ -709,5 +711,77 @@ describe("jev_ask with items, where, top and counts", () => {
     expect(result.isError).toBeFalsy();
     expect(judge.bodies).toHaveLength(30);
     expect(judge.peak()).toBe(8);
+  });
+});
+
+describe("jev_ask returns the text of records Jev is unsure about", () => {
+  afterEach(() => {
+    resetClient();
+  });
+
+  test("records with a review or abstain answer come back with their text, so the agent settles them without opening files", async () => {
+    const { sc } = await callWithFiles(
+      {
+        "tickets/a.md": "URGENT payouts failing",
+        "tickets/b.md": "maybe urgent x=0.8",
+        "tickets/c.md": "hard to say x=0.6",
+        "tickets/d.md": "Please update my email",
+      },
+      { files: "tickets/*.md", questions: { urgent: urgentQ, team: teamQ } },
+    );
+    expect(Object.keys(sc.files ?? {})).toEqual(["tickets/a.md", "tickets/b.md", "tickets/c.md", "tickets/d.md"]);
+    expect(sc.files?.["tickets/b.md"]?.["urgent"]?.decision).toBe("review");
+    expect(sc.files?.["tickets/c.md"]?.["urgent"]?.decision).toBe("abstain");
+    expect(sc.unsure).toEqual({ "tickets/b.md": "maybe urgent x=0.8", "tickets/c.md": "hard to say x=0.6" });
+  });
+
+  test("an unsure record over the length limit, or one that where, top or counts leave out, carries no text", async () => {
+    const files = {
+      "tickets/a.md": "URGENT payouts failing",
+      "tickets/b.md": "maybe x=0.8",
+      "tickets/long.md": `x=0.6 ${"a".repeat(MAX_UNSURE_CHARS)}`,
+    };
+    const all = await callWithFiles(files, { files: "tickets/*.md", questions: { urgent: urgentQ } });
+    expect(all.sc.files?.["tickets/long.md"]?.["urgent"]?.decision).toBe("abstain");
+    expect(all.sc.unsure).toEqual({ "tickets/b.md": "maybe x=0.8" });
+
+    const acted = await callWithFiles(files, {
+      files: "tickets/*.md",
+      where: { urgent: { decision: "act" } },
+      questions: { urgent: urgentQ },
+    });
+    expect(Object.keys(acted.sc.files ?? {})).toEqual(["tickets/a.md"]);
+    expect(acted.sc.unsure).toBeUndefined();
+
+    const top = await callWithFiles(files, { files: "tickets/*.md", top: { by: "urgent", k: 1 }, questions: { urgent: urgentQ } });
+    expect(Object.keys(top.sc.files ?? {})).toEqual(["tickets/a.md"]);
+    expect(top.sc.unsure).toBeUndefined();
+
+    const counted = await callWithFiles(files, { files: "tickets/*.md", counts: true, questions: { urgent: urgentQ } });
+    expect(counted.sc.unsure).toBeUndefined();
+  });
+
+  test(`unsure carries at most ${MAX_UNSURE_TOTAL.toLocaleString("en-US")} characters in all, filled in result order`, async () => {
+    const size = 1_500;
+    const files = Object.fromEntries(
+      Array.from({ length: 15 }, (_, i) => [`notes/${String(i).padStart(2, "0")}.md`, `x=0.8 ${"b".repeat(size - 6)}`]),
+    );
+    const { sc } = await callWithFiles(files, { files: "notes/*.md", questions: { urgent: urgentQ } });
+    expect(Object.keys(sc.files ?? {})).toHaveLength(15);
+    expect(Object.keys(sc.unsure ?? {})).toEqual(Object.keys(files).slice(0, Math.floor(MAX_UNSURE_TOTAL / size)));
+  });
+
+  test("a line comes back as written, and a csv row as the JSON Jev saw", async () => {
+    const lines = await callWithFiles(
+      { "logs/app.log": "URGENT disk full\nmaybe x=0.8\n" },
+      { files: "logs/*.log", items: "lines", questions: { urgent: urgentQ } },
+    );
+    expect(lines.sc.unsure).toEqual({ "logs/app.log:2": "maybe x=0.8" });
+
+    const rows = await callWithFiles(
+      { "t.csv": "id,text\n1,URGENT refund\n2,x=0.8 maybe\n" },
+      { files: "t.csv", items: "csv", questions: { urgent: urgentQ } },
+    );
+    expect(rows.sc.unsure).toEqual({ "t.csv:3": '{"id":"2","text":"x=0.8 maybe"}' });
   });
 });
