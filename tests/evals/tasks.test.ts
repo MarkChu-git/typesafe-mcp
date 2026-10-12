@@ -1,6 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { join, sep } from "node:path";
 import { ALL_TASKS, findTask } from "../../evals/tasks/index.ts";
 import { affectedCustomers, generate } from "../../evals/tasks/payment-log-duplicates/generate.ts";
 import {
@@ -167,9 +167,10 @@ describe("tasks", () => {
     const task = ALL_TASKS.find((t) => t.id === "refund-promises-audit");
     if (!task) throw new Error("refund-promises-audit task not found");
     const root = task.workspaceDir;
+    // Relative paths with `/`, as generate() names them; readdirSync uses `\` on Windows.
     const listFiles = (): string[] =>
       readdirSync(root, { recursive: true })
-        .map((entry) => String(entry))
+        .map((entry) => String(entry).split(sep).join("/"))
         .filter((entry) => statSync(join(root, entry)).isFile())
         .toSorted();
     const transcriptPaths = (): string[] => listFiles().filter((path) => path.startsWith("transcripts/"));
