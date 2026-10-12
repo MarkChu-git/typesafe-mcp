@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { resetClient } from "../src/client.ts";
+import { ASK_INSTRUCTIONS } from "../src/tools/ask.ts";
 import { fakeFetch, loadFixture } from "./helpers/fakeFetch.ts";
 import { inProcessClient } from "./helpers/mcp.ts";
 
@@ -55,6 +56,21 @@ describe("createServer", () => {
       }
     } finally {
       await close();
+    }
+  });
+
+  test("sends instructions on when to use jev_ask, only when jev_ask is exposed", async () => {
+    const withAsk = await inProcessClient({ env: { TYPESAFE_API_KEY: "test-key" } });
+    try {
+      expect(withAsk.client.getInstructions()).toBe(ASK_INSTRUCTIONS);
+    } finally {
+      await withAsk.close();
+    }
+    const withoutAsk = await inProcessClient({ env: { TYPESAFE_API_KEY: "test-key", TYPESAFE_TOOLS: "check" } });
+    try {
+      expect(withoutAsk.client.getInstructions()).toBeUndefined();
+    } finally {
+      await withoutAsk.close();
     }
   });
 

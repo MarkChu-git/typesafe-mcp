@@ -106,13 +106,28 @@ To ask the same questions of many files, pass `files` instead of `state`. The se
 }
 ```
 
+Logs, JSONL, CSV and Markdown files hold many records each. `items` splits every file into records and asks each one; `where`, `top` and `counts` keep only what the agent needs, so the result grows with the matches rather than the inputs:
+
+```jsonc
+// jev_ask — files: "logs/*.jsonl", items: "jsonl", where: { "incident": true }, counts: true
+{
+  "files": {
+    "logs/app-03.jsonl:412": { "incident": { "answer": true, "certainty": 0.94, "decision": "act" } },
+    "logs/app-07.jsonl:88": { "incident": { "answer": true, "certainty": 0.71, "decision": "review" } }
+  },
+  "total": 486,
+  "matched": 2,
+  "counts": { "incident": { "false": 484, "true": 2 } }
+}
+```
+
 ## Tools
 
 By default the server exposes one tool, `jev_ask`, which covers every question type. Set `TYPESAFE_TOOLS` to choose the tools instead: `all`, or a list such as `ask,check` (the list replaces the default).
 
 | Tool | Exposed | Input | `answer` |
 | --- | --- | --- | --- |
-| `jev_ask` | default | `state` or `files` (+ optional `context`), `questions` (your ids → `{type, question, options \| levels \| criteria}`) | per question — **one** upstream call per state, or per file |
+| `jev_ask` | default | `state` or `files` (+ optional `context`, `items`, `where`, `top`, `counts`), `questions` (your ids → `{type, question, options \| levels \| criteria}`) | per question — **one** upstream call per state, file or record |
 | `jev_check` | `TYPESAFE_TOOLS` | `state`, `question`, optional `criteria` | `true` / `false` |
 | `jev_classify` | `TYPESAFE_TOOLS` | `state`, `question`, `options` (2–255) | the chosen label |
 | `jev_score` | `TYPESAFE_TOOLS` | `state`, `question`, `levels` (2–10) | expected level index (may fall between levels) |
@@ -120,7 +135,28 @@ By default the server exposes one tool, `jev_ask`, which covers every question t
 
 Every question tool also takes `detailed`, `model`, `act_above` and `review_above`.
 
-**What `files` may read.** Only files under `TYPESAFE_FILES_ROOT` when set, else under the MCP roots the host declares, else under the directory the host started the server in. Roots are deprecated as of protocol 2026-07-28 and this server only gets them in older sessions, so with Claude Code, which negotiates 2026-07-28 and starts the server in the project, `files` reads the project. That last fallback never uses `/`, the home directory or a directory above it: there `files` returns a `CONFIG` error until `TYPESAFE_FILES_ROOT` is set. Patterns must be relative and cannot contain `..`. Hidden files and directories (`.env`, `.git/…`) and private keys (`*.pem`, `*.key`, `id_rsa`, …) are never read, even through a symlink; wildcards skip symlinks; a path that resolves outside the root is skipped; `node_modules` is skipped unless the pattern names it. At most 100 files of up to 64 KB each per call; anything skipped is listed in `errors` with the reason. Each file's content is sent to TypeSafe as one Jev request. The server reads with its own permissions, so a host rule that keeps the agent from reading a file does not stop `files`: keep secrets in hidden files or outside the root, or point `TYPESAFE_FILES_ROOT` at a narrower directory.
+**What `files` may read.** Only files under `TYPESAFE_FILES_ROOT` when set, else under the MCP roots the host declares, else under the directory the host started the server in. Roots are deprecated as of protocol 2026-07-28 and this server only gets them in older sessions, so with Claude Code, which negotiates 2026-07-28 and starts the server in the project, `files` reads the project. That last fallback never uses `/`, the home directory or a directory above it: there `files` returns a `CONFIG` error until `TYPESAFE_FILES_ROOT` is set. Patterns must be relative and cannot contain `..`. Hidden files and directories (`.env`, `.git/…`) and private keys (`*.pem`, `*.key`, `id_rsa`, …) are never read, even through a symlink; wildcards skip symlinks; a path that resolves outside the root is skipped; `node_modules` is skipped unless the pattern names it. At most 100 files per call, each up to 64 KB, or 1 MB when `items` splits it; anything skipped is listed in `errors` with the reason. Each file or record is sent to TypeSafe as one Jev request. The server reads with its own permissions, so a host rule that keeps the agent from reading a file does not stop `files`: keep secrets in hidden files or outside the root, or point `TYPESAFE_FILES_ROOT` at a narrower directory.
+
+**Records.** `items` splits every matched file into records, and each record gets the same questions in one Jev request:
+
+| `items` | Record | Key in `files` |
+| --- | --- | --- |
+| `file` (default) | the whole file | `path` |
+| `lines` | each non-blank line | `path:LINE` |
+| `jsonl` | each non-blank line, parsed as JSON | `path:LINE` |
+| `json` | each element of a top-level array | `path[INDEX]` |
+| `csv` | each row after the header, as `{column: value}` | `path:LINE` |
+| `sections` | each Markdown heading with its body, plus any text before the first heading | `path:LINE` |
+
+Jev sees `{file, content, context}` for every record. Each record may be up to 64 KB. One call sends at most 500 records; a call that would send more fails before sending any.
+
+**Filters.** They apply to every record of the call, in this order:
+
+- `where` keeps the records whose answers match every condition. Per question id: a value or a list of values (noul, choice), `{min, max}` (score), `{decision}`, or `{is, min, max, decision}` combined. A label that is not one of the question's options fails the call before any request.
+- `top: {by, k}` ranks what `where` kept by a score's expected level or a noul's probability of yes, or by a weighted sum `{id: weight}`, and keeps the k highest (k ≤ 100).
+- `counts: true` adds per-answer tallies over every answered record. Without `where` or `top`, the result holds only the tallies.
+
+With any of them the result also has `total`, the records answered, and with `where` it has `matched`, the records that passed. `errors` lists at most 20 entries, and `more_errors` counts the rest.
 
 ## Decision gating
 
@@ -146,6 +182,8 @@ Every tool definition sits in the agent's context on every model call, and every
 
 In one eval run where the agent was told to triage 30 ticket files with jev, asking per ticket took 37 calls, 31,189 characters of arguments and 14,690 output tokens; with `files` it took 2 calls, 1,846 characters and 1,912 output tokens.
 
+The server also sends MCP instructions (394 characters) that say when to use `jev_ask`. Claude Code shows them even when it defers tool definitions, as it does in sessions with many MCP tools, where the agent otherwise sees only the tool's name. `items`, `where`, `top` and `counts` grow the `jev_ask` definition from 3,165 to 4,070 characters. `where` and `top` appear as plain objects whose descriptions name their shape, because typed unions would add about 150 tokens to every call. The token figures in the table predate these fields.
+
 Claude Code shows the model a tool's `structuredContent`, not its text block, and leaves `_meta` out — which is why usage and thresholds live there. [evals/](evals/README.md) compares whole agent runs with and without jev.
 
 ## Errors
@@ -155,7 +193,7 @@ Every failure returns `isError: true` with a category prefix:
 | Category | Cause |
 | --- | --- |
 | `CONFIG` | `TYPESAFE_API_KEY` missing — where to set it is in the message · `files` has no project directory (no `TYPESAFE_FILES_ROOT`, no MCP roots, and the server was started in `/` or the home directory) |
-| `VALIDATION` | Bad arguments — names the offending field · a `files` pattern that matches nothing or more than 100 files |
+| `VALIDATION` | Bad arguments — names the offending field · a `files` pattern that matches nothing, more than 100 files or more than 500 records · a `where` or `top` that does not fit the questions |
 | `AUTH` | API rejected the key |
 | `RATE_LIMIT` | Throttled — hint: batch questions through `jev_ask` |
 | `OVERLOADED` / `UPSTREAM` | API-side 5xx after retries |

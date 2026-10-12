@@ -1,17 +1,26 @@
 import type { McpServer } from "@modelcontextprotocol/server";
 import type { EntryType, Questions, TypeSafeClient, Usage } from "@typesafe-ai/sdk";
 import { getClient, type ClientDeps } from "../client.ts";
-import { classify, redact, toToolError } from "../errors.ts";
-import { filesRoots, selectFiles, type FileItem } from "../files.ts";
+import { classify, FilesError, redact, toToolError } from "../errors.ts";
+import { capErrors, selector, typesOf, type Answered } from "../filters.ts";
+import { filesRoots, MAX_FILE_BYTES, MAX_SPLIT_FILE_BYTES, selectFiles, shown } from "../files.ts";
 import { ANSWER_NOTE, thresholdsFrom, toAnswer, type Thresholds } from "../gating.ts";
 import { buildQuestions, toState } from "../questions.ts";
+import { isPiece, MAX_RECORDS, splitFile, type Part } from "../records.ts";
 import { ok } from "../result.ts";
-import { askInput, askOutput, type AskInput, type JevAnswer } from "../schemas.ts";
+import { askInput, askOutput, parseTop, parseWhere, type AskInput } from "../schemas.ts";
 
-export const ASK_DESCRIPTION = `Ask Jev, TypeSafe's decision model, typed questions about one state. Put every question about the same state in one call; to ask them of many files, pass files instead of state. Write questions in plain English, literally and specifically. A score answer is the expected level index. ${ANSWER_NOTE}`;
+/**
+ * Server instructions: hosts show them even while tool definitions are deferred, so they carry when to
+ * use jev_ask, which the tool description alone cannot do for an agent that never loads it.
+ */
+export const ASK_INSTRUCTIONS =
+  "Jev answers typed questions (yes/no, pick one, rate on levels) with a certainty and an act/review/abstain gate. Use jev_ask to apply one judgment to many files or records you don't need to read yourself: triage, filtering a corpus to what matters, ranking, policy checks. Pass globs, not content, and use where, top or counts to get back only what you need. Exact matches are cheaper with grep.";
+
+export const ASK_DESCRIPTION = `Ask Jev, TypeSafe's decision model, typed questions about one state, or about every file or record that files matches, without reading them into your context. Ask every question about the same input in one call. Jev does not see question ids, so write each question to stand alone: plain English, literal, one judgment per question. With files, Jev sees {file, content, context}; refer to them by name, e.g. \`content\`. A score answer is the expected level index. ${ANSWER_NOTE}`;
 
 /** Jev requests in flight at once for a `files` call. */
-const FILE_CONCURRENCY = 4;
+const REQUEST_CONCURRENCY = 8;
 /** How long to wait for the client's roots before treating it as sharing none. */
 const ROOTS_TIMEOUT_MS = 5_000;
 
@@ -45,29 +54,32 @@ const addUsage = (a: Usage, b: Usage): Usage => ({
   output_tokens: a.output_tokens + b.output_tokens,
 });
 
-type FileResult =
-  | { path: string; model: string; usage: Usage; answers: Record<string, JevAnswer> }
-  | { path: string; error: unknown };
+type Outcome =
+  | (Answered & { model: string; usage: Usage })
+  | { key: string; error: unknown }
+  | { key: string; reason: string };
 
 /**
- * One Jev request per file, the same questions each time; per-file failures become `errors`. Stops
- * sending once the call is cancelled or the key is rejected, since every later request would fail too.
+ * One Jev request per record, the same questions each time; a failed request becomes an `error` for its
+ * record, and a record that could not be made keeps its `reason`. Stops sending once the call is
+ * cancelled or the key is rejected, since every later request would fail too.
  */
-async function askFiles(
+async function askRecords(
   client: TypeSafeClient,
-  items: readonly FileItem[],
+  parts: readonly Part[],
   questions: Questions,
   input: AskInput,
   thresholds: Thresholds,
   signal: AbortSignal,
-): Promise<FileResult[]> {
+): Promise<Outcome[]> {
   let rejectedKey: unknown;
-  return mapLimit(items, FILE_CONCURRENCY, async (item) => {
-    if (signal.aborted) return { path: item.path, error: signal.reason };
-    if (rejectedKey !== undefined) return { path: item.path, error: rejectedKey };
+  return mapLimit(parts, REQUEST_CONCURRENCY, async (part): Promise<Outcome> => {
+    if (!isPiece(part)) return part;
+    if (signal.aborted) return { key: part.key, error: signal.reason };
+    if (rejectedKey !== undefined) return { key: part.key, error: rejectedKey };
     const state: EntryType = {
-      file: item.path,
-      content: item.content,
+      file: part.file,
+      content: part.content,
       ...(input.context === undefined ? {} : { context: input.context as EntryType }),
     };
     try {
@@ -78,12 +90,24 @@ async function askFiles(
       const answers = Object.fromEntries(
         Object.entries(res.answers).map(([id, a]) => [id, toAnswer(a, thresholds, input.detailed)]),
       );
-      return { path: item.path, model: res.model, usage: res.usage, answers };
+      return { key: part.key, model: res.model, usage: res.usage, answers, raw: res.answers };
     } catch (error) {
       if (classify(error).category === "AUTH") rejectedKey ??= error;
-      return { path: item.path, error };
+      return { key: part.key, error };
     }
   });
+}
+
+const failureText = (error: unknown): string => {
+  const c = classify(error);
+  return redact(`${c.category}: ${c.hint}${c.detail ? ` ${c.detail}` : ""}`);
+};
+
+/** The record key and reason of an outcome without answers. */
+function problemOf(outcome: Outcome): [string, string][] {
+  if ("reason" in outcome) return [[outcome.key, outcome.reason]];
+  if ("error" in outcome) return [[outcome.key, failureText(outcome.error)]];
+  return [];
 }
 
 export function registerAsk(server: McpServer, deps: ClientDeps = {}): void {
@@ -113,23 +137,29 @@ export function registerAsk(server: McpServer, deps: ClientDeps = {}): void {
           return ok(askOutput.parse({ answers }), { model: res.model, usage: res.usage, thresholds });
         }
 
+        const mode = input.items ?? "file";
+        // Before any file is read or request sent, so a mistake in where or top costs nothing.
+        const where = input.where === undefined ? undefined : parseWhere(input.where);
+        const top = input.top === undefined ? undefined : parseTop(input.top);
+        const select = selector({ where, top, counts: input.counts }, typesOf(input.questions));
         const patterns = typeof input.files === "string" ? [input.files] : input.files;
         const roots = await filesRoots(deps.env ?? process.env, () => listClientRoots(server), deps.cwd ?? process.cwd());
-        const { items, skipped } = await selectFiles(patterns, roots);
-        const results = await askFiles(client, items, questions, input, thresholds, signal);
-        const answered = results.filter((r) => "answers" in r);
-        const failed = results.filter((r) => "error" in r);
-        // Nothing answered: surface the first failure (e.g. AUTH) as the tool error it is.
-        if (answered.length === 0 && failed[0]) throw failed[0].error;
-
-        const errors: Record<string, string> = { ...skipped };
-        for (const f of failed) {
-          const c = classify(f.error);
-          errors[f.path] = redact(`${c.category}: ${c.hint}${c.detail ? ` ${c.detail}` : ""}`);
+        const maxBytes = mode === "file" ? MAX_FILE_BYTES : MAX_SPLIT_FILE_BYTES;
+        const { items, skipped } = await selectFiles(patterns, roots, maxBytes);
+        const parts = items.flatMap((item) => splitFile(item, mode));
+        const records = parts.filter(isPiece).length;
+        if (records > MAX_RECORDS) {
+          throw new FilesError(`${shown(patterns)} give ${records} records; the limit is ${MAX_RECORDS} per call, so narrow the pattern`);
         }
-        const files = Object.fromEntries(answered.map((r) => [r.path, r.answers]));
+        const outcomes = await askRecords(client, parts, questions, input, thresholds, signal);
+        const answered = outcomes.filter((o) => "answers" in o);
+        const firstFailure = outcomes.find((o) => "error" in o);
+        // Nothing answered: surface the first failure (e.g. AUTH) as the tool error it is.
+        if (answered.length === 0 && firstFailure) throw firstFailure.error;
+
+        const problems = [...Object.entries(skipped), ...outcomes.flatMap(problemOf)];
         const usage = answered.reduce((u, r) => addUsage(u, r.usage), { input_tokens: 0, output_tokens: 0 });
-        return ok(askOutput.parse({ files, ...(Object.keys(errors).length > 0 ? { errors } : {}) }), {
+        return ok(askOutput.parse({ ...select(answered), ...capErrors(problems) }), {
           model: answered[0]?.model ?? "",
           usage,
           thresholds,

@@ -8,8 +8,10 @@ import { FilesError } from "./errors.ts";
 
 /** Files one `jev_ask` call may read; each one is a separate Jev request. */
 export const MAX_FILES = 100;
-/** Jev takes about 32k tokens of state; larger files are skipped. */
+/** Jev takes about 32k tokens of state; larger files, and larger records, are skipped. */
 export const MAX_FILE_BYTES = 64 * 1024;
+/** A file split into records may be larger, since Jev only ever sees one record of it. */
+export const MAX_SPLIT_FILE_BYTES = 1024 * 1024;
 
 export interface FileItem {
   /** Relative to the first root, with `/` separators. */
@@ -79,7 +81,7 @@ const inDependencies = (rel: string, pattern: string): boolean =>
   !pattern.includes("node_modules") && rel.split("/").includes("node_modules");
 
 /** Patterns as error messages show them: an agent's own long input is not echoed back in full. */
-function shown(patterns: readonly string[]): string {
+export function shown(patterns: readonly string[]): string {
   const text = patterns.join(", ");
   return text.length > 200 ? `${text.slice(0, 200)}…` : text;
 }
@@ -93,14 +95,18 @@ function normalizePattern(pattern: string): string {
   return normalized;
 }
 
-const overLimit = (bytes: number): string => `${Math.ceil(bytes / 1024)} KB is over the ${MAX_FILE_BYTES / 1024} KB limit`;
+export const overLimit = (bytes: number, limit: number): string => `${Math.ceil(bytes / 1024)} KB is over the ${limit / 1024} KB limit`;
 
 /**
- * Expands `patterns` under the first root and reads each match. Hidden paths and key files are never
- * read, symlinked directories are not followed by wildcards, and every file must resolve inside one of
- * `roots`, so the agent can only point at project files.
+ * Expands `patterns` under the first root and reads each match, skipping files over `maxBytes`. Hidden
+ * paths and key files are never read, symlinked directories are not followed by wildcards, and every
+ * file must resolve inside one of `roots`, so the agent can only point at project files.
  */
-export async function selectFiles(patterns: readonly string[], roots: readonly string[]): Promise<FileSelection> {
+export async function selectFiles(
+  patterns: readonly string[],
+  roots: readonly string[],
+  maxBytes: number = MAX_FILE_BYTES,
+): Promise<FileSelection> {
   const [first] = roots;
   if (first === undefined) {
     throw new FilesError(
@@ -135,7 +141,7 @@ export async function selectFiles(patterns: readonly string[], roots: readonly s
   const skipped: Record<string, string> = {};
   for (const path of [...matched].toSorted()) {
     // eslint-disable-next-line no-await-in-loop -- at most MAX_FILES small local reads, kept in order
-    const read = await readMatch(join(base, path), realRoots);
+    const read = await readMatch(join(base, path), realRoots, maxBytes);
     if (typeof read === "string") items.push({ path, content: read });
     else skipped[path] = read.skipped;
   }
@@ -143,7 +149,11 @@ export async function selectFiles(patterns: readonly string[], roots: readonly s
 }
 
 /** One matched file's text, or why it is skipped. A file that cannot be read never fails the whole call. */
-async function readMatch(absolute: string, realRoots: readonly string[]): Promise<string | { skipped: string }> {
+async function readMatch(
+  absolute: string,
+  realRoots: readonly string[],
+  maxBytes: number,
+): Promise<string | { skipped: string }> {
   let handle: FileHandle | undefined;
   try {
     // Open first, then check where the opened file lives, so a symlink swapped in after the check cannot
@@ -159,9 +169,9 @@ async function readMatch(absolute: string, realRoots: readonly string[]): Promis
     const [opened, current] = await Promise.all([handle.stat({ bigint: true }), lstat(real, { bigint: true })]);
     if (opened.dev !== current.dev || opened.ino !== current.ino) return { skipped: "changed while being read" };
     if (!opened.isFile()) return { skipped: "not a regular file" };
-    if (opened.size > MAX_FILE_BYTES) return { skipped: overLimit(Number(opened.size)) };
-    const bytes = await readAtMost(handle, MAX_FILE_BYTES + 1);
-    if (bytes.length > MAX_FILE_BYTES) return { skipped: overLimit(bytes.length) };
+    if (opened.size > maxBytes) return { skipped: overLimit(Number(opened.size), maxBytes) };
+    const bytes = await readAtMost(handle, maxBytes + 1);
+    if (bytes.length > maxBytes) return { skipped: overLimit(bytes.length, maxBytes) };
     if (bytes.includes(0)) return { skipped: "binary file" };
     return new TextDecoder().decode(bytes);
   } catch (error) {
