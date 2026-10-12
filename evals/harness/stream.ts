@@ -14,8 +14,28 @@ export interface ParseContext {
 
 const ALLOWED_QUOTA = new Set(["allowed", "allowed_warning"]);
 const JEV_PREFIX = "mcp__jev__";
-/** Code that calls Jev, through the TypeSafe SDK or straight to its HTTP API. */
-const SDK_CODE = /@typesafe-ai\/sdk|api\.typesafe\.ai/;
+/**
+ * Code that calls Jev: an import of the TypeSafe SDK or a request to its HTTP API. A path or a note that
+ * names the package, as in `ls node_modules/@typesafe-ai/sdk`, is reading about it, not calling it.
+ */
+const SDK_CALL = /(?:\bfrom|\bimport|\brequire)\s*\(?\s*["']@typesafe-ai\/sdk["']|https?:\/\/api\.typesafe\.ai\b/;
+/** Files a shell command writes, as in `cat > judge.ts <<'EOF'` or `tee judge.ts`. */
+const WRITTEN = /(?:>{1,2}|\btee(?:\s+-a)?)\s*([^\s;&|<>()]+)/g;
+const SCRIPT_FILE = /\.[cm]?[jt]s$/;
+const escapeRegExp = (text: string): string => text.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+
+/** Whether `command` starts `script` with a runner, so editing, reading or naming the script does not count. */
+function runs(command: string, script: string): boolean {
+  const runner = String.raw`(?:bun(?:\s+run)?|node|tsx|npx\s+tsx|deno\s+run)`;
+  return new RegExp(String.raw`(?:^|[\s;&|(])${runner}\s+(?:\S*/)?${escapeRegExp(script)}(?=$|[\s;&|)])`).test(command);
+}
+
+/** The code a Write or Edit call puts in a file, or null for any other call. */
+function codeWritten(name: string, input: Json): string | null {
+  if (name === "Write") return str(input.content) ?? "";
+  if (name === "Edit") return str(input.new_string) ?? "";
+  return null;
+}
 
 const isObj = (v: unknown): v is Json => typeof v === "object" && v !== null && !Array.isArray(v);
 const num = (v: unknown): number => (typeof v === "number" && Number.isFinite(v) ? v : 0);
@@ -47,21 +67,27 @@ function jevInputTokens(toolUseResult: unknown, text: string): number | null {
 }
 
 /**
- * Whether a call is part of using Jev: a jev MCP call, writing a script that calls Jev (remembered in
- * `scripts` by file name), or a Bash command that calls Jev inline or runs one of those scripts.
+ * Whether a call is part of using Jev: a jev MCP call; writing code that calls Jev with Write, Edit or a
+ * shell redirect (the file is remembered in `scripts` by name); or a Bash command that calls Jev inline
+ * or runs one of those scripts.
  */
 function usesJev(name: string, input: unknown, scripts: Set<string>): boolean {
   if (name.startsWith(JEV_PREFIX)) return true;
   if (!isObj(input)) return false;
-  if (name === "Write") {
-    if (!SDK_CODE.test(str(input.content) ?? "")) return false;
+  const code = codeWritten(name, input);
+  if (code !== null) {
+    if (!SDK_CALL.test(code)) return false;
     const path = str(input.file_path);
     if (path) scripts.add(basename(path));
     return true;
   }
   if (name !== "Bash") return false;
   const command = str(input.command) ?? "";
-  return SDK_CODE.test(command) || [...scripts].some((script) => command.includes(script));
+  if (SDK_CALL.test(command)) {
+    for (const [, target = ""] of command.matchAll(WRITTEN)) if (SCRIPT_FILE.test(target)) scripts.add(basename(target));
+    return true;
+  }
+  return [...scripts].some((script) => runs(command, script));
 }
 
 function toQuota(info: unknown): QuotaInfo | null {

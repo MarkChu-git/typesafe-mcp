@@ -261,7 +261,7 @@ describe("preflight", () => {
     const result = await preflight({
       exec: async (cmd) => {
         if (cmd[0] === "claude" && cmd[1] === "--version") {
-          return { code: 0, stdout: "2.1.283 (Claude Code)\n", stderr: "" };
+          return { code: 0, stdout: "2.1.293 (Claude Code)\n", stderr: "" };
         }
         return { code: 0, stdout: "", stderr: "" };
       },
@@ -272,14 +272,14 @@ describe("preflight", () => {
     });
 
     expect(result.ok).toBe(false);
-    expect((result as any).message).toContain("2.1.284");
+    expect((result as any).message).toContain("2.1.294");
   });
 
   test("rejects when not logged in", async () => {
     const result = await preflight({
       exec: async (cmd) => {
         if (cmd[0] === "claude" && cmd[1] === "--version") {
-          return { code: 0, stdout: "2.1.284 (Claude Code)\n", stderr: "" };
+          return { code: 0, stdout: "2.1.294 (Claude Code)\n", stderr: "" };
         }
         return { code: 0, stdout: '{"loggedIn": false}', stderr: "" };
       },
@@ -297,7 +297,7 @@ describe("preflight", () => {
     const result = await preflight({
       exec: async (cmd) => {
         if (cmd[0] === "claude" && cmd[1] === "--version") {
-          return { code: 0, stdout: "2.1.284 (Claude Code)\n", stderr: "" };
+          return { code: 0, stdout: "2.1.294 (Claude Code)\n", stderr: "" };
         }
         return { code: 0, stdout: '{"loggedIn": true}', stderr: "" };
       },
@@ -315,7 +315,7 @@ describe("preflight", () => {
     const result = await preflight({
       exec: async (cmd) => {
         if (cmd[0] === "claude" && cmd[1] === "--version") {
-          return { code: 0, stdout: "2.1.284 (Claude Code)\n", stderr: "" };
+          return { code: 0, stdout: "2.1.294 (Claude Code)\n", stderr: "" };
         }
         return { code: 0, stdout: '{"loggedIn": true}', stderr: "" };
       },
@@ -333,7 +333,7 @@ describe("preflight", () => {
     const result = await preflight({
       exec: async (cmd) => {
         if (cmd[0] === "claude" && cmd[1] === "--version") {
-          return { code: 0, stdout: "2.1.284 (Claude Code)\n", stderr: "" };
+          return { code: 0, stdout: "2.1.294 (Claude Code)\n", stderr: "" };
         }
         return { code: 0, stdout: '{"loggedIn": true}', stderr: "" };
       },
@@ -345,7 +345,7 @@ describe("preflight", () => {
 
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.cliVersion).toBe("2.1.284");
+      expect(result.cliVersion).toBe("2.1.294");
     }
   });
 });

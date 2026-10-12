@@ -368,7 +368,7 @@ function leftoverSections(input: SummaryInput): string[] {
   return lines;
 }
 
-/** Markdown report; token efficiency comes first because it is the project's primary metric. */
+/** Whether a run called Jev at least once. */
 const usedJev = (r: RunRecord): boolean => r.metrics.toolCalls.some(isJevCall);
 
 /** Willingness of every arm but baseline that has counted runs, in ARM_IDS order. */
@@ -422,6 +422,7 @@ function willingnessSection(rows: readonly Willingness[]): string[] {
   ];
 }
 
+/** Markdown report; token efficiency comes first because it is the project's primary metric. */
 export function renderSummary(input: SummaryInput): string {
   if (input.config.tasks.length === 0) return [...headerLines(input), ...probeSection(input.probes), ""].join("\n");
   const agg = aggregate(input.records);
