@@ -193,7 +193,7 @@ jobs:
     name: Verify published
     needs: [build, publish]
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15 # the registry wait alone may take 10
     permissions:
       contents: read
     env:
@@ -212,18 +212,28 @@ jobs:
       - name: Install
         run: bun install --frozen-lockfile
 
-      # Publishes become visible asynchronously.
+      # npm can take minutes to list a new version: 0.3.0 showed up about 4 minutes after
+      # `npm publish` said "Your package is being processed". bunx resolves typesafe-mcp@$VERSION
+      # through the abbreviated packument, which once lagged the version URL, and the registry
+      # caches each Accept variant for up to 5 minutes, so ask for it with bun's Accept header.
       - name: Wait for the registry
         run: |
-          for _ in $(seq 1 24); do
-            status=$(curl -s -o /dev/null -w '%{http_code}' "https://registry.npmjs.org/typesafe-mcp/$VERSION")
-            if [ "$status" = "200" ]; then
+          limit=600 # seconds
+          accept='application/vnd.npm.install-v1+json; q=1.0, application/json; q=0.8, */*'
+          while true; do
+            status=$(curl -s --max-time 10 -o /dev/null -w '%{http_code}' "https://registry.npmjs.org/typesafe-mcp/$VERSION" || true)
+            packument=$(curl -s --max-time 10 -H "Accept: $accept" https://registry.npmjs.org/typesafe-mcp |
+              jq -r --arg v "$VERSION" 'if .versions[$v] then "latest \(.["dist-tags"].latest)" else "no \($v)" end' 2>/dev/null || true)
+            if [ "$status" = "200" ] && [ "$packument" = "latest $VERSION" ]; then
+              echo "npm lists typesafe-mcp@$VERSION as latest after ${SECONDS}s"
               exit 0
+            fi
+            if [ "$SECONDS" -ge "$limit" ]; then
+              echo "::error::npm does not list typesafe-mcp@$VERSION as latest after $((limit / 60)) minutes (version URL: HTTP $status, packument: ${packument:-unreadable})"
+              exit 1
             fi
             sleep 5
           done
-          echo "::error::typesafe-mcp@$VERSION is not visible on npm after 2 minutes"
-          exit 1
 
       - name: Smoke-test the published package
         run: bun run smoke bunx "typesafe-mcp@$VERSION"
