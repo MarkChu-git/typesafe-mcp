@@ -1,0 +1,22 @@
+{
+  "heading": "Choose your plan",
+  "billingToggle": {
+    "options": [
+      { "interval": "monthly", "label": "Pay monthly" },
+      { "interval": "yearly", "label": "Pay yearly", "badge": "2 months free" }
+    ],
+    "initial": "monthly",
+    "annualNote": "Billed once a year"
+  },
+  "trial": {
+    "days": 14,
+    "buttonLabel": "Start free trial",
+    "cardRequired": true
+  },
+  "plans": [
+    { "id": "solo", "tagline": "For one notebook", "featured": false },
+    { "id": "team", "tagline": "For small teams", "featured": true },
+    { "id": "studio", "tagline": "For agencies and schools", "featured": false }
+  ],
+  "footnote": "Prices exclude tax. Cancel before your trial ends and you will not be charged."
+}

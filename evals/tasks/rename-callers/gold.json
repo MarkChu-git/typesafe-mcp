@@ -1,0 +1,14 @@
+{
+  "calls": [
+    "src/admin/revenueReport.ts:42",
+    "src/admin/revenueReport.ts:43",
+    "src/api/checkoutRoutes.ts:27",
+    "src/emails/receipt.ts:14",
+    "src/emails/receipt.ts:15",
+    "src/emails/trialEnding.ts:22",
+    "src/jobs/renewals.ts:21",
+    "src/lib/money.ts:16",
+    "src/lib/money.ts:17",
+    "src/promos/coupons.ts:40"
+  ]
+}
