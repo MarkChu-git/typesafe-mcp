@@ -83,14 +83,69 @@ bug-files 和 change-review 还多一层原因：这类代码判断 Jev 的把�
 
 只看同一天的数据是 2/4 对 1/8，样本太小，不算显著，但方向一致。跳过的理由仍然是"仓库很小，直接读就行"。这个格子恰好是 Jev 省 token 的场景，所以采用 V8 之前值得多跑几次确认。
 
+## 改工具描述（V10）
+
+前面几版只改了 server instructions。工具一开始就加载时，agent 还能看到 `jev_ask` 自己的描述，可这段描述只讲怎么调用，不讲什么时候该用。V10 在 V8 的基础上把描述的开头改成什么时候用：一次判断 glob 匹配到的所有文件或记录，比如 bug 涉及哪些文件、改动的文件是否符合规范、每个失败的测试为什么失败、哪些日志属于事故；文件少而短也先问，然后只看 Jev 没把握的；精确查找留给 grep。描述从 827 字符变成 1,230 字符，`jev-code` 组第一轮上下文从 11,674 涨到 11,789 token。
+
+| 组 | 版本 | bug-files | change-review | ci-failures | incident-logs | 意愿分 | 对照误用 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `jev-code-deferred` | V8 | 2/2 | 2/2 | 2/2 | 0/2 | 75 | 0/2 |
+| `jev-code-deferred` | V10 | 1/2 | 2/2 | 2/2 | 0/2 | 63 | 0/2 |
+| `jev-code` | V8 | 0/2 | 0/2 | 0/2 | 0/2 | 0 | 0/2 |
+| `jev-code` | V10 | 0/2 | 0/2 | 0/2 | 0/2 | 0 | 0/2 |
+
+没有变化。`jev-code` 组 8 次都没用 Jev，理由还是"文件小，直接读"。延迟加载组的 bug-files 少了 1 次：那次 agent 已经把 jev_ask 加载进来，看到仓库小，又改成自己读。每格只跑 2 次，这点差别算正常波动。
+
+两组的差别出在做决定的时机。延迟加载时，agent 通常在第一轮就把 jev_ask 和 PR、规范文件一起加载进来，这时它还不知道要判断几个文件，加载之后多半就用了。工具一开始就加载时没有这一步：agent 先读完背景，看到只有 10 个小文件，才决定不用。
+
+## 用户自己写一条规则
+
+server instructions 是第三方工具给的建议，agent 会拿自己的判断去衡量；用户在 CLAUDE.md 或 AGENTS.md 里写的规则，agent 会当成要求照做。为了看这条路能把调用率推到多高、要多花多少 token，加了 `jev-code-rule` 和 `jev-code-deferred-rule` 两组。会话和 `jev-code`、`jev-code-deferred` 一样，只是系统提示里多一句规则（`HOUSE_RULE_PROMPT`）：
+
+> When a task needs a judgment about several files or records, ask Jev with jev_ask before reading them yourself, even if there are only a few: which files a bug or change involves, whether changed files follow the conventions, why each failed test failed, which log entries belong to an incident, or classifying and ranking items. Read only what Jev is unsure about. Use grep or code for exact lookups, such as a symbol's callers.
+
+规则用 `--append-system-prompt` 加进去，位置和真实的 CLAUDE.md 不完全一样。jev 用的是当前发布的 V6。
+
+| 组 | bug-files | change-review | ci-failures | incident-logs | 意愿分 | 对照误用 |
+| --- | --- | --- | --- | --- | --- | --- |
+| `jev-code-deferred-rule` | 2/2 | 2/2 | 2/2 | 2/2 | 100 | 0/2 |
+| `jev-code-rule` | 2/2 | 2/2 | 2/2 | 0/2 | 75 | 0/2 |
+
+V6 不加规则时，这两组是 50 和 0。规则把调用率推了上去，而且一次误用都没有：在找调用方的任务上，agent 都说这是精确查找，该用 grep。工具一开始就加载时，incident-logs 仍然两次都没用，agent 认为 327 行、格式整齐的日志用 grep 就够了。
+
+代价是 token。和所有不加规则、自己读文件的运行比：
+
+| 任务 | 自己读 | 延迟加载 + 规则 | 一开始加载 + 规则 |
+| --- | --- | --- | --- |
+| bug-files | 60k，5.1 轮 | 78k（+30%） | 70k（+17%） |
+| change-review | 52k，5.0 轮 | 75k（+44%） | 72k（+38%） |
+| ci-failures | 49k，4.1 轮 | 52k（+6%） | 61k（+24%） |
+| incident-logs | 76k，6.0 轮，0.97 分 | 88k（+16%），0.98 分 | 没用 Jev |
+
+除 incident-logs 外，得分都是 1.00。incident-logs 延迟加载加规则的两次里有一次拿了 1.00，是这个任务所有运行里唯一的满分。
+
+规则里"只读 Jev 没把握的"那半句有一点用：ci-failures 有一次 agent 一个文件都没开就交了答案，只用了 44k，比自己读还少。多数运行还是会复查。change-review 多花得最多，原因之一是 `where`。
+
+## `where` 筛选写错
+
+change-review 要按 6 条规则审 10 个文件。agent 一般每条规则问一个是非题，再用 `where` 只取违规的文件。它要的是"违反任意一条"，`where` 却要所有条件都满足才算匹配。12 次用了 Jev 的 change-review 运行里，大约 7 次在这里出了错：
+
+- 只写第一条规则，比如 `{"r1": {"decision": "act"}}`，违反其他规则的文件就被筛掉了；
+- 6 条都写上，变成 6 条同时违反才算，一个文件也匹配不上；
+- 有一次 agent 发现漏了，改成每条规则单独问，一共调用了 7 次。
+
+每错一次，就要再问一次或者再读一轮，而每一轮都要把 15k 到 20k 的上下文重读一遍。
+
 ## 结论
 
 1. 在说明里点名写代码的场景，效果有限：延迟加载时意愿分从 50 升到 75，只多了测试失败这一种场景；工具一开始就加载时没有变化。没有一次误用。
 2. agent 跳过 Jev 的理由始终是"文件少"。直接回应这个理由的 V9 几乎没用，和上一轮 V7 的结果一致，措辞已经推不动这一块。
 3. 在这几个小的写代码任务上，用 Jev 比自己读多花 27% 到 71% 的 token，得分不变。原因是多出来的轮次：加载工具、复查 Jev 没把握的答案。所以在这些场景里提高调用率，会让 token 效率变差。
 4. Jev 有把握、且能省掉整轮阅读时，它省 token，比如找功能文件和工单分诊。要让写代码时多用 Jev 又不多花 token，先要减少这些多出来的轮次。
+5. 改工具描述也推不动。说明和描述里一共试了五种写法，agent 跳过 Jev 的理由始终是文件少。
+6. 用户自己写一条规则，能把调用率推到 100（延迟加载）和 75（一开始加载），没有误用，但在这些小任务上比自己读多花 6% 到 44% 的 token。
 
-所以这一轮没有采用 V8 或 V9，说明仍是 V6。等用 Jev 多出来的轮次减下来，再回头测这些措辞。
+所以这一轮没有采用 V8、V9、V10，说明仍是 V6，也不建议用户写这条规则。目标是 token 效率，小任务让 agent 自己读更省。接下来先让 `where` 支持"满足任意一条"，省掉写错筛选多出来的那一轮。V6 里"哪怕仓库很小"那句是为了让 agent 在小仓库里也用 Jev 加的，之后要改成按文件多少来决定，再用一个大一点的任务确认该用 Jev 的时候 agent 还会用。
 
 ## 还没解决
 
@@ -98,6 +153,8 @@ bug-files 和 change-review 还多一层原因：这类代码判断 Jev 的把�
 - 代码类判断上 Jev 给 review 或 abstain 的比例高，agent 因此复查。可以试的方向：让 `unsure` 带回的原文覆盖常见大小的源文件（现在上限是每条 2,000 字节，很多源文件超过这个大小），或者在说明里提示把 bug 拆成单文件就能判断的问题。
 - 任务都很小，10 到 31 个文件。大仓库里自己读不完，Jev 的优势可能更明显，这一轮没有测。
 - `jev-code` 组 repo-feature-files 的下降信号要多跑几次才能下结论。
+- `where` 只能表达"所有条件都满足"，按多条规则找违规时 agent 经常写错。
+- V6 的"哪怕仓库很小"是上一轮为了让 agent 在小仓库里也用 Jev 加的，V8 到 V10 都保留了。延迟加载的 agent 因此在 bug-files、change-review 上也用 Jev，几个版本合计 75k 和 85k，比自己读的 60k、52k 多 25% 和 63%。
 
 ## 复现
 
@@ -111,4 +168,10 @@ bun run eval --tasks bug-files,change-review,ci-failures,incident-logs,rename-ca
 
 ```bash
 bun run eval --tasks triage-tickets,repo-feature-files,payment-log-duplicates --arms jev-code-deferred,jev-code --reps 2 --max-turns 12 --allow-unreviewed
+```
+
+V10 用第一条命令，在改了描述的 worktree 里跑。用户规则的两组在 V6 上跑：
+
+```bash
+bun run eval --tasks bug-files,change-review,ci-failures,incident-logs,rename-callers --arms jev-code-deferred-rule,jev-code-rule --reps 2 --max-turns 20 --allow-unreviewed
 ```
