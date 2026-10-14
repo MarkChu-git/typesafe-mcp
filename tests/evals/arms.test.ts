@@ -9,6 +9,7 @@ import {
   disallowedTools,
   expectedSkills,
   expectedTools,
+  HOUSE_RULE_PROMPT,
   mcpConfig,
   RELEASED_REF,
   SDK_DIRECTED_PROMPT,
@@ -120,6 +121,20 @@ describe("eval arms", () => {
     expect(arm.extraPrompt).toBeUndefined();
     expect(allowedTools(arm)).toEqual(["mcp__jev", "Bash", "Edit", "Write"]);
     expect(armSettings(arm)).toMatchObject({ sandbox: { enabled: true, network: { allowedDomains: [] } } });
+  });
+
+  test("the rule arms are jev-code and jev-code-deferred plus one line a user wrote in CLAUDE.md or AGENTS.md", () => {
+    const pairs = [
+      ["jev-code-rule", "jev-code"],
+      ["jev-code-deferred-rule", "jev-code-deferred"],
+    ] as const;
+    for (const [id, base] of pairs) {
+      const arm = ARMS[id];
+      expect(expectedTools(arm)).toEqual(expectedTools(ARMS[base]));
+      expect(allowedTools(arm)).toEqual(allowedTools(ARMS[base]));
+      expect(arm.deferred).toBe(ARMS[base].deferred);
+      expect(arm.extraPrompt).toBe(HOUSE_RULE_PROMPT);
+    }
   });
 
   test("the code arm has the SDK arms' coding tools and sandbox but reaches Jev over MCP", () => {

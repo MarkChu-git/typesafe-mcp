@@ -10,6 +10,8 @@ export const ARM_IDS = [
   "jev-directed-code",
   "jev-code",
   "jev-code-deferred",
+  "jev-code-rule",
+  "jev-code-deferred-rule",
   "sdk",
   "sdk-directed",
 ] as const;

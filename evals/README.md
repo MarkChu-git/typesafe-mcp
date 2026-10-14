@@ -55,10 +55,12 @@ bun run eval --resume evals/results/<目录名>
 | `jev-directed-code` | 同 `jev-directed`，另有编码工具（沙箱里的 Bash、Edit、Write） | `jev_ask` |
 | `jev-code` | 工作区源码，有编码工具；`jev_ask` 一开始就加载，不提示 agent 用 jev | `jev_ask` |
 | `jev-code-deferred` | 同 `jev-code`，但 `jev_ask` 延迟加载 | `jev_ask`（要先用 ToolSearch 加载） |
+| `jev-code-rule` | 同 `jev-code`，系统提示里多一句用户规则，相当于用户在 CLAUDE.md 或 AGENTS.md 里写了"判断几个文件或记录时，先问 Jev 再自己读" | `jev_ask` |
+| `jev-code-deferred-rule` | 同 `jev-code-deferred`，加同一句规则 | `jev_ask`（要先用 ToolSearch 加载） |
 | `sdk` | 无。工作区里装好 `@typesafe-ai/sdk` 并加载官方 TypeSafe skill，有编码工具，系统提示说明 SDK 已安装、key 已设置 | 无，agent 自己写 bun 脚本调 SDK |
 | `sdk-directed` | 同 `sdk`，系统提示还要求判断都通过 SDK 交给 Jev | 无 |
 
-`jev-code-deferred` 最接近日常的 Claude Code 会话：装了很多 MCP 服务器时，Claude Code 会把它们的工具延迟加载，agent 起初只看到工具名和 server instructions，用 ToolSearch 加载后才能调用。评测里只有一个 MCP 服务器，所以用 `ENABLE_TOOL_SEARCH=true` 强制走这条路。`jev-code` 对应只装了这一个服务器的会话，工具少，Claude Code 一开始就加载 `jev_ask`。测调用意愿主要看这两组。
+`jev-code-deferred` 最接近日常的 Claude Code 会话：装了很多 MCP 服务器时，Claude Code 会把它们的工具延迟加载，agent 起初只看到工具名和 server instructions，用 ToolSearch 加载后才能调用。评测里只有一个 MCP 服务器，所以用 `ENABLE_TOOL_SEARCH=true` 强制走这条路。`jev-code` 对应只装了这一个服务器的会话，工具少，Claude Code 一开始就加载 `jev_ask`。测调用意愿主要看这两组。两个 `-rule` 组和它们对照：会话一样，只是用户自己写了一条规则，用来看 agent 照规则用 Jev 时用得多不多、多花多少 token。
 
 编码工具组的隔离有限：沙箱只管 Bash 的写入和联网，Bash 照样能读本机的其他文件，包括评测仓库里的标准答案；Edit、Write 不经过沙箱；`TYPESAFE_API_KEY` 也在 Bash 能看到的环境变量里。目前的运行记录里没有 agent 越界，但评测机上不要放不该被读到的东西。
 

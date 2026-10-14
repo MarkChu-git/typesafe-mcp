@@ -31,6 +31,9 @@ export const RELEASED_REF = "v0.1.1";
 
 export const DIRECTED_PROMPT =
   "For every classification, scoring or yes/no judgment in this task, call the jev tools instead of judging it yourself.";
+/** A line a user could put in CLAUDE.md or AGENTS.md: the user's own rule, which agents follow where the server's instructions only advise. */
+export const HOUSE_RULE_PROMPT =
+  "When a task needs a judgment about several files or records, ask Jev with jev_ask before reading them yourself, even if there are only a few: which files a bug or change involves, whether changed files follow the conventions, why each failed test failed, which log entries belong to an incident, or classifying and ranking items. Read only what Jev is unsure about. Use grep or code for exact lookups, such as a symbol's callers.";
 /** What an SDK arm is told about its setup, the counterpart of an MCP arm seeing the jev tool. */
 export const SDK_NOTE =
   "The TypeSafe JavaScript SDK (@typesafe-ai/sdk) is installed in this directory and TYPESAFE_API_KEY is set; run scripts with bun.";
@@ -46,6 +49,14 @@ export const ARMS: Record<ArmId, Arm> = {
   "jev-directed-code": { id: "jev-directed-code", jev: { allow: ["jev_ask"] }, code: true, extraPrompt: DIRECTED_PROMPT },
   "jev-code": { id: "jev-code", jev: { allow: ["jev_ask"] }, code: true },
   "jev-code-deferred": { id: "jev-code-deferred", jev: { allow: ["jev_ask"] }, code: true, deferred: true },
+  "jev-code-rule": { id: "jev-code-rule", jev: { allow: ["jev_ask"] }, code: true, extraPrompt: HOUSE_RULE_PROMPT },
+  "jev-code-deferred-rule": {
+    id: "jev-code-deferred-rule",
+    jev: { allow: ["jev_ask"] },
+    code: true,
+    deferred: true,
+    extraPrompt: HOUSE_RULE_PROMPT,
+  },
   sdk: { id: "sdk", jev: false, code: true, sdk: true, extraPrompt: SDK_NOTE },
   "sdk-directed": {
     id: "sdk-directed",
