@@ -67,10 +67,12 @@ describe("createServer", () => {
 
   test("instructions keep the lines the willingness eval measured; rewording them means rerunning it", () => {
     // Unprompted agents used Jev on judgment tasks once told to ask before reading or grepping the files
-    // themselves, even in a small repo (the reason they gave for skipping it), and to count picking a
-    // feature's files as a judgment; exact lookups left to grep kept them off the control task.
+    // themselves and to count picking a feature's files as a judgment; exact lookups left to grep kept
+    // them off the control task. On a handful of short files, reading them cost fewer tokens than asking,
+    // so the push to ask first covers only larger sets.
     expect(ASK_INSTRUCTIONS).toContain("before you read or grep");
-    expect(ASK_INSTRUCTIONS).toContain("even in a small repo");
+    expect(ASK_INSTRUCTIONS).toContain("more than about 50 of them");
+    expect(ASK_INSTRUCTIONS).toContain("A handful of short files is cheaper to read yourself");
     expect(ASK_INSTRUCTIONS).toContain("which files belong to a feature");
     expect(ASK_INSTRUCTIONS).toMatch(/exact lookups.*in grep or code/);
   });
