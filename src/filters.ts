@@ -1,6 +1,6 @@
 import type { ChoiceResponse, NoulResponse, ScoreResponse } from "@typesafe-ai/sdk";
 import { FilesError } from "./errors.ts";
-import type { AskInput, AskQuestion, JevAnswer, Top, Where } from "./schemas.ts";
+import { ANY_OF, type AskInput, type AskQuestion, type Conditions, type JevAnswer, type Top, type Where } from "./schemas.ts";
 
 type QuestionType = AskQuestion["type"];
 
@@ -52,7 +52,8 @@ export const typesOf = (
 /** An id the agent made up may be `toString`, which a plain lookup would find. */
 const infoOf = (types: QuestionTypes, id: string): QuestionInfo | undefined => (Object.hasOwn(types, id) ? types[id] : undefined);
 
-const whereError = (id: string, message: string): FilesError => new FilesError(`where.${id}: ${message}`);
+/** `path` names the condition as the agent wrote it, e.g. `where.urgent` or `where.$or.1.urgent`. */
+const whereError = (path: string, message: string): FilesError => new FilesError(`${path}: ${message}`);
 
 const TAKES: Record<QuestionType, string> = { noul: "true or false", choice: "an option label", score: "min and max" };
 
@@ -69,14 +70,16 @@ const asNoul = (value: boolean | string): boolean | string =>
 
 type Test = (answers: Readonly<Record<string, JevAnswer>>) => boolean;
 
+type Condition = Conditions[string];
+
 /** The shorthand `value` means `{ is: value }`. */
-function conditionOf(condition: Where[string]): Exclude<Where[string], boolean | string | unknown[]> {
+function conditionOf(condition: Condition): Exclude<Condition, boolean | string | unknown[]> {
   return typeof condition === "object" && !Array.isArray(condition) ? condition : { is: condition };
 }
 
-/** Everything a condition says about one question, checked against the question before any request. */
-function compileCondition(id: string, info: QuestionInfo | undefined, condition: Where[string]): Test {
-  if (info === undefined) throw whereError(id, "unknown question id");
+/** Everything a condition says about question `id`, checked against the question before any request. */
+function compileCondition(path: string, id: string, info: QuestionInfo | undefined, condition: Condition): Test {
+  if (info === undefined) throw whereError(path, "unknown question id");
   const { type, labels } = info;
   const { is, min, max, decision } = conditionOf(condition);
   const checks: ((answer: JevAnswer) => boolean)[] = [];
@@ -84,16 +87,16 @@ function compileCondition(id: string, info: QuestionInfo | undefined, condition:
     const wanted = type === "noul" ? [is].flat().map(asNoul) : [is].flat();
     const kind = type === "noul" ? "boolean" : "string";
     if (type === "score" || wanted.some((v) => typeof v !== kind)) {
-      throw whereError(id, `a ${type} question takes ${TAKES[type]}`);
+      throw whereError(path, `a ${type} question takes ${TAKES[type]}`);
     }
     // A mistyped label would match nothing after every request was paid for.
     const unknown = labels === undefined ? undefined : wanted.find((v) => !labels.includes(String(v)));
-    if (unknown !== undefined) throw whereError(id, `"${String(unknown)}" is not one of its options`);
+    if (unknown !== undefined) throw whereError(path, `"${String(unknown)}" is not one of its options`);
     checks.push((a) => wanted.some((v) => v === a.answer));
   }
   if (min !== undefined || max !== undefined) {
-    if (type !== "score") throw whereError(id, "min and max only apply to score questions");
-    if (min !== undefined && max !== undefined && min > max) throw whereError(id, `min ${min} is above max ${max}`);
+    if (type !== "score") throw whereError(path, "min and max only apply to score questions");
+    if (min !== undefined && max !== undefined && min > max) throw whereError(path, `min ${min} is above max ${max}`);
     checks.push((a) => typeof a.answer === "number" && (min === undefined || a.answer >= min) && (max === undefined || a.answer <= max));
   }
   if (decision !== undefined) {
@@ -106,9 +109,19 @@ function compileCondition(id: string, info: QuestionInfo | undefined, condition:
   };
 }
 
-function compileWhere(where: Where, types: QuestionTypes): Test {
-  const tests = Object.entries(where).map(([id, condition]) => compileCondition(id, infoOf(types, id), condition));
+/** A record passes one object of conditions when it passes every condition in it. */
+function compileAll(conditions: Conditions, types: QuestionTypes, path: string): Test {
+  const tests = Object.entries(conditions).map(([id, condition]) =>
+    compileCondition(`${path}.${id}`, id, infoOf(types, id), condition),
+  );
   return (answers) => tests.every((test) => test(answers));
+}
+
+/** A record passes `where` when it passes every condition and, with `$or`, at least one of its objects. */
+function compileWhere(where: Where, types: QuestionTypes): Test {
+  const all = compileAll(where.all, types, "where");
+  const anyOf = where.anyOf?.map((conditions, i) => compileAll(conditions, types, `where.${ANY_OF}.${i}`));
+  return (answers) => all(answers) && (anyOf === undefined || anyOf.some((test) => test(answers)));
 }
 
 /** The exact value `top` ranks by: a noul's probability of yes, a score's expected level. */

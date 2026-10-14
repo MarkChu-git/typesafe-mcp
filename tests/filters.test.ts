@@ -1,8 +1,17 @@
 import { describe, expect, test } from "bun:test";
 import { FilesError } from "../src/errors.ts";
-import { capErrors, MAX_ERRORS, selector, typesOf, type Answered, type RawAnswer, type SelectOptions } from "../src/filters.ts";
+import {
+  capErrors,
+  MAX_ERRORS,
+  selector,
+  typesOf,
+  type Answered,
+  type QuestionTypes,
+  type RawAnswer,
+  type SelectOptions,
+} from "../src/filters.ts";
 import { toAnswer } from "../src/gating.ts";
-import { askInput } from "../src/schemas.ts";
+import { askInput, parseWhere } from "../src/schemas.ts";
 
 const types = typesOf({
   urgent: { type: "noul" },
@@ -56,8 +65,12 @@ const byKey = (key: string): Answered => {
   return found;
 };
 
-const run = (options: SelectOptions, from: readonly Answered[] = records) => selector(options, types)(from);
-const keysOf = (options: SelectOptions): string[] => Object.keys(run(options).files ?? {});
+/** Options as the agent writes them: `where` before parseWhere splits `$or` off. */
+type Written = Omit<SelectOptions, "where"> & { where?: Record<string, unknown> };
+const select = ({ where, ...rest }: Written, declared: QuestionTypes = types) =>
+  selector(where === undefined ? rest : { ...rest, where: parseWhere(where) }, declared);
+const run = (options: Written, from: readonly Answered[] = records) => select(options)(from);
+const keysOf = (options: Written): string[] => Object.keys(run(options).files ?? {});
 
 describe("selector: where", () => {
   test("a value, or a list of values, matches the answer of a noul or choice question", () => {
@@ -113,6 +126,18 @@ describe("selector: where", () => {
     expect(result.files?.["t4"]?.["urgent"]).toEqual({ answer: true, certainty: 0.9, decision: "act" });
   });
 
+  test("$or keeps the records matching at least one of its objects, while the other conditions all still hold", () => {
+    expect(keysOf({ where: { $or: [{ dept: "sales" }, { anger: { min: 2 } }] } })).toEqual(["t1", "t4", "t6"]);
+    expect(keysOf({ where: { urgent: true, $or: [{ dept: "sales" }, { anger: { min: 2 } }] } })).toEqual(["t1", "t4"]);
+    expect(keysOf({ where: { $or: [{ urgent: true, dept: "billing" }, { urgent: false, dept: "sales" }] } })).toEqual([
+      "t1",
+      "t3",
+      "t5",
+      "t6",
+    ]);
+    expect(run({ where: { $or: [{ dept: "sales" }, { anger: { min: 2 } }] } })).toMatchObject({ total: 6, matched: 3 });
+  });
+
   test("nothing matching leaves an empty files; an empty where keeps everything", () => {
     expect(run({ where: { anger: { min: 3 } } })).toEqual({ files: {}, total: 6, matched: 0 });
     expect(run({ where: {} })).toMatchObject({ total: 6, matched: 6 });
@@ -121,9 +146,9 @@ describe("selector: where", () => {
 });
 
 describe("selector: where is checked before any record exists", () => {
-  const message = (options: SelectOptions): string => {
+  const message = (options: Written): string => {
     try {
-      selector(options, types);
+      select(options);
     } catch (error) {
       expect(error).toBeInstanceOf(FilesError);
       expect((error as FilesError).category).toBe("VALIDATION");
@@ -157,6 +182,11 @@ describe("selector: where is checked before any record exists", () => {
 
   test("the first problem is reported, in the order of the conditions", () => {
     expect(message({ where: { urgent: true, anger: { min: 2, max: 1 }, nope: false } })).toBe("where.anger: min 2 is above max 1");
+  });
+
+  test("a problem inside $or names the object it is in", () => {
+    expect(message({ where: { $or: [{ urgent: true }, { nope: true }] } })).toBe("where.$or.1.nope: unknown question id");
+    expect(message({ where: { $or: [{ anger: { min: 3, max: 1 } }] } })).toBe("where.$or.0.anger: min 3 is above max 1");
   });
 });
 
@@ -211,9 +241,9 @@ describe("selector: top", () => {
     expect(result.total).toBe(6);
   });
 
-  const message = (options: SelectOptions): string => {
+  const message = (options: Written): string => {
     try {
-      selector(options, types);
+      select(options);
     } catch (error) {
       expect(error).toBeInstanceOf(FilesError);
       expect((error as FilesError).category).toBe("VALIDATION");
@@ -362,7 +392,7 @@ describe("askInput: where, top and counts", () => {
 describe("where: choice labels", () => {
   test("a label that is not among the options fails before any request", () => {
     const declared = typesOf({ dept: { type: "choice", options: { billing: null, sales: null } } });
-    expect(() => selector({ where: { dept: "biling" } }, declared)).toThrow('where.dept: "biling" is not one of its options');
-    expect(() => selector({ where: { dept: { is: ["billing", "sales"], decision: "act" } } }, declared)).not.toThrow();
+    expect(() => select({ where: { dept: "biling" } }, declared)).toThrow('where.dept: "biling" is not one of its options');
+    expect(() => select({ where: { dept: { is: ["billing", "sales"], decision: "act" } } }, declared)).not.toThrow();
   });
 });

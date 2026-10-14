@@ -123,12 +123,28 @@ const conditionSchema = z
   })
   .refine((c) => Object.keys(c).length > 0, "give at least one of is, min, max, decision");
 
-/** Question id → a shorthand for `{ is }`, or a condition on the answer. */
-const conditionsSchema = z.record(
-  z.string(),
-  z.union([...valueForms, conditionSchema], unionError("true or false, a label, a list of them, or an object with is, min, max or decision")),
+/** A shorthand for `{ is }`, or a condition on the answer. */
+const conditionValueSchema = z.union(
+  [...valueForms, conditionSchema],
+  unionError("true or false, a label, a list of them, or an object with is, min, max or decision"),
 );
-export type Where = z.infer<typeof conditionsSchema>;
+/** Question id → its condition; a record has to match every one. */
+const conditionsSchema = z.record(z.string(), conditionValueSchema);
+export type Conditions = z.infer<typeof conditionsSchema>;
+
+/** The `where` key for objects of conditions a record has to match at least one of, as in "breaks any rule". */
+export const ANY_OF = "$or";
+const anyOfSchema = z
+  .array(conditionsSchema, { error: "expected a list of objects of conditions" })
+  .min(1, "give at least one object of conditions");
+/** `where` as agents write it: conditions on question ids, plus `$or`. */
+const whereShape = z.object({ [ANY_OF]: anyOfSchema.optional() }).catchall(conditionValueSchema);
+
+/** `where` split for the filter: every condition in `all` holds, and with `$or`, every condition of one of `anyOf`. */
+export interface Where {
+  all: Conditions;
+  anyOf?: Conditions[];
+}
 
 const topShape = z.strictObject({
   by: z.union([z.string().min(1), z.record(z.string(), z.number())], unionError("a question id or an object of id: weight")),
@@ -152,8 +168,8 @@ const describedObject = (shape: z.ZodType, description: string) =>
     .describe(description);
 
 export const whereSchema = describedObject(
-  conditionsSchema,
-  "With files: return only records whose answers match every condition. Per question id: a value or list (noul/choice), {min,max} (score), {decision}, or {is,min,max,decision} combined.",
+  whereShape,
+  `With files: keep records matching every condition, and with ${ANY_OF} at least one of its objects, e.g. {${ANY_OF}: [{r1: true}, {r2: true}]}. Left-out records lose all their answers and unsure text; skip where for a few dozen records or fewer. Per question id: a value or list (noul/choice), {min,max} (score), {decision}, or {is,min,max,decision} combined.`,
 );
 
 export const topSchema = describedObject(
@@ -161,8 +177,11 @@ export const topSchema = describedObject(
   "With files: {by, k}. by is a score or noul id, or {id: weight} for a weighted sum; ranks by a score's level or a noul's p(yes) and returns the k best (k 1–100).",
 );
 
-/** `where` and `top` as `askInput` accepted them, typed. */
-export const parseWhere = (where: Record<string, unknown>): Where => conditionsSchema.parse(where);
+/** `where` and `top` as `askInput` accepted them, typed; `where` splits `$or` off from the other conditions. */
+export function parseWhere(where: Record<string, unknown>): Where {
+  const { [ANY_OF]: anyOf, ...all } = where;
+  return { all: conditionsSchema.parse(all), ...(anyOf === undefined ? {} : { anyOf: anyOfSchema.parse(anyOf) }) };
+}
 export const parseTop = (top: Record<string, unknown>): Top => topShape.parse(top);
 
 export const countsSchema = z

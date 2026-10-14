@@ -516,6 +516,25 @@ describe("jev_ask with items, where, top and counts", () => {
     expect(Object.keys(weighted.sc.files ?? {})).toEqual(["scores.txt:1", "scores.txt:3", "scores.txt:4"]);
   });
 
+  test("$or keeps the records matching any one of its objects, as when looking for files that break any rule", async () => {
+    const either = await callWithFiles(scoresFile, {
+      files: "scores.txt",
+      items: "lines",
+      where: { $or: [{ anger: { max: 0.5 } }, { anger: { min: 1.5 } }] },
+      questions: { anger: angerQ },
+    });
+    expect(Object.keys(either.sc.files ?? {})).toEqual(["scores.txt:1", "scores.txt:2"]);
+    expect(either.sc).toMatchObject({ total: 4, matched: 2 });
+
+    const both = await callWithFiles(scoresFile, {
+      files: "scores.txt",
+      items: "lines",
+      where: { team: "high", $or: [{ anger: { max: 1 } }, { anger: { min: 1.5 } }] },
+      questions: { team: teamQ, anger: angerQ },
+    });
+    expect(Object.keys(both.sc.files ?? {})).toEqual(["scores.txt:2", "scores.txt:3"]);
+  });
+
   test("top ranks what where lets through", async () => {
     const { sc } = await callWithFiles(scoresFile, {
       files: "scores.txt",
@@ -613,6 +632,7 @@ describe("jev_ask with items, where, top and counts", () => {
       [{ where: { team: true } }, "where.team: a choice question takes an option label"],
       [{ where: { urgent: { min: 1 } } }, "where.urgent: min and max only apply to score questions"],
       [{ where: { anger: { min: 2, max: 1 } } }, "where.anger: min 2 is above max 1"],
+      [{ where: { $or: [{ urgent: true }, { nope: true }] } }, "where.$or.1.nope: unknown question id"],
       [{ top: { by: "team", k: 1 } }, "top: team is a choice question; rank by a score or noul"],
       [{ top: { by: { urgent: 1, nope: 1 }, k: 1 } }, "top: nope is not a question id"],
       [{ top: { by: {}, k: 1 } }, "top: by is empty"],
@@ -635,6 +655,25 @@ describe("jev_ask with items, where, top and counts", () => {
     expect(result.isError).toBe(true);
     expect(textOf(result)).toContain("where.urgent: give at least one of is, min, max, decision");
     expect(judge.bodies).toHaveLength(0);
+  });
+
+  test("a malformed $or is refused with its own message and path", async () => {
+    const cases: [unknown, string][] = [
+      [true, "where.$or: expected a list of objects of conditions"],
+      [[], "where.$or: give at least one object of conditions"],
+      [[{ urgent: {} }], "where.$or.0.urgent: give at least one of is, min, max, decision"],
+    ];
+    for (const [anyOf, message] of cases) {
+      // eslint-disable-next-line no-await-in-loop -- each case is its own call
+      const { result, judge } = await callWithFiles(scoresFile, {
+        files: "scores.txt",
+        where: { $or: anyOf },
+        questions: { urgent: urgentQ },
+      });
+      expect(result.isError).toBe(true);
+      expect(textOf(result)).toContain(message);
+      expect(judge.bodies).toHaveLength(0);
+    }
   });
 
   test("errors list skipped files first, then records in order, 20 at most, and count the rest", async () => {
