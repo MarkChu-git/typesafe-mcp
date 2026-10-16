@@ -208,7 +208,7 @@ export const MAX_UNSURE_TOTAL_BYTES = 16_000;
  */
 export function unsureTexts(
   files: Selection["files"],
-  textOf: (key: string) => string,
+  textOf: (key: string) => string | undefined,
 ): { unsure?: Record<string, string>; more_unsure?: number } {
   const unsure: Record<string, string> = {};
   let total = 0;
@@ -216,6 +216,11 @@ export function unsureTexts(
   for (const [key, answers] of Object.entries(files ?? {})) {
     if (Object.values(answers).every((answer) => answer.decision === "act")) continue;
     const text = textOf(key);
+    // An image has no text to return, so the agent looks at the file itself if it needs to.
+    if (text === undefined) {
+      left += 1;
+      continue;
+    }
     const bytes = Buffer.byteLength(text);
     if (bytes > MAX_UNSURE_BYTES || total + bytes > MAX_UNSURE_TOTAL_BYTES) {
       left += 1;

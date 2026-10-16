@@ -22,6 +22,8 @@ export interface EvalTask<A extends Record<string, unknown>> {
   dir: string;
   /** User prompt for `claude -p`. Must tell the agent to return the answer as structured output. */
   prompt: string;
+  /** Env for the jev server of every arm that has one, such as a switch the task needs; an arm's own env wins. */
+  serverEnv?: Record<string, string>;
   /** Must be a `z.object`. The harness adds the optional `feedback` field itself. */
   answer: z.ZodType<A>;
   /** Deterministic; must not call any model. */
@@ -38,6 +40,7 @@ export interface RegisteredTask {
   split: Split;
   dir: string;
   prompt: string;
+  serverEnv?: Record<string, string>;
   workspaceDir: string;
   reviewed: boolean;
   /** JSON Schema for `--json-schema`: the answer schema plus an optional `feedback` string. */
@@ -57,6 +60,7 @@ export function defineTask<A extends Record<string, unknown>>(task: EvalTask<A>)
     split: task.split,
     dir: task.dir,
     prompt: task.prompt,
+    ...(task.serverEnv ? { serverEnv: task.serverEnv } : {}),
     workspaceDir: join(task.dir, "workspace"),
     reviewed: existsSync(join(task.dir, "REVIEW.md")),
     jsonSchema() {
