@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { getClient, resetClient } from "../src/client.ts";
 import { ConfigError } from "../src/errors.ts";
+import { fakeFetch, loadFixture } from "./helpers/fakeFetch.ts";
 
 describe("getClient", () => {
   afterEach(() => {
@@ -20,5 +21,11 @@ describe("getClient", () => {
     const a = getClient({ env });
     const b = getClient({ env });
     expect(a).toBe(b);
+  });
+
+  test("reads responses under Bun, where SDK 0.7.0's lock on each body used it up (typesafe-sdk-js#20)", async () => {
+    const ff = fakeFetch({ "/v1/models": { body: loadFixture("models.ok.json") } });
+    const client = getClient({ env: { TYPESAFE_API_KEY: "test-key" }, fetch: ff.fetch });
+    expect((await client.models.list()).length).toBeGreaterThan(0);
   });
 });

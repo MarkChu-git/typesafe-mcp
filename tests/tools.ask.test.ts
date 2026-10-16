@@ -8,6 +8,7 @@ import { MAX_UNSURE_BYTES, MAX_UNSURE_TOTAL_BYTES } from "../src/filters.ts";
 import { META_KEY } from "../src/result.ts";
 import { fakeFetch, loadFixture } from "./helpers/fakeFetch.ts";
 import { clientWithRoots, inProcessClient } from "./helpers/mcp.ts";
+import { sentJson } from "./helpers/sent.ts";
 
 const textOf = (result: { content?: Array<{ type: string; text?: string }> }): string => {
   const block = result.content?.[0];
@@ -134,8 +135,8 @@ function fileFetch(reject: readonly string[] = []) {
   const bodies: { state: { file: string; content: string; context?: unknown } }[] = [];
   const fixture = JSON.stringify(loadFixture("check.yes095.json"));
   const fetch: Fetch = async (_input, init) => {
-    if (typeof init?.body !== "string") throw new Error("fileFetch expects a JSON string body");
-    const body = JSON.parse(init.body) as (typeof bodies)[number];
+    const body = (await sentJson(init)) as (typeof bodies)[number] | undefined;
+    if (body === undefined) throw new Error("fileFetch expects a JSON body");
     bodies.push(body);
     if (reject.includes(body.state.file)) {
       return new Response(JSON.stringify(loadFixture("error.422.json")), { status: 422 });
@@ -370,8 +371,8 @@ function judgingFetch(options: { reject?: (content: string) => boolean; delayMs?
     open = resolve;
   });
   const fetch: Fetch = async (_input, init) => {
-    if (typeof init?.body !== "string") throw new Error("judgingFetch expects a JSON string body");
-    const body = JSON.parse(init.body) as Sent;
+    const body = (await sentJson(init)) as Sent | undefined;
+    if (body === undefined) throw new Error("judgingFetch expects a JSON body");
     bodies.push(body);
     inFlight += 1;
     peak = Math.max(peak, inFlight);

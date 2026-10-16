@@ -65,7 +65,8 @@ describe("toAnswer", () => {
 
   test("score: answer is the expected level, rounded to 2 decimals", () => {
     const a = { type: "score" as const, score: 1.0549, confidence: 0.7, legend: {}, probabilities: { 0: 0.1, 1: 0.8, 2: 0.1 } };
-    expect(toAnswer(a, defaults)).toEqual({ answer: 1.05, certainty: 0.7, decision: "review" });
+    // A literal checked against ScoreResponse's legend type nests too deep for tsc under SDK 0.7.0.
+    expect(toAnswer(a as unknown as Parameters<typeof toAnswer>[0], defaults)).toEqual({ answer: 1.05, certainty: 0.7, decision: "review" });
   });
 
   test("detailed adds probabilities rounded to 3 decimals", () => {

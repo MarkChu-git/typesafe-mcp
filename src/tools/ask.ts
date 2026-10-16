@@ -1,11 +1,11 @@
 import type { McpServer } from "@modelcontextprotocol/server";
-import type { EntryType, Questions, TypeSafeClient, Usage } from "@typesafe-ai/sdk";
+import type { EntryType, TypeSafeClient, Usage } from "@typesafe-ai/sdk";
 import { getClient, type ClientDeps } from "../client.ts";
 import { classify, FilesError, redact, toToolError } from "../errors.ts";
 import { capErrors, MAX_UNSURE_BYTES, selector, typesOf, unsureTexts, type Answered } from "../filters.ts";
 import { filesRoots, MAX_FILE_BYTES, MAX_SPLIT_FILE_BYTES, selectFiles, shown } from "../files.ts";
 import { ANSWER_NOTE, thresholdsFrom, toAnswer, type Thresholds } from "../gating.ts";
-import { buildQuestions, toState } from "../questions.ts";
+import { buildQuestions, toState, type JevQuestions } from "../questions.ts";
 import { isPiece, MAX_RECORDS, splitFile, textOf, type Part, type Piece } from "../records.ts";
 import { ok } from "../result.ts";
 import { askInput, askOutput, parseTop, parseWhere, type AskInput } from "../schemas.ts";
@@ -49,9 +49,12 @@ async function mapLimit<T, R>(items: readonly T[], limit: number, fn: (item: T) 
   return out;
 }
 
+/** A total is unknown once any request did not report its count. */
+const addTokens = (a: number | null, b: number | null): number | null => (a === null || b === null ? null : a + b);
+
 const addUsage = (a: Usage, b: Usage): Usage => ({
-  input_tokens: a.input_tokens + b.input_tokens,
-  output_tokens: a.output_tokens + b.output_tokens,
+  input_tokens: addTokens(a.input_tokens, b.input_tokens),
+  output_tokens: addTokens(a.output_tokens, b.output_tokens),
 });
 
 type Outcome =
@@ -67,7 +70,7 @@ type Outcome =
 async function askRecords(
   client: TypeSafeClient,
   parts: readonly Part[],
-  questions: Questions,
+  questions: JevQuestions,
   input: AskInput,
   thresholds: Thresholds,
   signal: AbortSignal,
@@ -167,7 +170,7 @@ export function registerAsk(server: McpServer, deps: ClientDeps = {}): void {
         if (answered.length === 0 && firstFailure) throw firstFailure.error;
 
         const problems = [...Object.entries(skipped), ...outcomes.flatMap(problemOf)];
-        const usage = answered.reduce((u, r) => addUsage(u, r.usage), { input_tokens: 0, output_tokens: 0 });
+        const usage = answered.reduce<Usage>((u, r) => addUsage(u, r.usage), { input_tokens: 0, output_tokens: 0 });
         const selection = select(answered);
         const unsure = unsureTexts(selection.files, textsOf(parts));
         return ok(askOutput.parse({ ...selection, ...unsure, ...capErrors(problems) }), {

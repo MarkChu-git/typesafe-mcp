@@ -5,14 +5,16 @@ import {
   type ChoiceQuestion,
   type EntryType,
   type NoulQuestion,
-  type Question,
-  type Questions,
   type ScoreQuestion,
 } from "@typesafe-ai/sdk";
 import type { AskInput, AskQuestion } from "./schemas.ts";
 
 /** Tool arguments arrive as parsed JSON, so the untyped nested values of `state` are JSON values. */
-export const toState = (state: AskInput["state"]): EntryType => state as EntryType;
+export const toState = (state: AskInput["state"]): NonNullable<EntryType> => state as NonNullable<EntryType>;
+
+/** The question types this server asks; SDK 0.7.0 adds `box`, which needs an image. */
+export type JevQuestion = NoulQuestion | ChoiceQuestion | ScoreQuestion;
+export type JevQuestions = Record<string, JevQuestion>;
 
 export interface NoulQuestionInput {
   question: string;
@@ -48,7 +50,7 @@ export function toScoreQuestion(input: ScoreQuestionInput): ScoreQuestion {
 }
 
 /** `askQuestionSchema` guarantees the type's own field is present; the throws only guard direct callers. */
-export function toSdkQuestion(q: AskQuestion): Question {
+export function toSdkQuestion(q: AskQuestion): JevQuestion {
   switch (q.type) {
     case "noul":
       return toNoulQuestion(q);
@@ -61,6 +63,6 @@ export function toSdkQuestion(q: AskQuestion): Question {
   }
 }
 
-export function buildQuestions(record: Record<string, AskQuestion>): Questions {
+export function buildQuestions(record: Record<string, AskQuestion>): JevQuestions {
   return Object.fromEntries(Object.entries(record).map(([id, q]) => [id, toSdkQuestion(q)]));
 }
