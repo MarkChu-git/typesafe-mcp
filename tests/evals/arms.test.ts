@@ -46,6 +46,17 @@ describe("eval arms", () => {
     expect(expectedTools(ARMS["jev-all"])).toHaveLength(9);
   });
 
+  test("a task's server env reaches every jev server under the arm's own env, and no server appears for it", () => {
+    const entry = join("/repo", "src", "index.ts");
+    expect(mcpConfig(ARMS.jev, "/repo", undefined, { TYPESAFE_IMAGES: "1" })).toEqual({
+      mcpServers: { jev: { command: "bun", args: ["run", entry], env: { TYPESAFE_IMAGES: "1" } } },
+    });
+    expect(mcpConfig(ARMS["jev-all"], "/repo", undefined, { TYPESAFE_IMAGES: "1", TYPESAFE_TOOLS: "ask" })).toEqual({
+      mcpServers: { jev: { command: "bun", args: ["run", entry], env: { TYPESAFE_IMAGES: "1", TYPESAFE_TOOLS: "all" } } },
+    });
+    expect(mcpConfig(ARMS.baseline, "/repo", undefined, { TYPESAFE_IMAGES: "1" })).toEqual({ mcpServers: {} });
+  });
+
   test("the release arm runs the unpacked release and refuses to start without it", () => {
     expect(ARMS["jev-v0.1.1"].jev).toMatchObject({ ref: RELEASED_REF });
     expect(mcpConfig(ARMS["jev-v0.1.1"], "/repo", "/servers/v0.1.1/src/index.ts")).toEqual({

@@ -43,6 +43,11 @@ describe("readConfig", () => {
     expect(DEFAULT_THRESHOLDS).toEqual({ act_above: 0.8, review_above: 0.5 });
   });
 
+  test("TYPESAFE_IMAGES is on with 1, true, yes or on in any case, and off otherwise", () => {
+    for (const value of ["1", "true", "YES", " on "]) expect(readConfig({ TYPESAFE_IMAGES: value }).images).toBe(true);
+    for (const value of [undefined, "", "0", "false", "off", "images"]) expect(readConfig({ TYPESAFE_IMAGES: value }).images).toBe(false);
+  });
+
   test("exposes only jev_ask unless TYPESAFE_TOOLS says otherwise", () => {
     expect(readConfig({}).tools).toEqual(["jev_ask"]);
     expect(readConfig({ TYPESAFE_TOOLS: "all" }).tools).toEqual([...TOOL_NAMES]);

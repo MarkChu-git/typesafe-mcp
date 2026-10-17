@@ -5,6 +5,7 @@ import { isAbsolute, join, parse, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ENV } from "./config.ts";
 import { FilesError } from "./errors.ts";
+import { FORMAT_NAMES, imageFormat, MAX_IMAGE_BYTES, readImage, type ImageFile } from "./images.ts";
 
 /** Files one `jev_ask` call may read; each one is a separate Jev request. */
 export const MAX_FILES = 100;
@@ -13,11 +14,11 @@ export const MAX_FILE_BYTES = 64 * 1024;
 /** A file split into records may be larger, since Jev only ever sees one record of it. */
 export const MAX_SPLIT_FILE_BYTES = 1024 * 1024;
 
-export interface FileItem {
+/** A matched file Jev can judge: its text, or with images on, a PNG or JPEG image. */
+export type FileItem = {
   /** Relative to the first root, with `/` separators. */
   path: string;
-  content: string;
-}
+} & ({ content: string } | { image: ImageFile });
 
 export interface FileSelection {
   items: FileItem[];
@@ -98,14 +99,16 @@ function normalizePattern(pattern: string): string {
 export const overLimit = (bytes: number, limit: number): string => `${Math.ceil(bytes / 1024)} KB is over the ${limit / 1024} KB limit`;
 
 /**
- * Expands `patterns` under the first root and reads each match, skipping files over `maxBytes`. Hidden
- * paths and key files are never read, symlinked directories are not followed by wildcards, and every
- * file must resolve inside one of `roots`, so the agent can only point at project files.
+ * Expands `patterns` under the first root and reads each match, skipping text files over `maxBytes`. With
+ * `images`, PNG and JPEG files are read as images up to the API's size limit; without, they are skipped.
+ * Hidden paths and key files are never read, symlinked directories are not followed by wildcards, and
+ * every file must resolve inside one of `roots`, so the agent can only point at project files.
  */
 export async function selectFiles(
   patterns: readonly string[],
   roots: readonly string[],
   maxBytes: number = MAX_FILE_BYTES,
+  images = false,
 ): Promise<FileSelection> {
   const [first] = roots;
   if (first === undefined) {
@@ -141,19 +144,21 @@ export async function selectFiles(
   const skipped: Record<string, string> = {};
   for (const path of [...matched].toSorted()) {
     // eslint-disable-next-line no-await-in-loop -- at most MAX_FILES small local reads, kept in order
-    const read = await readMatch(join(base, path), realRoots, maxBytes);
+    const read = await readMatch(join(base, path), realRoots, maxBytes, images);
     if (typeof read === "string") items.push({ path, content: read });
-    else skipped[path] = read.skipped;
+    else if ("skipped" in read) skipped[path] = read.skipped;
+    else items.push({ path, image: read });
   }
   return { items, skipped };
 }
 
-/** One matched file's text, or why it is skipped. A file that cannot be read never fails the whole call. */
+/** One matched file's text or image, or why it is skipped. A file that cannot be read never fails the whole call. */
 async function readMatch(
   absolute: string,
   realRoots: readonly string[],
   maxBytes: number,
-): Promise<string | { skipped: string }> {
+  images: boolean,
+): Promise<string | ImageFile | { skipped: string }> {
   let handle: FileHandle | undefined;
   try {
     // Open first, then check where the opened file lives, so a symlink swapped in after the check cannot
@@ -169,9 +174,15 @@ async function readMatch(
     const [opened, current] = await Promise.all([handle.stat({ bigint: true }), lstat(real, { bigint: true })]);
     if (opened.dev !== current.dev || opened.ino !== current.ino) return { skipped: "changed while being read" };
     if (!opened.isFile()) return { skipped: "not a regular file" };
-    if (opened.size > maxBytes) return { skipped: overLimit(Number(opened.size), maxBytes) };
-    const bytes = await readAtMost(handle, maxBytes + 1);
-    if (bytes.length > maxBytes) return { skipped: overLimit(bytes.length, maxBytes) };
+    const format = imageFormat(await readAtMost(handle, 8));
+    if (format !== undefined && !images) {
+      return { skipped: `${FORMAT_NAMES[format]} image; Jev sees images when ${ENV.images}=1 is in the server env` };
+    }
+    const limit = format === undefined ? maxBytes : MAX_IMAGE_BYTES;
+    if (opened.size > limit) return { skipped: overLimit(Number(opened.size), limit) };
+    const bytes = await readAtMost(handle, limit + 1);
+    if (bytes.length > limit) return { skipped: overLimit(bytes.length, limit) };
+    if (format !== undefined) return readImage(format, bytes);
     if (bytes.includes(0)) return { skipped: "binary file" };
     return new TextDecoder().decode(bytes);
   } catch (error) {

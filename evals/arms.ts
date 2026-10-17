@@ -144,13 +144,13 @@ export interface McpConfig {
 
 /**
  * The jev server for an arm: the working tree's `src/index.ts`, or for a `ref` arm the entry file
- * that `prepareRefServer` unpacked (`refEntry`).
+ * that `prepareRefServer` unpacked (`refEntry`). `taskEnv` is the task's server env, under the arm's.
  */
-export function mcpConfig(arm: Arm, repoRoot: string, refEntry?: string): McpConfig {
+export function mcpConfig(arm: Arm, repoRoot: string, refEntry?: string, taskEnv?: Record<string, string>): McpConfig {
   if (!arm.jev) return { mcpServers: {} };
   if (arm.jev.ref && !refEntry) throw new Error(`${arm.id}: ${arm.jev.ref} is not unpacked`);
   const entry = arm.jev.ref ? (refEntry ?? "") : join(repoRoot, "src", "index.ts");
   const server: McpServerEntry = { command: "bun", args: ["run", entry] };
-  if (arm.jev.env) server.env = { ...arm.jev.env };
+  if (arm.jev.env || taskEnv) server.env = { ...taskEnv, ...arm.jev.env };
   return { mcpServers: { [JEV_SERVER]: server } };
 }

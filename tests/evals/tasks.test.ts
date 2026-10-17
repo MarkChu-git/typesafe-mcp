@@ -9,6 +9,8 @@ import {
   money,
 } from "../../evals/tasks/refund-promises-audit/generate.ts";
 import { generate as generateIncidentLogs } from "../../evals/tasks/incident-logs/generate.ts";
+import { generate as generateScreenshots, HEIGHT, SCREENS, WIDTH } from "../../evals/tasks/screenshot-triage/generate.ts";
+import { imageFormat, readImage } from "../../src/images.ts";
 
 const APPROVAL_WORDS = /approv|signed off|APR-/i;
 const MONEY_BACK = /back|refund|revers|return|credit/i;
@@ -31,8 +33,8 @@ const states = (text: string, cents: number): boolean =>
 
 describe("tasks", () => {
   describe("ALL_TASKS", () => {
-    it("has exactly 10 tasks", () => {
-      expect(ALL_TASKS.length).toBe(10);
+    it("has exactly 11 tasks", () => {
+      expect(ALL_TASKS.length).toBe(11);
     });
 
     it("has unique ids", () => {
@@ -396,6 +398,44 @@ describe("tasks", () => {
         const line = readFileSync(join(task.workspaceDir, call.slice(0, at)), "utf8").split("\n")[Number(call.slice(at + 1)) - 1];
         expect(line).toMatch(/\b(formatPrice|fmt)\(/);
       }
+    });
+  });
+
+  describe("screenshot-triage", () => {
+    const task = findTask("screenshot-triage");
+    if (!task) throw new Error("screenshot-triage task not found");
+    const shots = join(task.workspaceDir, "screenshots");
+
+    it("gold.json is what generate() gives: 9 error pages and 5 that never loaded", () => {
+      const { gold } = generateScreenshots();
+      expect(task.gold()).toEqual(gold);
+      const problems = gold.broken.map((b) => b.problem);
+      expect(problems.filter((p) => p === "error")).toHaveLength(9);
+      expect(problems.filter((p) => p === "loading")).toHaveLength(5);
+    });
+
+    it("the workspace holds one screenshot per page and nothing else, each a PNG Jev can take", () => {
+      expect(readdirSync(task.workspaceDir)).toEqual(["screenshots"]);
+      const files = readdirSync(shots).toSorted();
+      expect(files).toEqual(SCREENS.map((s) => `${s.name}.png`).toSorted());
+      for (const file of files) {
+        const bytes = new Uint8Array(readFileSync(join(shots, file)));
+        expect(imageFormat(bytes)).toBe("png");
+        expect(readImage("png", bytes)).toMatchObject({ width: WIDTH, height: HEIGHT });
+      }
+    });
+
+    it("no file name gives away whether its page broke", () => {
+      for (const { name } of SCREENS) expect(name).not.toMatch(/error|fail|load|broke|spin|500|404|empty|ok/);
+    });
+
+    it("scores each broken page with its problem, whatever path form the answer uses", () => {
+      const gold = task.gold() as { broken: { file: string; problem: string }[] };
+      const score = (broken: { file: string; problem: string }[]) => task.score({ broken }, gold).score;
+      expect(score(gold.broken)).toBe(1);
+      expect(score(gold.broken.map(({ file, problem }) => ({ file: file.replace("screenshots/", "./Screenshots/"), problem })))).toBe(1);
+      expect(score(gold.broken.map(({ file, problem }) => ({ file, problem: problem === "error" ? "loading" : "error" })))).toBe(0);
+      expect(score([])).toBe(0);
     });
   });
 });

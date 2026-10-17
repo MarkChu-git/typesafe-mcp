@@ -1,17 +1,27 @@
 import { describe, expect, test } from "bun:test";
 import { MAX_FILE_BYTES } from "../src/files.ts";
 import { isPiece, splitFile, type Part } from "../src/records.ts";
-import type { ItemsMode } from "../src/schemas.ts";
+import { ITEM_MODES, type ItemsMode } from "../src/schemas.ts";
+import { png } from "./helpers/images.ts";
 
 const split = (content: string, mode: ItemsMode, path = "f.txt"): Part[] => splitFile({ path, content }, mode);
 
-/** key → content of the records Jev would be asked about. */
+/** key → content (or image) of the records Jev would be asked about. */
 const records = (parts: readonly Part[]): Record<string, unknown> =>
-  Object.fromEntries(parts.filter(isPiece).map((p) => [p.key, p.content]));
+  Object.fromEntries(parts.filter(isPiece).map((p) => [p.key, "image" in p ? p.image : p.content]));
 
 /** key → reason of what cannot be judged. */
 const rejected = (parts: readonly Part[]): Record<string, string> =>
   Object.fromEntries(parts.flatMap((p) => ("reason" in p ? [[p.key, p.reason]] : [])));
+
+describe("splitFile: images", () => {
+  test("an image is one record keyed by its path, whatever items says", () => {
+    const image = { format: "png" as const, width: 1280, height: 720, bytes: png(1280, 720) };
+    for (const mode of ITEM_MODES) {
+      expect(splitFile({ path: "shots/home.png", image }, mode)).toEqual([{ key: "shots/home.png", file: "shots/home.png", image }]);
+    }
+  });
+});
 
 describe("splitFile: file", () => {
   test("the whole file is one record keyed by its path", () => {

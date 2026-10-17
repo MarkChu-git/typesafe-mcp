@@ -1,0 +1,60 @@
+{
+  "broken": [
+    {
+      "file": "screenshots/account-orders.png",
+      "problem": "error"
+    },
+    {
+      "file": "screenshots/account-settings.png",
+      "problem": "loading"
+    },
+    {
+      "file": "screenshots/category-garden.png",
+      "problem": "loading"
+    },
+    {
+      "file": "screenshots/checkout-billing.png",
+      "problem": "error"
+    },
+    {
+      "file": "screenshots/checkout-payment.png",
+      "problem": "error"
+    },
+    {
+      "file": "screenshots/help-contact.png",
+      "problem": "error"
+    },
+    {
+      "file": "screenshots/order-tracking.png",
+      "problem": "loading"
+    },
+    {
+      "file": "screenshots/product-chair.png",
+      "problem": "loading"
+    },
+    {
+      "file": "screenshots/product-kettle-reviews.png",
+      "problem": "error"
+    },
+    {
+      "file": "screenshots/product-kettle.png",
+      "problem": "error"
+    },
+    {
+      "file": "screenshots/returns-start.png",
+      "problem": "error"
+    },
+    {
+      "file": "screenshots/search-mugs.png",
+      "problem": "error"
+    },
+    {
+      "file": "screenshots/sign-in.png",
+      "problem": "error"
+    },
+    {
+      "file": "screenshots/store-locator.png",
+      "problem": "loading"
+    }
+  ]
+}

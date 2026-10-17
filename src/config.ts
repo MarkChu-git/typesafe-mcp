@@ -11,6 +11,7 @@ export const ENV = {
   timeoutMs: ["TYPESAFE", "TIMEOUT", "MS"].join("_"),
   tools: ["TYPESAFE", "TOOLS"].join("_"),
   filesRoot: ["TYPESAFE", "FILES", "ROOT"].join("_"),
+  images: ["TYPESAFE", "IMAGES"].join("_"),
 } as const;
 
 export const DEFAULT_MODEL = "jev-latest";
@@ -34,10 +35,15 @@ export interface RuntimeConfig {
   tools: ToolName[];
   /** Entries of `TYPESAFE_TOOLS` that name no tool. */
   unknownTools: string[];
+  /** `TYPESAFE_IMAGES`: `files` sends PNG and JPEG files to Jev as images, which TypeSafe still calls experimental. */
+  images: boolean;
 }
 
 const toolName = (entry: string): ToolName | undefined =>
   TOOL_NAMES.find((t) => t === entry || t === `jev_${entry}`);
+
+/** A switch set to `1`, `true`, `yes` or `on`, in any letter case. */
+const isOn = (raw: string | undefined): boolean => /^(?:1|true|yes|on)$/i.test(raw?.trim() ?? "");
 
 /** `TYPESAFE_TOOLS`: `all`, or a comma/space separated list such as `ask,models` or `jev_check`. */
 export function parseTools(raw: string | undefined): { tools: ToolName[]; unknownTools: string[] } {
@@ -61,5 +67,6 @@ export function readConfig(env: Record<string, string | undefined> = process.env
     defaultModel: model ? model : DEFAULT_MODEL,
     timeoutMs: Number.isFinite(timeout) && timeout > 0 ? timeout : DEFAULT_TIMEOUT_MS,
     ...parseTools(env[ENV.tools]),
+    images: isOn(env[ENV.images]),
   };
 }

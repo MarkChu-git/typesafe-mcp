@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { META_KEY } from "../../src/result.ts";
+import { png } from "../helpers/images.ts";
 import { inProcessClient } from "../helpers/mcp.ts";
 
 const apiKey = process.env.TYPESAFE_API_KEY;
@@ -52,6 +56,33 @@ describe.skipIf(!apiKey)("live TypeSafe API", () => {
         expect(meta?.usage.input_tokens).toBeGreaterThan(0);
       } finally {
         await close();
+      }
+    },
+    30_000,
+  );
+
+  test(
+    "with TYPESAFE_IMAGES, jev_ask looks at PNG files",
+    async () => {
+      const root = mkdtempSync(join(tmpdir(), "live-images-"));
+      mkdirSync(join(root, "shots"));
+      writeFileSync(join(root, "shots", "red.png"), png(400, 300, { rgb: [220, 30, 30] }));
+      writeFileSync(join(root, "shots", "blue.png"), png(400, 300, { rgb: [30, 60, 220] }));
+      const { client, close } = await inProcessClient({
+        env: { TYPESAFE_API_KEY: apiKey, TYPESAFE_FILES_ROOT: root, TYPESAFE_IMAGES: "1" },
+      });
+      try {
+        const r = await client.callTool({
+          name: "jev_ask",
+          arguments: { files: "shots/*.png", questions: { red: { type: "noul", question: "Is the image in `content` mostly red?" } } },
+        });
+        expect(r.isError).toBeFalsy();
+        const sc = r.structuredContent as { files: Record<string, { red: { answer: boolean } }> };
+        expect(sc.files["shots/red.png"]?.red.answer).toBe(true);
+        expect(sc.files["shots/blue.png"]?.red.answer).toBe(false);
+      } finally {
+        await close();
+        rmSync(root, { recursive: true, force: true });
       }
     },
     30_000,

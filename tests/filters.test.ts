@@ -26,13 +26,9 @@ const choice = (label: string, confidence: number): RawAnswer => ({
   confidence,
   probabilities: { [label]: confidence },
 });
-const score = (level: number, confidence: number): RawAnswer => ({
-  type: "score",
-  score: level,
-  confidence,
-  legend: {},
-  probabilities: {},
-});
+// A literal checked against ScoreResponse's legend type nests too deep for tsc under SDK 0.7.0.
+const score = (level: number, confidence: number): RawAnswer =>
+  ({ type: "score", score: level, confidence, legend: {}, probabilities: {} }) as unknown as RawAnswer;
 
 /** A record whose shaped answers come from `toAnswer`, so they agree with the raw ones as in the tool. */
 const record = (key: string, raw: Record<string, RawAnswer>): Answered => ({
