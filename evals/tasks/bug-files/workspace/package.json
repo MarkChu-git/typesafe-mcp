@@ -1,0 +1,13 @@
+{
+  "name": "subscription-billing",
+  "version": "2.4.0",
+  "private": true,
+  "type": "module",
+  "description": "Subscription billing for a note-taking app: trials, checkout, renewals and the emails around them.",
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {}
+}

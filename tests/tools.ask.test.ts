@@ -1,5 +1,5 @@
 import { afterAll, afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import type { Fetch } from "@typesafe-ai/sdk";
@@ -8,6 +8,8 @@ import { MAX_UNSURE_BYTES, MAX_UNSURE_TOTAL_BYTES } from "../src/filters.ts";
 import { META_KEY } from "../src/result.ts";
 import { fakeFetch, loadFixture } from "./helpers/fakeFetch.ts";
 import { clientWithRoots, inProcessClient } from "./helpers/mcp.ts";
+import { png } from "./helpers/images.ts";
+import { sentJson, sentRequest, type SentRequest } from "./helpers/sent.ts";
 
 const textOf = (result: { content?: Array<{ type: string; text?: string }> }): string => {
   const block = result.content?.[0];
@@ -134,8 +136,8 @@ function fileFetch(reject: readonly string[] = []) {
   const bodies: { state: { file: string; content: string; context?: unknown } }[] = [];
   const fixture = JSON.stringify(loadFixture("check.yes095.json"));
   const fetch: Fetch = async (_input, init) => {
-    if (typeof init?.body !== "string") throw new Error("fileFetch expects a JSON string body");
-    const body = JSON.parse(init.body) as (typeof bodies)[number];
+    const body = (await sentJson(init)) as (typeof bodies)[number] | undefined;
+    if (body === undefined) throw new Error("fileFetch expects a JSON body");
     bodies.push(body);
     if (reject.includes(body.state.file)) {
       return new Response(JSON.stringify(loadFixture("error.422.json")), { status: 422 });
@@ -370,8 +372,8 @@ function judgingFetch(options: { reject?: (content: string) => boolean; delayMs?
     open = resolve;
   });
   const fetch: Fetch = async (_input, init) => {
-    if (typeof init?.body !== "string") throw new Error("judgingFetch expects a JSON string body");
-    const body = JSON.parse(init.body) as Sent;
+    const body = (await sentJson(init)) as Sent | undefined;
+    if (body === undefined) throw new Error("judgingFetch expects a JSON body");
     bodies.push(body);
     inFlight += 1;
     peak = Math.max(peak, inFlight);
@@ -410,8 +412,8 @@ type FilesResult = {
   more_errors?: number;
 };
 
-/** A project root holding `files` (path → text). */
-function projectWith(files: Record<string, string>): string {
+/** A project root holding `files` (path → text or bytes). */
+function projectWith(files: Record<string, string | Uint8Array>): string {
   const root = mkdtempSync(join(tmpdir(), "ask-records-"));
   roots.push(root);
   for (const [path, content] of Object.entries(files)) {
@@ -516,6 +518,25 @@ describe("jev_ask with items, where, top and counts", () => {
     expect(Object.keys(weighted.sc.files ?? {})).toEqual(["scores.txt:1", "scores.txt:3", "scores.txt:4"]);
   });
 
+  test("$or keeps the records matching any one of its objects, as when looking for files that break any rule", async () => {
+    const either = await callWithFiles(scoresFile, {
+      files: "scores.txt",
+      items: "lines",
+      where: { $or: [{ anger: { max: 0.5 } }, { anger: { min: 1.5 } }] },
+      questions: { anger: angerQ },
+    });
+    expect(Object.keys(either.sc.files ?? {})).toEqual(["scores.txt:1", "scores.txt:2"]);
+    expect(either.sc).toMatchObject({ total: 4, matched: 2 });
+
+    const both = await callWithFiles(scoresFile, {
+      files: "scores.txt",
+      items: "lines",
+      where: { team: "high", $or: [{ anger: { max: 1 } }, { anger: { min: 1.5 } }] },
+      questions: { team: teamQ, anger: angerQ },
+    });
+    expect(Object.keys(both.sc.files ?? {})).toEqual(["scores.txt:2", "scores.txt:3"]);
+  });
+
   test("top ranks what where lets through", async () => {
     const { sc } = await callWithFiles(scoresFile, {
       files: "scores.txt",
@@ -613,6 +634,7 @@ describe("jev_ask with items, where, top and counts", () => {
       [{ where: { team: true } }, "where.team: a choice question takes an option label"],
       [{ where: { urgent: { min: 1 } } }, "where.urgent: min and max only apply to score questions"],
       [{ where: { anger: { min: 2, max: 1 } } }, "where.anger: min 2 is above max 1"],
+      [{ where: { $or: [{ urgent: true }, { nope: true }] } }, "where.$or.1.nope: unknown question id"],
       [{ top: { by: "team", k: 1 } }, "top: team is a choice question; rank by a score or noul"],
       [{ top: { by: { urgent: 1, nope: 1 }, k: 1 } }, "top: nope is not a question id"],
       [{ top: { by: {}, k: 1 } }, "top: by is empty"],
@@ -635,6 +657,25 @@ describe("jev_ask with items, where, top and counts", () => {
     expect(result.isError).toBe(true);
     expect(textOf(result)).toContain("where.urgent: give at least one of is, min, max, decision");
     expect(judge.bodies).toHaveLength(0);
+  });
+
+  test("a malformed $or is refused with its own message and path", async () => {
+    const cases: [unknown, string][] = [
+      [true, "where.$or: expected a list of objects of conditions"],
+      [[], "where.$or: give at least one object of conditions"],
+      [[{ urgent: {} }], "where.$or.0.urgent: give at least one of is, min, max, decision"],
+    ];
+    for (const [anyOf, message] of cases) {
+      // eslint-disable-next-line no-await-in-loop -- each case is its own call
+      const { result, judge } = await callWithFiles(scoresFile, {
+        files: "scores.txt",
+        where: { $or: anyOf },
+        questions: { urgent: urgentQ },
+      });
+      expect(result.isError).toBe(true);
+      expect(textOf(result)).toContain(message);
+      expect(judge.bodies).toHaveLength(0);
+    }
   });
 
   test("errors list skipped files first, then records in order, 20 at most, and count the rest", async () => {
@@ -800,5 +841,82 @@ describe("jev_ask returns the text of records Jev is unsure about", () => {
       { files: "t.csv", items: "csv", questions: { urgent: urgentQ } },
     );
     expect(rows.sc.unsure).toEqual({ "t.csv:3": '{"id":"2","text":"x=0.8 maybe"}' });
+  });
+});
+
+/** Answers by what was sent: an image 1280 px wide is a clear yes, other images are unsure, text is a clear no. */
+function imageFetch() {
+  const sent: SentRequest[] = [];
+  const fetch: Fetch = async (_input, init) => {
+    const request = await sentRequest(init);
+    sent.push(request);
+    const { questions } = request.json as { questions: Record<string, unknown> };
+    const [image] = Object.values(request.parts);
+    const width = image === undefined ? 0 : new DataView(image.buffer, image.byteOffset).getUint32(16);
+    const noul = image === undefined ? 0.02 : width === 1280 ? 0.97 : 0.6;
+    const answers = Object.fromEntries(Object.keys(questions).map((id) => [id, { type: "noul", noul }]));
+    const reply = { model: "jev-1.13.0", answers, usage: { input_tokens: 3000, output_tokens: 20 } };
+    return new Response(JSON.stringify(reply), { status: 200, headers: { "content-type": "application/json" } });
+  };
+  return { fetch, sent };
+}
+
+describe("jev_ask with images", () => {
+  afterEach(() => {
+    resetClient();
+  });
+
+  const shots = (): string =>
+    projectWith({ "shots/checkout.png": png(1280, 720), "shots/cart.png": png(1000, 1000), "shots/notes.md": "Run 7731 failed on two pages." });
+  const errorQ = { error: { type: "noul", question: "Does the page in `content` show an error message?" } };
+
+  async function askShots(root: string, env: Record<string, string>, files: string) {
+    const ff = imageFetch();
+    const { client, close } = await inProcessClient({
+      fetch: ff.fetch,
+      env: { TYPESAFE_API_KEY: "test-key", TYPESAFE_FILES_ROOT: root, ...env },
+    });
+    try {
+      const result = await client.callTool({ name: "jev_ask", arguments: { files, questions: errorQ } });
+      return { result, sc: result.structuredContent as FilesResult, sent: ff.sent };
+    } finally {
+      await close();
+    }
+  }
+
+  test("with TYPESAFE_IMAGES, each image goes to Jev as content, in a request that opts in to images", async () => {
+    const root = shots();
+    const { result, sc, sent } = await askShots(root, { TYPESAFE_IMAGES: "1" }, "shots/*.png");
+    expect(result.isError).toBeFalsy();
+    expect(sc.files).toEqual({
+      "shots/cart.png": { error: { answer: true, certainty: 0.2, decision: "abstain" } },
+      "shots/checkout.png": { error: { answer: true, certainty: 0.94, decision: "act" } },
+    });
+    expect(sent).toHaveLength(2);
+    for (const request of sent) {
+      expect(request.headers.get("TypeSafe-Danger-Zone-Images")).toBe("true");
+      // The SDK writes a reference where the image goes and sends the file in a part of its own.
+      const { state, assets } = request.json as { state: { file: string; content: string }; assets: Record<string, { part: string }> };
+      const part = assets[state.content]?.part ?? "";
+      expect(Buffer.from(request.parts[part] ?? []).equals(readFileSync(join(root, state.file)))).toBe(true);
+    }
+  });
+
+  test("an unsure image is counted in more_unsure, having no text to return; text files go without the opt-in", async () => {
+    const { sc, sent } = await askShots(shots(), { TYPESAFE_IMAGES: "1" }, "shots/*");
+    expect(Object.keys(sc.files ?? {})).toEqual(["shots/cart.png", "shots/checkout.png", "shots/notes.md"]);
+    expect(sc.unsure).toBeUndefined();
+    expect(sc.more_unsure).toBe(1);
+    const text = sent.find((request) => (request.json as { state: { file: string } }).state.file === "shots/notes.md");
+    expect(text?.headers.get("TypeSafe-Danger-Zone-Images")).toBeNull();
+    expect(text?.parts).toEqual({});
+  });
+
+  test("without TYPESAFE_IMAGES, images are listed in errors with the switch, and the other files still answer", async () => {
+    const { sc, sent } = await askShots(shots(), {}, "shots/*");
+    expect(Object.keys(sc.files ?? {})).toEqual(["shots/notes.md"]);
+    const off = "PNG image; Jev sees images when TYPESAFE_IMAGES=1 is in the server env";
+    expect(sc.errors).toEqual({ "shots/cart.png": off, "shots/checkout.png": off });
+    expect(sent).toHaveLength(1);
   });
 });

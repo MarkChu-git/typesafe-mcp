@@ -1,10 +1,12 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, truncateSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { dirname, join, parse } from "node:path";
 import { pathToFileURL } from "node:url";
 import { FilesError } from "../src/errors.ts";
 import { filesRoots, MAX_FILE_BYTES, MAX_FILES, selectFiles } from "../src/files.ts";
+import { MAX_IMAGE_BYTES } from "../src/images.ts";
+import { jpeg, png } from "./helpers/images.ts";
 
 const made: string[] = [];
 const tempDir = (prefix: string): string => {
@@ -142,6 +144,64 @@ describe("selectFiles", () => {
 
 /** A host that shares no MCP roots. */
 const noRoots = async () => undefined;
+
+/** Why an image is skipped while images are off. */
+const off = (name: string): string => `${name} image; Jev sees images when TYPESAFE_IMAGES=1 is in the server env`;
+
+describe("selectFiles: images", () => {
+  /** Screenshots that fit, one too wide and one past the text limit, with a note and a binary file. */
+  function shots(): string {
+    const root = tempDir("files-images-");
+    mkdirSync(join(root, "shots"));
+    writeFileSync(join(root, "shots", "home.png"), png(1280, 720));
+    writeFileSync(join(root, "shots", "cart.jpg"), jpeg(1024, 768));
+    writeFileSync(join(root, "shots", "wide.png"), png(1600, 900));
+    // Bytes after IEND keep the image valid and make the file larger than the text limit.
+    writeFileSync(join(root, "shots", "large.png"), Buffer.concat([png(400, 300), Buffer.alloc(MAX_FILE_BYTES)]));
+    writeFileSync(join(root, "shots", "notes.md"), "Run 7731");
+    writeFileSync(join(root, "shots", "blob.bin"), "a\u0000b");
+    return root;
+  }
+
+  test("without images, PNG and JPEG files are skipped with the switch that turns them on", async () => {
+    const { items, skipped } = await selectFiles(["shots/*"], [shots()]);
+    expect(items).toEqual([{ path: "shots/notes.md", content: "Run 7731" }]);
+    expect(skipped).toEqual({
+      "shots/blob.bin": "binary file",
+      "shots/cart.jpg": off("JPEG"),
+      "shots/home.png": off("PNG"),
+      "shots/large.png": off("PNG"),
+      "shots/wide.png": off("PNG"),
+    });
+  });
+
+  test("with images, PNG and JPEG files are read whole, up to the API's limit rather than the text limit", async () => {
+    const { items, skipped } = await selectFiles(["shots/*"], [shots()], MAX_FILE_BYTES, true);
+    const seen = items.map((item) =>
+      "image" in item ? { path: item.path, format: item.image.format, width: item.image.width, height: item.image.height } : item,
+    );
+    expect(seen).toEqual([
+      { path: "shots/cart.jpg", format: "jpeg", width: 1024, height: 768 },
+      { path: "shots/home.png", format: "png", width: 1280, height: 720 },
+      { path: "shots/large.png", format: "png", width: 400, height: 300 },
+      { path: "shots/notes.md", content: "Run 7731" },
+    ]);
+    expect(skipped).toEqual({
+      "shots/blob.bin": "binary file",
+      "shots/wide.png": "1600×900 px PNG; Jev takes at most 1568 px a side, so scale it down first",
+    });
+  });
+
+  test("an image file over the API's 16 MiB is skipped before it is read", async () => {
+    const root = tempDir("files-huge-");
+    writeFileSync(join(root, "huge.png"), png(300, 300));
+    truncateSync(join(root, "huge.png"), MAX_IMAGE_BYTES + 1);
+    expect(await selectFiles(["*.png"], [root], MAX_FILE_BYTES, true)).toEqual({
+      items: [],
+      skipped: { "huge.png": "16385 KB is over the 16384 KB limit" },
+    });
+  });
+});
 
 describe("filesRoots", () => {
   test("TYPESAFE_FILES_ROOT wins without asking the client; otherwise the client's file:// roots", async () => {

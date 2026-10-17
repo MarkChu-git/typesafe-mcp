@@ -1,4 +1,5 @@
 import { MAX_FILE_BYTES, overLimit, type FileItem } from "./files.ts";
+import type { ImageFile } from "./images.ts";
 import type { ItemsMode, JsonValue } from "./schemas.ts";
 
 /** Records one `jev_ask` call may send to Jev, across all its files. */
@@ -11,21 +12,31 @@ export interface Piece {
   content: JsonValue;
 }
 
+/** An image file, judged whole whatever `items` says, keyed by its path. */
+export interface ImagePiece {
+  key: string;
+  file: string;
+  image: ImageFile;
+}
+
 /** A record, or a whole file, that cannot be judged, with the reason the agent reads. */
 export interface Rejected {
   key: string;
   reason: string;
 }
 
-export type Part = Piece | Rejected;
+export type Part = Piece | ImagePiece | Rejected;
+/** What splitting a file's text gives. */
+type TextPart = Piece | Rejected;
 
-export const isPiece = (part: Part): part is Piece => "content" in part;
+/** A record Jev is asked about: text or JSON, or an image. */
+export const isPiece = (part: Part): part is Piece | ImagePiece => !("reason" in part);
 
 const stripCr = (line: string): string => (line.endsWith("\r") ? line.slice(0, -1) : line);
 const isBlank = (text: string): boolean => text.trim() === "";
 
-function byLines(path: string, text: string): Part[] {
-  const parts: Part[] = [];
+function byLines(path: string, text: string): TextPart[] {
+  const parts: TextPart[] = [];
   for (const [i, raw] of text.split("\n").entries()) {
     const line = stripCr(raw);
     if (!isBlank(line)) parts.push({ key: `${path}:${i + 1}`, file: path, content: line });
@@ -33,8 +44,8 @@ function byLines(path: string, text: string): Part[] {
   return parts;
 }
 
-function byJsonLines(path: string, text: string): Part[] {
-  const parts: Part[] = [];
+function byJsonLines(path: string, text: string): TextPart[] {
+  const parts: TextPart[] = [];
   for (const [i, line] of text.split("\n").entries()) {
     if (isBlank(line)) continue;
     const key = `${path}:${i + 1}`;
@@ -47,7 +58,7 @@ function byJsonLines(path: string, text: string): Part[] {
   return parts;
 }
 
-function byJsonArray(path: string, text: string): Part[] {
+function byJsonArray(path: string, text: string): TextPart[] {
   let value: unknown;
   try {
     value = JSON.parse(text);
@@ -126,7 +137,7 @@ function headerNames(fields: readonly string[]): string[] {
 }
 
 /** The first row with any text is the header, so blank lines around it are not records. */
-function byCsvRows(path: string, text: string): Part[] {
+function byCsvRows(path: string, text: string): TextPart[] {
   const rows = parseCsv(text);
   if (rows === undefined) return [{ key: path, reason: "invalid CSV: unterminated quote" }];
   const [head, ...body] = rows.filter((row) => row.fields.some((f) => f !== ""));
@@ -153,7 +164,7 @@ function fenceClosed(line: string, open: string): boolean {
 }
 
 /** ATX headings outside fenced code split the file; the text before the first one is a section too. */
-function bySections(path: string, text: string): Part[] {
+function bySections(path: string, text: string): TextPart[] {
   let current = { first: 1, lines: [] as string[] };
   const sections = [current];
   let fence: string | undefined;
@@ -175,7 +186,7 @@ function bySections(path: string, text: string): Part[] {
   });
 }
 
-const SPLITTERS: Record<ItemsMode, (path: string, text: string) => Part[]> = {
+const SPLITTERS: Record<ItemsMode, (path: string, text: string) => TextPart[]> = {
   file: (path, text) => [{ key: path, file: path, content: text }],
   lines: byLines,
   jsonl: byJsonLines,
@@ -190,8 +201,8 @@ export const textOf = (content: JsonValue): string => (typeof content === "strin
 const bytesOf = (content: JsonValue): number => Buffer.byteLength(textOf(content));
 
 /** Jev takes about the same state from a record as from a file, so a record over the file limit is refused. */
-function withinLimit(part: Part): Part {
-  if (!isPiece(part)) return part;
+function withinLimit(part: TextPart): TextPart {
+  if ("reason" in part) return part;
   let size: number;
   try {
     size = bytesOf(part.content);
@@ -204,5 +215,6 @@ function withinLimit(part: Part): Part {
 
 /** The records of one file in `mode`, in file order, with those that cannot be judged as `Rejected`. */
 export function splitFile(file: FileItem, mode: ItemsMode): Part[] {
+  if ("image" in file) return [{ key: file.path, file: file.path, image: file.image }];
   return SPLITTERS[mode](file.path, file.content).map(withinLimit);
 }

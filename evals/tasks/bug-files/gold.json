@@ -1,0 +1,7 @@
+{
+  "files": [
+    "src/billing/termLengths.ts",
+    "src/jobs/convertTrials.ts",
+    "src/trials/startTrial.ts"
+  ]
+}

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { resetClient } from "../src/client.ts";
-import { ASK_INSTRUCTIONS } from "../src/tools/ask.ts";
+import { ASK_DESCRIPTION, ASK_INSTRUCTIONS, IMAGES_INSTRUCTIONS, IMAGES_NOTE } from "../src/tools/ask.ts";
 import { fakeFetch, loadFixture } from "./helpers/fakeFetch.ts";
 import { inProcessClient } from "./helpers/mcp.ts";
 
@@ -67,10 +67,12 @@ describe("createServer", () => {
 
   test("instructions keep the lines the willingness eval measured; rewording them means rerunning it", () => {
     // Unprompted agents used Jev on judgment tasks once told to ask before reading or grepping the files
-    // themselves, even in a small repo (the reason they gave for skipping it), and to count picking a
-    // feature's files as a judgment; exact lookups left to grep kept them off the control task.
+    // themselves and to count picking a feature's files as a judgment; exact lookups left to grep kept
+    // them off the control task. On a handful of short files, reading them cost fewer tokens than asking,
+    // so the push to ask first covers only larger sets.
     expect(ASK_INSTRUCTIONS).toContain("before you read or grep");
-    expect(ASK_INSTRUCTIONS).toContain("even in a small repo");
+    expect(ASK_INSTRUCTIONS).toContain("more than about 50 of them");
+    expect(ASK_INSTRUCTIONS).toContain("A handful of short files is cheaper to read yourself");
     expect(ASK_INSTRUCTIONS).toContain("which files belong to a feature");
     expect(ASK_INSTRUCTIONS).toMatch(/exact lookups.*in grep or code/);
   });
@@ -87,6 +89,25 @@ describe("createServer", () => {
       expect(withoutAsk.client.getInstructions()).toBeUndefined();
     } finally {
       await withoutAsk.close();
+    }
+  });
+
+  test("TYPESAFE_IMAGES adds a line on images to the instructions and to jev_ask's description, and nothing without it", async () => {
+    // Each sentence costs every model call its tokens, and only sessions that turn images on pay it.
+    expect(IMAGES_INSTRUCTIONS.length).toBeLessThanOrEqual(200);
+    expect(IMAGES_NOTE.length).toBeLessThanOrEqual(150);
+    const on = await inProcessClient({ env: { TYPESAFE_API_KEY: "test-key", TYPESAFE_IMAGES: "1" } });
+    try {
+      expect(on.client.getInstructions()).toBe(`${ASK_INSTRUCTIONS} ${IMAGES_INSTRUCTIONS}`);
+      expect((await on.client.listTools()).tools[0]?.description).toBe(`${ASK_DESCRIPTION} ${IMAGES_NOTE}`);
+    } finally {
+      await on.close();
+    }
+    const off = await inProcessClient({ env: { TYPESAFE_API_KEY: "test-key" } });
+    try {
+      expect((await off.client.listTools()).tools[0]?.description).toBe(ASK_DESCRIPTION);
+    } finally {
+      await off.close();
     }
   });
 

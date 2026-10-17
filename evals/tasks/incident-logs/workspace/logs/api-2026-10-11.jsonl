@@ -1,0 +1,327 @@
+{"id":"e0001","time":"2026-10-11T21:15:00.312Z","level":30,"svc":"api","method":"GET","route":"/healthz","reqId":"req-0ca9","status":200,"durationMs":5,"msg":"health check ok"}
+{"id":"e0002","time":"2026-10-11T21:15:09.192Z","level":30,"svc":"api","method":"GET","route":"/v1/orders","reqId":"req-13b5","status":200,"durationMs":45,"msg":"request completed"}
+{"id":"e0003","time":"2026-10-11T21:15:10.344Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-d0b9","status":200,"durationMs":141,"msg":"request completed"}
+{"id":"e0004","time":"2026-10-11T21:15:16.168Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-4725","status":200,"durationMs":131,"msg":"request completed"}
+{"id":"e0005","time":"2026-10-11T21:15:23.790Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-46a4","status":200,"durationMs":289,"msg":"request completed"}
+{"id":"e0006","time":"2026-10-11T21:15:42.385Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/pay","reqId":"req-6f35","status":200,"durationMs":529,"msg":"request completed"}
+{"id":"e0007","time":"2026-10-11T21:15:55.266Z","level":30,"svc":"api","method":"POST","route":"/v1/shipping/rates","reqId":"req-7869","status":200,"durationMs":300,"msg":"request completed"}
+{"id":"e0008","time":"2026-10-11T21:15:58.452Z","level":30,"svc":"api","method":"POST","route":"/v1/shipping/rates","reqId":"req-fd79","status":200,"durationMs":137,"msg":"request completed"}
+{"id":"e0009","time":"2026-10-11T21:15:59.600Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-a712","status":200,"durationMs":202,"msg":"request completed"}
+{"id":"e0010","time":"2026-10-11T21:16:04.353Z","level":30,"svc":"api","method":"GET","route":"/v1/orders","reqId":"req-5ebb","status":200,"durationMs":265,"msg":"request completed"}
+{"id":"e0011","time":"2026-10-11T21:16:20.738Z","level":30,"svc":"api","method":"GET","route":"/v1/orders","reqId":"req-2eaf","status":200,"durationMs":63,"msg":"request completed"}
+{"id":"e0012","time":"2026-10-11T21:16:46.602Z","level":30,"svc":"api","method":"GET","route":"/v1/products/:id","reqId":"req-3927","status":200,"durationMs":75,"msg":"request completed"}
+{"id":"e0013","time":"2026-10-11T21:16:56.528Z","level":30,"svc":"api","method":"GET","route":"/v1/products/:id","reqId":"req-607b","status":404,"durationMs":71,"msg":"product not found"}
+{"id":"e0014","time":"2026-10-11T21:16:59.813Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/pay","reqId":"req-eb04","status":200,"durationMs":583,"msg":"request completed"}
+{"id":"e0015","time":"2026-10-11T21:17:04.798Z","level":30,"svc":"api","method":"GET","route":"/v1/products/:id","reqId":"req-c3ab","status":404,"durationMs":43,"msg":"product not found"}
+{"id":"e0016","time":"2026-10-11T21:17:25.769Z","level":30,"svc":"api","method":"GET","route":"/v1/products/:id","reqId":"req-e2ed","status":200,"durationMs":91,"msg":"request completed"}
+{"id":"e0017","time":"2026-10-11T21:17:38.898Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/address","reqId":"req-ccdf","status":200,"durationMs":107,"msg":"request completed"}
+{"id":"e0018","time":"2026-10-11T21:18:00.516Z","level":30,"svc":"api","method":"GET","route":"/healthz","reqId":"req-74f1","status":200,"durationMs":2,"msg":"health check ok"}
+{"id":"e0019","time":"2026-10-11T21:18:06.839Z","level":30,"svc":"api","method":"GET","route":"/v1/cart","reqId":"req-bb6f","status":200,"durationMs":316,"msg":"request completed"}
+{"id":"e0020","time":"2026-10-11T21:18:26.272Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-4101","status":200,"durationMs":235,"msg":"request completed"}
+{"id":"e0021","time":"2026-10-11T21:18:28.103Z","level":30,"svc":"api","method":"GET","route":"/v1/account/profile","reqId":"req-926f","status":200,"durationMs":186,"msg":"request completed"}
+{"id":"e0022","time":"2026-10-11T21:18:33.001Z","level":30,"svc":"api","method":"GET","route":"/v1/orders","reqId":"req-41bd","status":200,"durationMs":23,"msg":"request completed"}
+{"id":"e0023","time":"2026-10-11T21:18:38.460Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-b218","status":200,"durationMs":29,"msg":"request completed"}
+{"id":"e0024","time":"2026-10-11T21:18:45.481Z","level":30,"svc":"api","method":"GET","route":"/v1/search","reqId":"req-b309","status":200,"durationMs":256,"msg":"request completed"}
+{"id":"e0025","time":"2026-10-11T21:19:01.237Z","level":30,"svc":"api","method":"GET","route":"/v1/products/:id","reqId":"req-2d93","status":404,"durationMs":118,"msg":"product not found"}
+{"id":"e0026","time":"2026-10-11T21:19:11.817Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-d986","status":200,"durationMs":304,"msg":"request completed"}
+{"id":"e0027","time":"2026-10-11T21:19:19.214Z","level":30,"svc":"api","method":"GET","route":"/v1/orders","reqId":"req-2302","status":200,"durationMs":44,"msg":"request completed"}
+{"id":"e0028","time":"2026-10-11T21:19:27.493Z","level":30,"svc":"api","method":"GET","route":"/v1/orders","reqId":"req-d9c0","status":200,"durationMs":227,"msg":"request completed"}
+{"id":"e0029","time":"2026-10-11T21:20:16.137Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/quote","reqId":"req-fee5","status":200,"durationMs":193,"msg":"request completed"}
+{"id":"e0030","time":"2026-10-11T21:20:25.138Z","level":30,"svc":"api","method":"GET","route":"/v1/cart","reqId":"req-26f5","status":200,"durationMs":281,"msg":"request completed"}
+{"id":"e0031","time":"2026-10-11T21:20:41.317Z","level":50,"svc":"api","method":"GET","route":"/v1/search","reqId":"req-8c86","status":504,"durationMs":8006,"msg":"search provider did not answer within 8000ms","err":{"type":"UpstreamTimeoutError","message":"search-provider: no response in 8000ms"}}
+{"id":"e0032","time":"2026-10-11T21:21:00.043Z","level":30,"svc":"api","method":"GET","route":"/healthz","reqId":"req-0f9e","status":200,"durationMs":6,"msg":"health check ok"}
+{"id":"e0033","time":"2026-10-11T21:21:01.831Z","level":30,"svc":"api","method":"POST","route":"/v1/cart/items","reqId":"req-5f44","status":200,"durationMs":94,"msg":"request completed"}
+{"id":"e0034","time":"2026-10-11T21:21:23.744Z","level":30,"svc":"api","method":"GET","route":"/v1/cart","reqId":"req-cf30","status":200,"durationMs":315,"msg":"request completed"}
+{"id":"e0035","time":"2026-10-11T21:21:56.723Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/quote","reqId":"req-b5dd","status":200,"durationMs":171,"msg":"request completed"}
+{"id":"e0036","time":"2026-10-11T21:21:58.640Z","level":30,"svc":"api","msg":"deploy notice: api build 2026.10.11-2 rolled out to 4 of 4 pods"}
+{"id":"e0037","time":"2026-10-11T21:22:03.850Z","level":50,"svc":"api","method":"GET","route":"/v1/search","reqId":"req-c678","status":504,"durationMs":8011,"msg":"search provider did not answer within 8000ms","err":{"type":"UpstreamTimeoutError","message":"search-provider: no response in 8000ms"}}
+{"id":"e0038","time":"2026-10-11T21:22:05.318Z","level":30,"svc":"api","msg":"db pool configured: max=20, acquire timeout=5000ms"}
+{"id":"e0039","time":"2026-10-11T21:22:09.014Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-97e6","status":200,"durationMs":185,"msg":"request completed"}
+{"id":"e0040","time":"2026-10-11T21:23:08.034Z","level":30,"svc":"api","method":"GET","route":"/v1/orders","reqId":"req-0940","status":200,"durationMs":363,"msg":"request completed"}
+{"id":"e0041","time":"2026-10-11T21:23:53.959Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/address","reqId":"req-2954","status":200,"durationMs":162,"msg":"request completed"}
+{"id":"e0042","time":"2026-10-11T21:23:55.104Z","level":50,"svc":"api","method":"GET","route":"/v1/search","reqId":"req-c8cf","status":504,"durationMs":8003,"msg":"search provider did not answer within 8000ms","err":{"type":"UpstreamTimeoutError","message":"search-provider: no response in 8000ms"}}
+{"id":"e0043","time":"2026-10-11T21:23:55.911Z","level":30,"svc":"api","method":"GET","route":"/v1/cart","reqId":"req-ab89","status":200,"durationMs":368,"msg":"request completed"}
+{"id":"e0044","time":"2026-10-11T21:24:00.465Z","level":30,"svc":"api","method":"GET","route":"/healthz","reqId":"req-8b84","status":200,"durationMs":5,"msg":"health check ok"}
+{"id":"e0045","time":"2026-10-11T21:24:44.573Z","level":30,"svc":"api","method":"POST","route":"/v1/shipping/rates","reqId":"req-4604","status":200,"durationMs":271,"msg":"request completed"}
+{"id":"e0046","time":"2026-10-11T21:25:00.410Z","level":30,"svc":"scheduler","msg":"job reports-digest scheduled, next run 22:30 (timeout=30s, retries=2)"}
+{"id":"e0047","time":"2026-10-11T21:25:12.427Z","level":30,"svc":"api","method":"GET","route":"/v1/products/:id","reqId":"req-260f","status":200,"durationMs":48,"msg":"request completed"}
+{"id":"e0048","time":"2026-10-11T21:25:18.476Z","level":50,"svc":"api","method":"GET","route":"/v1/search","reqId":"req-0e59","status":504,"durationMs":8019,"msg":"search provider did not answer within 8000ms","err":{"type":"UpstreamTimeoutError","message":"search-provider: no response in 8000ms"}}
+{"id":"e0049","time":"2026-10-11T21:25:30.306Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/quote","reqId":"req-078a","status":200,"durationMs":342,"msg":"request completed"}
+{"id":"e0050","time":"2026-10-11T21:25:55.986Z","level":30,"svc":"api","method":"POST","route":"/v1/cart/items","reqId":"req-b947","status":200,"durationMs":208,"msg":"request completed"}
+{"id":"e0051","time":"2026-10-11T21:26:32.633Z","level":30,"svc":"api","method":"GET","route":"/v1/cart","reqId":"req-07cd","status":200,"durationMs":264,"msg":"request completed"}
+{"id":"e0052","time":"2026-10-11T21:26:39.178Z","level":30,"svc":"api","method":"GET","route":"/v1/products/:id","reqId":"req-bc02","status":200,"durationMs":113,"msg":"request completed"}
+{"id":"e0053","time":"2026-10-11T21:26:40.932Z","level":50,"svc":"api","method":"GET","route":"/v1/search","reqId":"req-b269","status":504,"durationMs":8008,"msg":"search provider did not answer within 8000ms","err":{"type":"UpstreamTimeoutError","message":"search-provider: no response in 8000ms"}}
+{"id":"e0054","time":"2026-10-11T21:27:00.660Z","level":30,"svc":"api","method":"GET","route":"/healthz","reqId":"req-7faa","status":200,"durationMs":3,"msg":"health check ok"}
+{"id":"e0055","time":"2026-10-11T21:27:12.393Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/quote","reqId":"req-37c0","status":200,"durationMs":384,"msg":"request completed"}
+{"id":"e0056","time":"2026-10-11T21:27:30.641Z","level":30,"svc":"api","method":"GET","route":"/v1/categories","reqId":"req-4b00","status":200,"durationMs":280,"msg":"request completed"}
+{"id":"e0057","time":"2026-10-11T21:27:43.791Z","level":30,"svc":"api","method":"GET","route":"/v1/cart","reqId":"req-2bea","status":200,"durationMs":96,"msg":"request completed"}
+{"id":"e0058","time":"2026-10-11T21:27:58.254Z","level":30,"svc":"api","method":"GET","route":"/v1/products/:id","reqId":"req-b7e8","status":200,"durationMs":271,"msg":"request completed"}
+{"id":"e0059","time":"2026-10-11T21:28:04.602Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/pay","reqId":"req-1fc2","status":200,"durationMs":612,"msg":"request completed"}
+{"id":"e0060","time":"2026-10-11T21:28:12.011Z","level":50,"svc":"api","method":"GET","route":"/v1/search","reqId":"req-3bc9","status":504,"durationMs":8013,"msg":"search provider did not answer within 8000ms","err":{"type":"UpstreamTimeoutError","message":"search-provider: no response in 8000ms"}}
+{"id":"e0061","time":"2026-10-11T21:28:25.646Z","level":30,"svc":"api","method":"GET","route":"/v1/search","reqId":"req-ac7c","status":200,"durationMs":313,"msg":"request completed"}
+{"id":"e0062","time":"2026-10-11T21:28:28.042Z","level":30,"svc":"api","method":"GET","route":"/v1/cart","reqId":"req-9ddb","status":200,"durationMs":332,"msg":"request completed"}
+{"id":"e0063","time":"2026-10-11T21:28:41.935Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-e078","status":200,"durationMs":222,"msg":"request completed"}
+{"id":"e0064","time":"2026-10-11T21:28:51.411Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/address","reqId":"req-2a50","status":200,"durationMs":239,"msg":"request completed"}
+{"id":"e0065","time":"2026-10-11T21:28:53.874Z","level":30,"svc":"api","method":"GET","route":"/v1/account/profile","reqId":"req-09a3","status":200,"durationMs":161,"msg":"request completed"}
+{"id":"e0066","time":"2026-10-11T21:29:00.939Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-0829","status":200,"durationMs":248,"msg":"request completed"}
+{"id":"e0067","time":"2026-10-11T21:29:25.814Z","level":30,"svc":"api","method":"GET","route":"/v1/cart","reqId":"req-3310","status":200,"durationMs":162,"msg":"request completed"}
+{"id":"e0068","time":"2026-10-11T21:29:37.568Z","level":50,"svc":"api","method":"GET","route":"/v1/search","reqId":"req-4bba","status":504,"durationMs":8004,"msg":"search provider did not answer within 8000ms","err":{"type":"UpstreamTimeoutError","message":"search-provider: no response in 8000ms"}}
+{"id":"e0069","time":"2026-10-11T21:30:00.076Z","level":30,"svc":"api","method":"GET","route":"/healthz","reqId":"req-c0dd","status":200,"durationMs":5,"msg":"health check ok"}
+{"id":"e0070","time":"2026-10-11T21:30:43.792Z","level":30,"svc":"api","method":"GET","route":"/v1/products/:id","reqId":"req-450c","status":404,"durationMs":126,"msg":"product not found"}
+{"id":"e0071","time":"2026-10-11T21:30:48.823Z","level":30,"svc":"api","method":"GET","route":"/v1/cart","reqId":"req-c28e","status":200,"durationMs":270,"msg":"request completed"}
+{"id":"e0072","time":"2026-10-11T21:31:00.072Z","level":30,"svc":"scheduler","msg":"job cache-warm scheduled, next run 21:55 (timeout=30s)"}
+{"id":"e0073","time":"2026-10-11T21:31:09.418Z","level":40,"svc":"api","method":"POST","route":"/v1/checkout/coupon","reqId":"req-d4e1","status":422,"durationMs":41,"msg":"coupon code not valid for this cart"}
+{"id":"e0074","time":"2026-10-11T21:31:32.284Z","level":30,"svc":"api","method":"GET","route":"/v1/products/:id","reqId":"req-b11c","status":200,"durationMs":13,"msg":"request completed"}
+{"id":"e0075","time":"2026-10-11T21:33:00.052Z","level":30,"svc":"api","method":"GET","route":"/healthz","reqId":"req-71ef","status":200,"durationMs":6,"msg":"health check ok"}
+{"id":"e0076","time":"2026-10-11T21:33:43.413Z","level":30,"svc":"api","method":"GET","route":"/v1/products/:id","reqId":"req-a44b","status":200,"durationMs":126,"msg":"request completed"}
+{"id":"e0077","time":"2026-10-11T21:33:52.207Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/pay","reqId":"req-990c","status":200,"durationMs":411,"msg":"request completed"}
+{"id":"e0078","time":"2026-10-11T21:33:54.220Z","level":40,"svc":"api","method":"POST","route":"/v1/checkout/address","reqId":"req-0141","status":422,"durationMs":58,"msg":"address failed validation: postcode not found"}
+{"id":"e0079","time":"2026-10-11T21:34:26.237Z","level":30,"svc":"api","method":"POST","route":"/v1/shipping/rates","reqId":"req-98b9","status":200,"durationMs":221,"msg":"request completed"}
+{"id":"e0080","time":"2026-10-11T21:34:52.144Z","level":30,"svc":"api","method":"GET","route":"/v1/categories","reqId":"req-f7ed","status":200,"durationMs":106,"msg":"request completed"}
+{"id":"e0081","time":"2026-10-11T21:35:18.662Z","level":30,"svc":"api","method":"GET","route":"/v1/orders","reqId":"req-9b97","status":200,"durationMs":46,"msg":"request completed"}
+{"id":"e0082","time":"2026-10-11T21:35:25.442Z","level":30,"svc":"api","method":"GET","route":"/v1/account/profile","reqId":"req-205a","status":200,"durationMs":289,"msg":"request completed"}
+{"id":"e0083","time":"2026-10-11T21:35:27.781Z","level":40,"svc":"api","method":"POST","route":"/v1/checkout/pay","reqId":"req-9a79","status":402,"durationMs":512,"msg":"payment declined by issuer (insufficient_funds)"}
+{"id":"e0084","time":"2026-10-11T21:35:35.121Z","level":30,"svc":"api","method":"GET","route":"/v1/cart","reqId":"req-2164","status":200,"durationMs":90,"msg":"request completed"}
+{"id":"e0085","time":"2026-10-11T21:35:49.044Z","level":30,"svc":"api","method":"POST","route":"/v1/shipping/rates","reqId":"req-8f45","status":200,"durationMs":79,"msg":"request completed"}
+{"id":"e0086","time":"2026-10-11T21:35:54.556Z","level":30,"svc":"api","method":"GET","route":"/v1/categories","reqId":"req-ef31","status":200,"durationMs":286,"msg":"request completed"}
+{"id":"e0087","time":"2026-10-11T21:36:00.286Z","level":30,"svc":"api","method":"GET","route":"/healthz","reqId":"req-c9f4","status":200,"durationMs":5,"msg":"health check ok"}
+{"id":"e0088","time":"2026-10-11T21:36:14.048Z","level":30,"svc":"api","method":"GET","route":"/v1/orders","reqId":"req-8537","status":200,"durationMs":279,"msg":"request completed"}
+{"id":"e0089","time":"2026-10-11T21:36:30.829Z","level":30,"svc":"api","method":"GET","route":"/v1/products/:id","reqId":"req-a98d","status":200,"durationMs":312,"msg":"request completed"}
+{"id":"e0090","time":"2026-10-11T21:36:36.890Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/quote","reqId":"req-3963","status":200,"durationMs":284,"msg":"request completed"}
+{"id":"e0091","time":"2026-10-11T21:36:50.516Z","level":30,"svc":"api","method":"GET","route":"/v1/products/:id","reqId":"req-6df6","status":200,"durationMs":224,"msg":"request completed"}
+{"id":"e0092","time":"2026-10-11T21:37:41.660Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/address","reqId":"req-12b1","status":200,"durationMs":91,"msg":"request completed"}
+{"id":"e0093","time":"2026-10-11T21:38:02.117Z","level":30,"svc":"scheduler","msg":"job analytics-nightly started (range=last 30 days)"}
+{"id":"e0094","time":"2026-10-11T21:38:08.769Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-73bf","status":200,"durationMs":85,"msg":"request completed"}
+{"id":"e0095","time":"2026-10-11T21:38:09.540Z","level":40,"svc":"worker","msg":"analytics-nightly holds 18 of 20 pool connections"}
+{"id":"e0096","time":"2026-10-11T21:38:12.456Z","level":30,"svc":"api","method":"GET","route":"/v1/categories","reqId":"req-e11e","status":200,"durationMs":80,"msg":"request completed"}
+{"id":"e0097","time":"2026-10-11T21:38:12.869Z","level":30,"svc":"api","method":"GET","route":"/v1/account/profile","reqId":"req-da95","status":200,"durationMs":241,"msg":"request completed"}
+{"id":"e0098","time":"2026-10-11T21:38:16.206Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/quote","reqId":"req-529c","status":200,"durationMs":370,"msg":"request completed"}
+{"id":"e0099","time":"2026-10-11T21:38:43.633Z","level":30,"svc":"api","method":"GET","route":"/v1/categories","reqId":"req-69ec","status":200,"durationMs":65,"msg":"request completed"}
+{"id":"e0100","time":"2026-10-11T21:38:58.904Z","level":30,"svc":"api","method":"GET","route":"/v1/orders","reqId":"req-53e2","status":200,"durationMs":215,"msg":"request completed"}
+{"id":"e0101","time":"2026-10-11T21:39:00.633Z","level":30,"svc":"api","method":"GET","route":"/healthz","reqId":"req-1a95","status":200,"durationMs":3,"msg":"health check ok"}
+{"id":"e0102","time":"2026-10-11T21:40:10.233Z","level":40,"svc":"worker","msg":"statement still running after 120000ms (job=analytics-nightly, stmt=orders_rollup)"}
+{"id":"e0103","time":"2026-10-11T21:40:40.256Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/pay","reqId":"req-8dff","status":200,"durationMs":776,"msg":"request completed"}
+{"id":"e0104","time":"2026-10-11T21:40:41.902Z","level":40,"svc":"api","msg":"pool saturated: 20/20 in use, 14 waiting"}
+{"id":"e0105","time":"2026-10-11T21:41:03.012Z","level":50,"svc":"api","method":"POST","route":"/v1/checkout/quote","reqId":"req-7df2","status":503,"durationMs":5012,"msg":"acquire connection timed out after 5000ms","err":{"type":"PoolAcquireTimeoutError","message":"no free connection in pool after 5000ms"}}
+{"id":"e0106","time":"2026-10-11T21:41:05.135Z","level":30,"svc":"api","method":"GET","route":"/v1/products/:id","reqId":"req-b082","status":200,"durationMs":237,"msg":"request completed"}
+{"id":"e0107","time":"2026-10-11T21:41:19.326Z","level":30,"svc":"api","method":"GET","route":"/v1/search","reqId":"req-04e8","status":200,"durationMs":128,"msg":"request completed"}
+{"id":"e0108","time":"2026-10-11T21:41:20.344Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-22e3","status":200,"durationMs":196,"msg":"request completed"}
+{"id":"e0109","time":"2026-10-11T21:41:33.027Z","level":50,"svc":"api","method":"POST","route":"/v1/checkout/pay","reqId":"req-8cd7","status":504,"durationMs":30004,"msg":"upstream wait exceeded 30000ms","err":{"type":"GatewayTimeoutError","message":"order write did not respond within 30000ms"}}
+{"id":"e0110","time":"2026-10-11T21:41:34.704Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/pay","reqId":"req-2b98","status":200,"durationMs":594,"msg":"request completed"}
+{"id":"e0111","time":"2026-10-11T21:42:00.427Z","level":30,"svc":"api","method":"GET","route":"/healthz","reqId":"req-1c0d","status":200,"durationMs":5,"msg":"health check ok"}
+{"id":"e0112","time":"2026-10-11T21:42:02.840Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-0ffa","status":200,"durationMs":175,"msg":"request completed"}
+{"id":"e0113","time":"2026-10-11T21:42:06.118Z","level":30,"svc":"api","method":"POST","route":"/v1/shipping/rates","reqId":"req-a01b","status":200,"durationMs":271,"msg":"request completed"}
+{"id":"e0114","time":"2026-10-11T21:42:06.390Z","level":40,"svc":"api","method":"POST","route":"/v1/checkout/pay","reqId":"req-53c6","status":402,"durationMs":688,"msg":"payment declined by issuer (card_expired)"}
+{"id":"e0115","time":"2026-10-11T21:42:10.871Z","level":40,"svc":"worker","msg":"statement still running after 240000ms (job=analytics-nightly, stmt=orders_rollup)"}
+{"id":"e0116","time":"2026-10-11T21:42:33.266Z","level":30,"svc":"api","method":"GET","route":"/v1/orders","reqId":"req-b8ee","status":200,"durationMs":213,"msg":"request completed"}
+{"id":"e0117","time":"2026-10-11T21:42:48.162Z","level":30,"svc":"api","method":"GET","route":"/v1/cart","reqId":"req-07e4","status":200,"durationMs":82,"msg":"request completed"}
+{"id":"e0118","time":"2026-10-11T21:42:57.634Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-453e","status":200,"durationMs":333,"msg":"request completed"}
+{"id":"e0119","time":"2026-10-11T21:43:12.863Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-42ce","status":200,"durationMs":243,"msg":"request completed"}
+{"id":"e0120","time":"2026-10-11T21:43:17.605Z","level":40,"svc":"api","method":"POST","route":"/v1/checkout/pay","reqId":"req-563c","status":499,"durationMs":29871,"msg":"request aborted by client"}
+{"id":"e0121","time":"2026-10-11T21:44:02.118Z","level":40,"svc":"api","msg":"pool at capacity, 22 requests queued"}
+{"id":"e0122","time":"2026-10-11T21:44:19.747Z","level":30,"svc":"api","method":"GET","route":"/v1/products/:id","reqId":"req-85d4","status":200,"durationMs":78,"msg":"request completed"}
+{"id":"e0123","time":"2026-10-11T21:44:26.405Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/quote","reqId":"req-5898","status":200,"durationMs":345,"msg":"request completed"}
+{"id":"e0124","time":"2026-10-11T21:44:43.348Z","level":30,"svc":"api","method":"GET","route":"/v1/cart","reqId":"req-87e8","status":200,"durationMs":308,"msg":"request completed"}
+{"id":"e0125","time":"2026-10-11T21:44:46.537Z","level":30,"svc":"api","method":"GET","route":"/v1/search","reqId":"req-ab44","status":200,"durationMs":218,"msg":"request completed"}
+{"id":"e0126","time":"2026-10-11T21:44:50.318Z","level":50,"svc":"api","method":"POST","route":"/v1/checkout/address","reqId":"req-1899","status":503,"durationMs":5009,"msg":"acquire connection timed out after 5000ms","err":{"type":"PoolAcquireTimeoutError","message":"no free connection in pool after 5000ms"}}
+{"id":"e0127","time":"2026-10-11T21:45:00.227Z","level":30,"svc":"worker","msg":"payment provider status check: latency normal, p95 212ms"}
+{"id":"e0128","time":"2026-10-11T21:45:00.680Z","level":30,"svc":"api","method":"GET","route":"/healthz","reqId":"req-8de6","status":200,"durationMs":4,"msg":"health check ok"}
+{"id":"e0129","time":"2026-10-11T21:46:12.640Z","level":40,"svc":"api","method":"GET","route":"/v1/orders/history","reqId":"req-f88c","msg":"waiting for pool connection, queue=9, oldest wait 2944ms"}
+{"id":"e0130","time":"2026-10-11T21:46:31.214Z","level":50,"svc":"api","method":"POST","route":"/v1/checkout/quote","reqId":"req-9980","status":503,"durationMs":5003,"msg":"acquire connection timed out after 5000ms","err":{"type":"PoolAcquireTimeoutError","message":"no free connection in pool after 5000ms"}}
+{"id":"e0131","time":"2026-10-11T21:46:44.346Z","level":30,"svc":"api","method":"GET","route":"/v1/account/profile","reqId":"req-3b90","status":200,"durationMs":215,"msg":"request completed"}
+{"id":"e0132","time":"2026-10-11T21:46:46.718Z","level":30,"svc":"api","method":"GET","route":"/v1/cart","reqId":"req-9016","status":200,"durationMs":292,"msg":"request completed"}
+{"id":"e0133","time":"2026-10-11T21:46:55.492Z","level":30,"svc":"api","method":"GET","route":"/v1/cart","reqId":"req-015a","status":200,"durationMs":198,"msg":"request completed"}
+{"id":"e0134","time":"2026-10-11T21:47:10.570Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-4d5b","status":200,"durationMs":52,"msg":"request completed"}
+{"id":"e0135","time":"2026-10-11T21:47:16.542Z","level":30,"svc":"api","method":"GET","route":"/v1/products/:id","reqId":"req-2e46","status":200,"durationMs":301,"msg":"request completed"}
+{"id":"e0136","time":"2026-10-11T21:47:25.820Z","level":30,"svc":"api","method":"GET","route":"/v1/categories","reqId":"req-7c05","status":200,"durationMs":23,"msg":"request completed"}
+{"id":"e0137","time":"2026-10-11T21:47:30.012Z","level":30,"svc":"worker","msg":"deploy notice: checkout widget build 1841 published to CDN (no server change)"}
+{"id":"e0138","time":"2026-10-11T21:47:31.917Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-96f1","status":200,"durationMs":135,"msg":"request completed"}
+{"id":"e0139","time":"2026-10-11T21:47:49.548Z","level":30,"svc":"api","method":"GET","route":"/v1/cart","reqId":"req-cd5a","status":200,"durationMs":142,"msg":"request completed"}
+{"id":"e0140","time":"2026-10-11T21:48:00.582Z","level":30,"svc":"api","method":"GET","route":"/v1/products/:id","reqId":"req-e2c7","status":200,"durationMs":319,"msg":"request completed"}
+{"id":"e0141","time":"2026-10-11T21:48:00.750Z","level":30,"svc":"api","method":"GET","route":"/healthz","reqId":"req-218d","status":200,"durationMs":6,"msg":"health check ok"}
+{"id":"e0142","time":"2026-10-11T21:48:02.559Z","level":50,"svc":"api","method":"POST","route":"/v1/checkout/pay","reqId":"req-6ae3","status":504,"durationMs":30002,"msg":"upstream wait exceeded 30000ms","err":{"type":"GatewayTimeoutError","message":"order write did not respond within 30000ms"}}
+{"id":"e0143","time":"2026-10-11T21:48:06.184Z","level":30,"svc":"api","method":"GET","route":"/v1/products/:id","reqId":"req-20ae","status":404,"durationMs":76,"msg":"product not found"}
+{"id":"e0144","time":"2026-10-11T21:48:12.529Z","level":30,"svc":"api","method":"POST","route":"/v1/shipping/rates","reqId":"req-2a82","status":200,"durationMs":123,"msg":"request completed"}
+{"id":"e0145","time":"2026-10-11T21:48:14.202Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-7968","status":200,"durationMs":299,"msg":"request completed"}
+{"id":"e0146","time":"2026-10-11T21:48:33.905Z","level":40,"svc":"api","method":"POST","route":"/v1/checkout/address","reqId":"req-9e5f","status":422,"durationMs":47,"msg":"address failed validation: unit number required"}
+{"id":"e0147","time":"2026-10-11T21:48:43.692Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/quote","reqId":"req-ec47","status":200,"durationMs":147,"msg":"request completed"}
+{"id":"e0148","time":"2026-10-11T21:48:47.640Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-df46","status":200,"durationMs":326,"msg":"request completed"}
+{"id":"e0149","time":"2026-10-11T21:49:02.678Z","level":30,"svc":"api","method":"GET","route":"/v1/cart","reqId":"req-8983","status":200,"durationMs":216,"msg":"request completed"}
+{"id":"e0150","time":"2026-10-11T21:49:03.377Z","level":40,"svc":"api","msg":"pool saturated: 20/20 in use, 19 waiting"}
+{"id":"e0151","time":"2026-10-11T21:49:10.402Z","level":40,"svc":"worker","msg":"statement still running after 660000ms (job=analytics-nightly, stmt=orders_rollup)"}
+{"id":"e0152","time":"2026-10-11T21:49:17.995Z","level":30,"svc":"api","method":"GET","route":"/v1/cart","reqId":"req-d11e","status":200,"durationMs":52,"msg":"request completed"}
+{"id":"e0153","time":"2026-10-11T21:50:15.060Z","level":40,"svc":"api","route":"/v1/checkout/pay","msg":"retry burst: 14 client retries in the last 60s"}
+{"id":"e0154","time":"2026-10-11T21:50:40.880Z","level":40,"svc":"api","method":"POST","route":"/v1/checkout/pay","reqId":"req-6770","status":499,"durationMs":29944,"msg":"request aborted by client"}
+{"id":"e0155","time":"2026-10-11T21:51:00.094Z","level":30,"svc":"api","method":"GET","route":"/healthz","reqId":"req-a7ac","status":200,"durationMs":1,"msg":"health check ok"}
+{"id":"e0156","time":"2026-10-11T21:51:12.459Z","level":30,"svc":"api","method":"POST","route":"/v1/cart/items","reqId":"req-8158","status":200,"durationMs":231,"msg":"request completed"}
+{"id":"e0157","time":"2026-10-11T21:51:32.838Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-f70d","status":200,"durationMs":61,"msg":"request completed"}
+{"id":"e0158","time":"2026-10-11T21:51:37.210Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-b4b1","status":200,"durationMs":245,"msg":"request completed"}
+{"id":"e0159","time":"2026-10-11T21:51:40.936Z","level":50,"svc":"api","method":"POST","route":"/v1/checkout/pay","reqId":"req-7a13","status":504,"durationMs":30001,"msg":"upstream wait exceeded 30000ms","err":{"type":"GatewayTimeoutError","message":"order write did not respond within 30000ms"}}
+{"id":"e0160","time":"2026-10-11T21:52:07.468Z","level":30,"svc":"api","method":"GET","route":"/v1/products/:id","reqId":"req-b33a","status":200,"durationMs":51,"msg":"request completed"}
+{"id":"e0161","time":"2026-10-11T21:52:55.953Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/quote","reqId":"req-1f58","status":200,"durationMs":409,"msg":"request completed"}
+{"id":"e0162","time":"2026-10-11T21:53:01.668Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/pay","reqId":"req-d6c2","status":200,"durationMs":714,"msg":"request completed"}
+{"id":"e0163","time":"2026-10-11T21:53:08.402Z","level":40,"svc":"api","method":"POST","route":"/v1/checkout/quote","reqId":"req-069a","status":499,"durationMs":29812,"msg":"request aborted by client"}
+{"id":"e0164","time":"2026-10-11T21:53:12.640Z","level":30,"svc":"api","method":"GET","route":"/v1/orders/export","reqId":"req-6bb9","status":200,"durationMs":212,"msg":"request completed"}
+{"id":"e0165","time":"2026-10-11T21:53:30.205Z","level":40,"svc":"api","method":"GET","route":"/v1/cart","reqId":"req-29db","msg":"waiting for pool connection, queue=12, oldest wait 4120ms"}
+{"id":"e0166","time":"2026-10-11T21:53:40.838Z","level":30,"svc":"api","method":"GET","route":"/v1/account/profile","reqId":"req-b949","status":200,"durationMs":126,"msg":"request completed"}
+{"id":"e0167","time":"2026-10-11T21:53:59.954Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-651e","status":200,"durationMs":183,"msg":"request completed"}
+{"id":"e0168","time":"2026-10-11T21:54:00.816Z","level":30,"svc":"api","method":"GET","route":"/healthz","reqId":"req-9f3e","status":200,"durationMs":5,"msg":"health check ok"}
+{"id":"e0169","time":"2026-10-11T21:54:15.130Z","level":30,"svc":"api","method":"GET","route":"/v1/products/:id","reqId":"req-cefd","status":200,"durationMs":336,"msg":"request completed"}
+{"id":"e0170","time":"2026-10-11T21:54:39.725Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-ccd7","status":200,"durationMs":256,"msg":"request completed"}
+{"id":"e0171","time":"2026-10-11T21:55:08.258Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-6e8c","status":200,"durationMs":180,"msg":"request completed"}
+{"id":"e0172","time":"2026-10-11T21:55:21.770Z","level":50,"svc":"api","method":"POST","route":"/v1/checkout/pay","reqId":"req-4f84","status":504,"durationMs":30005,"msg":"upstream wait exceeded 30000ms","err":{"type":"GatewayTimeoutError","message":"order write did not respond within 30000ms"}}
+{"id":"e0173","time":"2026-10-11T21:55:25.433Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-19a2","status":200,"durationMs":189,"msg":"request completed"}
+{"id":"e0174","time":"2026-10-11T21:55:50.126Z","level":40,"svc":"api","method":"POST","route":"/v1/checkout/coupon","reqId":"req-aefc","status":422,"durationMs":36,"msg":"coupon code expired"}
+{"id":"e0175","time":"2026-10-11T21:55:55.429Z","level":30,"svc":"api","method":"GET","route":"/v1/categories","reqId":"req-e4cb","status":200,"durationMs":129,"msg":"request completed"}
+{"id":"e0176","time":"2026-10-11T21:56:16.403Z","level":30,"svc":"api","method":"GET","route":"/v1/products/:id","reqId":"req-8b43","status":200,"durationMs":126,"msg":"request completed"}
+{"id":"e0177","time":"2026-10-11T21:56:30.148Z","level":30,"svc":"api","method":"GET","route":"/v1/cart","reqId":"req-0b84","status":200,"durationMs":214,"msg":"request completed"}
+{"id":"e0178","time":"2026-10-11T21:57:00.467Z","level":30,"svc":"api","method":"GET","route":"/healthz","reqId":"req-198f","status":200,"durationMs":3,"msg":"health check ok"}
+{"id":"e0179","time":"2026-10-11T21:57:01.388Z","level":30,"svc":"api","method":"GET","route":"/v1/cart","reqId":"req-74c8","status":200,"durationMs":348,"msg":"request completed"}
+{"id":"e0180","time":"2026-10-11T21:57:01.699Z","level":30,"svc":"api","method":"POST","route":"/v1/cart/items","reqId":"req-ab5c","status":200,"durationMs":83,"msg":"request completed"}
+{"id":"e0181","time":"2026-10-11T21:57:19.652Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-9134","status":200,"durationMs":323,"msg":"request completed"}
+{"id":"e0182","time":"2026-10-11T21:57:59.970Z","level":30,"svc":"api","method":"GET","route":"/v1/products/:id","reqId":"req-82ff","status":200,"durationMs":130,"msg":"request completed"}
+{"id":"e0183","time":"2026-10-11T21:58:08.647Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-4b81","status":200,"durationMs":348,"msg":"request completed"}
+{"id":"e0184","time":"2026-10-11T21:58:20.744Z","level":40,"svc":"api","route":"/v1/checkout/pay","msg":"retry burst: 21 client retries in the last 60s"}
+{"id":"e0185","time":"2026-10-11T21:58:27.167Z","level":30,"svc":"api","method":"POST","route":"/v1/cart/items","reqId":"req-b66f","status":200,"durationMs":99,"msg":"request completed"}
+{"id":"e0186","time":"2026-10-11T21:58:31.656Z","level":30,"svc":"api","method":"GET","route":"/v1/categories","reqId":"req-f4dc","status":200,"durationMs":352,"msg":"request completed"}
+{"id":"e0187","time":"2026-10-11T21:58:44.109Z","level":40,"svc":"api","method":"POST","route":"/v1/checkout/pay","reqId":"req-5e8a","status":499,"durationMs":27110,"msg":"request aborted by client"}
+{"id":"e0188","time":"2026-10-11T21:59:00.598Z","level":30,"svc":"scheduler","msg":"job invoice-sync scheduled, next run 23:00 (timeout=30s, retries=2)"}
+{"id":"e0189","time":"2026-10-11T21:59:09.174Z","level":30,"svc":"api","method":"POST","route":"/v1/cart/items","reqId":"req-7fd5","status":200,"durationMs":161,"msg":"request completed"}
+{"id":"e0190","time":"2026-10-11T21:59:30.661Z","level":30,"svc":"worker","msg":"payment provider status check: latency normal, p95 219ms"}
+{"id":"e0191","time":"2026-10-11T21:59:31.933Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-ae9e","status":200,"durationMs":149,"msg":"request completed"}
+{"id":"e0192","time":"2026-10-11T21:59:52.839Z","level":30,"svc":"api","method":"POST","route":"/v1/cart/items","reqId":"req-24c2","status":200,"durationMs":181,"msg":"request completed"}
+{"id":"e0193","time":"2026-10-11T21:59:57.333Z","level":50,"svc":"api","method":"POST","route":"/v1/checkout/pay","reqId":"req-a326","status":504,"durationMs":30003,"msg":"upstream wait exceeded 30000ms","err":{"type":"GatewayTimeoutError","message":"order write did not respond within 30000ms"}}
+{"id":"e0194","time":"2026-10-11T22:00:00.580Z","level":30,"svc":"api","method":"GET","route":"/healthz","reqId":"req-6ce7","status":200,"durationMs":4,"msg":"health check ok"}
+{"id":"e0195","time":"2026-10-11T22:00:02.441Z","level":30,"svc":"api","method":"GET","route":"/v1/cart","reqId":"req-f08e","status":200,"durationMs":160,"msg":"request completed"}
+{"id":"e0196","time":"2026-10-11T22:00:13.241Z","level":30,"svc":"api","method":"GET","route":"/v1/products/:id","reqId":"req-82a1","status":200,"durationMs":80,"msg":"request completed"}
+{"id":"e0197","time":"2026-10-11T22:00:19.744Z","level":40,"svc":"api","method":"POST","route":"/v1/checkout/pay","reqId":"req-1c17","status":402,"durationMs":640,"msg":"payment declined by issuer (do_not_honor)"}
+{"id":"e0198","time":"2026-10-11T22:00:46.473Z","level":30,"svc":"api","method":"GET","route":"/v1/account/profile","reqId":"req-e286","status":200,"durationMs":146,"msg":"request completed"}
+{"id":"e0199","time":"2026-10-11T22:01:26.171Z","level":30,"svc":"api","method":"POST","route":"/v1/shipping/rates","reqId":"req-6fec","status":200,"durationMs":124,"msg":"request completed"}
+{"id":"e0200","time":"2026-10-11T22:01:32.116Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-9175","status":200,"durationMs":177,"msg":"request completed"}
+{"id":"e0201","time":"2026-10-11T22:02:10.692Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/quote","reqId":"req-5403","status":200,"durationMs":174,"msg":"request completed"}
+{"id":"e0202","time":"2026-10-11T22:02:12.650Z","level":50,"svc":"api","method":"POST","route":"/v1/checkout/quote","reqId":"req-fb8d","status":503,"durationMs":5004,"msg":"acquire connection timed out after 5000ms","err":{"type":"PoolAcquireTimeoutError","message":"no free connection in pool after 5000ms"}}
+{"id":"e0203","time":"2026-10-11T22:02:18.259Z","level":30,"svc":"api","method":"GET","route":"/v1/categories","reqId":"req-e320","status":200,"durationMs":237,"msg":"request completed"}
+{"id":"e0204","time":"2026-10-11T22:02:24.323Z","level":30,"svc":"api","method":"GET","route":"/v1/cart","reqId":"req-e289","status":200,"durationMs":33,"msg":"request completed"}
+{"id":"e0205","time":"2026-10-11T22:03:00.044Z","level":30,"svc":"api","method":"GET","route":"/healthz","reqId":"req-2018","status":200,"durationMs":2,"msg":"health check ok"}
+{"id":"e0206","time":"2026-10-11T22:04:23.299Z","level":30,"svc":"api","method":"GET","route":"/v1/orders","reqId":"req-b7a8","status":200,"durationMs":286,"msg":"request completed"}
+{"id":"e0207","time":"2026-10-11T22:04:23.824Z","level":30,"svc":"api","method":"GET","route":"/v1/products/:id","reqId":"req-c8b5","status":200,"durationMs":98,"msg":"request completed"}
+{"id":"e0208","time":"2026-10-11T22:04:39.218Z","level":50,"svc":"api","method":"POST","route":"/v1/checkout/pay","reqId":"req-22e9","status":504,"durationMs":30001,"msg":"upstream wait exceeded 30000ms","err":{"type":"GatewayTimeoutError","message":"order write did not respond within 30000ms"}}
+{"id":"e0209","time":"2026-10-11T22:04:42.670Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-c0a6","status":200,"durationMs":154,"msg":"request completed"}
+{"id":"e0210","time":"2026-10-11T22:04:48.443Z","level":30,"svc":"api","method":"GET","route":"/v1/orders","reqId":"req-6c96","status":200,"durationMs":311,"msg":"request completed"}
+{"id":"e0211","time":"2026-10-11T22:04:58.604Z","level":30,"svc":"api","method":"GET","route":"/v1/account/profile","reqId":"req-3e98","status":200,"durationMs":358,"msg":"request completed"}
+{"id":"e0212","time":"2026-10-11T22:04:59.977Z","level":30,"svc":"api","method":"POST","route":"/v1/shipping/rates","reqId":"req-a586","status":200,"durationMs":50,"msg":"request completed"}
+{"id":"e0213","time":"2026-10-11T22:05:17.208Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/pay","reqId":"req-475b","status":200,"durationMs":451,"msg":"request completed"}
+{"id":"e0214","time":"2026-10-11T22:05:26.556Z","level":30,"svc":"api","method":"POST","route":"/v1/cart/items","reqId":"req-ecd4","status":200,"durationMs":135,"msg":"request completed"}
+{"id":"e0215","time":"2026-10-11T22:06:00.249Z","level":30,"svc":"api","method":"GET","route":"/healthz","reqId":"req-fe26","status":200,"durationMs":4,"msg":"health check ok"}
+{"id":"e0216","time":"2026-10-11T22:06:46.823Z","level":30,"svc":"api","method":"GET","route":"/v1/orders","reqId":"req-8e36","status":200,"durationMs":376,"msg":"request completed"}
+{"id":"e0217","time":"2026-10-11T22:06:49.221Z","level":30,"svc":"api","method":"GET","route":"/v1/products/:id","reqId":"req-43c9","status":200,"durationMs":229,"msg":"request completed"}
+{"id":"e0218","time":"2026-10-11T22:07:08.746Z","level":30,"svc":"api","method":"GET","route":"/v1/account/profile","reqId":"req-2470","status":200,"durationMs":245,"msg":"request completed"}
+{"id":"e0219","time":"2026-10-11T22:07:13.450Z","level":40,"svc":"scheduler","msg":"job analytics-nightly stopped by operator (SIGTERM), connections released"}
+{"id":"e0220","time":"2026-10-11T22:07:26.478Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/pay","reqId":"req-392c","status":200,"durationMs":555,"msg":"request completed"}
+{"id":"e0221","time":"2026-10-11T22:07:33.517Z","level":30,"svc":"api","method":"GET","route":"/v1/categories","reqId":"req-0021","status":200,"durationMs":375,"msg":"request completed"}
+{"id":"e0222","time":"2026-10-11T22:07:40.179Z","level":30,"svc":"api","method":"POST","route":"/v1/shipping/rates","reqId":"req-da39","status":200,"durationMs":178,"msg":"request completed"}
+{"id":"e0223","time":"2026-10-11T22:07:44.828Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/quote","reqId":"req-298b","status":200,"durationMs":257,"msg":"request completed"}
+{"id":"e0224","time":"2026-10-11T22:07:58.390Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-24a4","status":200,"durationMs":371,"msg":"request completed"}
+{"id":"e0225","time":"2026-10-11T22:08:08.717Z","level":30,"svc":"api","method":"GET","route":"/v1/account/profile","reqId":"req-057b","status":200,"durationMs":177,"msg":"request completed"}
+{"id":"e0226","time":"2026-10-11T22:08:15.321Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/quote","reqId":"req-6dc2","status":200,"durationMs":262,"msg":"request completed"}
+{"id":"e0227","time":"2026-10-11T22:08:32.845Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/pay","reqId":"req-0af5","status":200,"durationMs":421,"msg":"request completed"}
+{"id":"e0228","time":"2026-10-11T22:08:34.889Z","level":30,"svc":"api","method":"GET","route":"/v1/cart","reqId":"req-ef71","status":200,"durationMs":36,"msg":"request completed"}
+{"id":"e0229","time":"2026-10-11T22:08:42.849Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/quote","reqId":"req-7b9f","status":200,"durationMs":332,"msg":"request completed"}
+{"id":"e0230","time":"2026-10-11T22:09:00.732Z","level":30,"svc":"api","method":"GET","route":"/healthz","reqId":"req-f5a1","status":200,"durationMs":3,"msg":"health check ok"}
+{"id":"e0231","time":"2026-10-11T22:09:13.937Z","level":30,"svc":"api","method":"GET","route":"/v1/account/profile","reqId":"req-9127","status":200,"durationMs":80,"msg":"request completed"}
+{"id":"e0232","time":"2026-10-11T22:09:33.633Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-b9e3","status":200,"durationMs":249,"msg":"request completed"}
+{"id":"e0233","time":"2026-10-11T22:09:39.677Z","level":30,"svc":"api","method":"GET","route":"/v1/products/:id","reqId":"req-6cd4","status":200,"durationMs":40,"msg":"request completed"}
+{"id":"e0234","time":"2026-10-11T22:09:40.512Z","level":40,"svc":"api","method":"POST","route":"/v1/checkout/address","reqId":"req-0225","status":422,"durationMs":52,"msg":"address failed validation: postcode not found"}
+{"id":"e0235","time":"2026-10-11T22:10:17.547Z","level":30,"svc":"api","method":"GET","route":"/v1/cart","reqId":"req-e4c2","status":200,"durationMs":137,"msg":"request completed"}
+{"id":"e0236","time":"2026-10-11T22:10:31.138Z","level":30,"svc":"api","method":"GET","route":"/v1/categories","reqId":"req-478e","status":200,"durationMs":375,"msg":"request completed"}
+{"id":"e0237","time":"2026-10-11T22:10:35.761Z","level":30,"svc":"api","method":"GET","route":"/v1/cart","reqId":"req-5093","status":200,"durationMs":327,"msg":"request completed"}
+{"id":"e0238","time":"2026-10-11T22:10:49.110Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/quote","reqId":"req-8a5c","status":200,"durationMs":218,"msg":"request completed"}
+{"id":"e0239","time":"2026-10-11T22:11:19.357Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-5ed5","status":200,"durationMs":309,"msg":"request completed"}
+{"id":"e0240","time":"2026-10-11T22:11:24.019Z","level":30,"svc":"api","method":"GET","route":"/v1/products/:id","reqId":"req-da44","status":200,"durationMs":303,"msg":"request completed"}
+{"id":"e0241","time":"2026-10-11T22:11:32.172Z","level":30,"svc":"api","method":"GET","route":"/v1/products/:id","reqId":"req-223d","status":200,"durationMs":165,"msg":"request completed"}
+{"id":"e0242","time":"2026-10-11T22:11:34.500Z","level":30,"svc":"api","method":"GET","route":"/v1/products/:id","reqId":"req-ac2d","status":404,"durationMs":251,"msg":"product not found"}
+{"id":"e0243","time":"2026-10-11T22:11:53.275Z","level":30,"svc":"api","method":"GET","route":"/v1/orders","reqId":"req-3c5d","status":200,"durationMs":196,"msg":"request completed"}
+{"id":"e0244","time":"2026-10-11T22:11:54.774Z","level":30,"svc":"api","method":"GET","route":"/v1/cart","reqId":"req-e8ce","status":200,"durationMs":140,"msg":"request completed"}
+{"id":"e0245","time":"2026-10-11T22:12:00.135Z","level":30,"svc":"api","method":"GET","route":"/healthz","reqId":"req-9920","status":200,"durationMs":6,"msg":"health check ok"}
+{"id":"e0246","time":"2026-10-11T22:12:02.687Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-5d94","status":200,"durationMs":249,"msg":"request completed"}
+{"id":"e0247","time":"2026-10-11T22:12:06.435Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-ce94","status":200,"durationMs":259,"msg":"request completed"}
+{"id":"e0248","time":"2026-10-11T22:12:21.491Z","level":30,"svc":"api","method":"GET","route":"/v1/cart","reqId":"req-6d65","status":200,"durationMs":24,"msg":"request completed"}
+{"id":"e0249","time":"2026-10-11T22:12:30.563Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/quote","reqId":"req-1fcb","status":200,"durationMs":351,"msg":"request completed"}
+{"id":"e0250","time":"2026-10-11T22:12:32.060Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/quote","reqId":"req-1bc3","status":200,"durationMs":332,"msg":"request completed"}
+{"id":"e0251","time":"2026-10-11T22:12:58.947Z","level":30,"svc":"api","method":"GET","route":"/v1/categories","reqId":"req-5feb","status":200,"durationMs":39,"msg":"request completed"}
+{"id":"e0252","time":"2026-10-11T22:13:00.492Z","level":30,"svc":"api","method":"POST","route":"/v1/shipping/rates","reqId":"req-653b","status":200,"durationMs":276,"msg":"request completed"}
+{"id":"e0253","time":"2026-10-11T22:13:54.643Z","level":30,"svc":"api","method":"GET","route":"/v1/products/:id","reqId":"req-7001","status":200,"durationMs":256,"msg":"request completed"}
+{"id":"e0254","time":"2026-10-11T22:13:56.192Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/pay","reqId":"req-8994","status":200,"durationMs":816,"msg":"request completed"}
+{"id":"e0255","time":"2026-10-11T22:13:58.713Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-b869","status":200,"durationMs":297,"msg":"request completed"}
+{"id":"e0256","time":"2026-10-11T22:14:02.851Z","level":40,"svc":"api","method":"POST","route":"/v1/checkout/coupon","reqId":"req-b7d9","status":422,"durationMs":39,"msg":"coupon code not valid for this cart"}
+{"id":"e0257","time":"2026-10-11T22:14:04.767Z","level":30,"svc":"api","method":"GET","route":"/v1/products/:id","reqId":"req-d28d","status":200,"durationMs":346,"msg":"request completed"}
+{"id":"e0258","time":"2026-10-11T22:14:13.048Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-8f79","status":200,"durationMs":339,"msg":"request completed"}
+{"id":"e0259","time":"2026-10-11T22:14:37.902Z","level":30,"svc":"api","method":"GET","route":"/v1/orders/export","reqId":"req-4bf5","status":200,"durationMs":340,"msg":"request completed"}
+{"id":"e0260","time":"2026-10-11T22:15:00.068Z","level":30,"svc":"api","method":"GET","route":"/healthz","reqId":"req-763a","status":200,"durationMs":2,"msg":"health check ok"}
+{"id":"e0261","time":"2026-10-11T22:15:00.286Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/quote","reqId":"req-286b","status":200,"durationMs":241,"msg":"request completed"}
+{"id":"e0262","time":"2026-10-11T22:15:02.488Z","level":30,"svc":"api","method":"GET","route":"/v1/cart","reqId":"req-5a56","status":200,"durationMs":283,"msg":"request completed"}
+{"id":"e0263","time":"2026-10-11T22:15:20.337Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/pay","reqId":"req-0ee2","status":200,"durationMs":716,"msg":"request completed"}
+{"id":"e0264","time":"2026-10-11T22:15:44.557Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/pay","reqId":"req-770e","status":200,"durationMs":433,"msg":"request completed"}
+{"id":"e0265","time":"2026-10-11T22:15:46.889Z","level":30,"svc":"api","method":"GET","route":"/v1/products/:id","reqId":"req-02d5","status":200,"durationMs":323,"msg":"request completed"}
+{"id":"e0266","time":"2026-10-11T22:15:51.055Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/pay","reqId":"req-6147","status":200,"durationMs":595,"msg":"request completed"}
+{"id":"e0267","time":"2026-10-11T22:15:53.811Z","level":30,"svc":"api","method":"GET","route":"/v1/categories","reqId":"req-67af","status":200,"durationMs":93,"msg":"request completed"}
+{"id":"e0268","time":"2026-10-11T22:15:55.315Z","level":30,"svc":"api","method":"GET","route":"/v1/cart","reqId":"req-8cb3","status":200,"durationMs":291,"msg":"request completed"}
+{"id":"e0269","time":"2026-10-11T22:16:47.853Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-3993","status":200,"durationMs":289,"msg":"request completed"}
+{"id":"e0270","time":"2026-10-11T22:16:48.177Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-5a95","status":200,"durationMs":290,"msg":"request completed"}
+{"id":"e0271","time":"2026-10-11T22:17:07.334Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-d92f","status":200,"durationMs":213,"msg":"request completed"}
+{"id":"e0272","time":"2026-10-11T22:17:17.259Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/address","reqId":"req-da8b","status":200,"durationMs":314,"msg":"request completed"}
+{"id":"e0273","time":"2026-10-11T22:17:29.224Z","level":30,"svc":"api","method":"GET","route":"/v1/products/:id","reqId":"req-24fc","status":200,"durationMs":359,"msg":"request completed"}
+{"id":"e0274","time":"2026-10-11T22:17:40.182Z","level":30,"svc":"api","method":"GET","route":"/v1/cart","reqId":"req-76cd","status":200,"durationMs":106,"msg":"request completed"}
+{"id":"e0275","time":"2026-10-11T22:18:00.296Z","level":30,"svc":"api","method":"GET","route":"/healthz","reqId":"req-db97","status":200,"durationMs":6,"msg":"health check ok"}
+{"id":"e0276","time":"2026-10-11T22:18:14.706Z","level":30,"svc":"api","method":"POST","route":"/v1/cart/items","reqId":"req-6c47","status":200,"durationMs":307,"msg":"request completed"}
+{"id":"e0277","time":"2026-10-11T22:18:18.251Z","level":30,"svc":"api","method":"GET","route":"/v1/products/:id","reqId":"req-f840","status":200,"durationMs":72,"msg":"request completed"}
+{"id":"e0278","time":"2026-10-11T22:18:22.809Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-2247","status":200,"durationMs":169,"msg":"request completed"}
+{"id":"e0279","time":"2026-10-11T22:18:45.191Z","level":30,"svc":"api","method":"GET","route":"/v1/search","reqId":"req-6b75","status":200,"durationMs":179,"msg":"request completed"}
+{"id":"e0280","time":"2026-10-11T22:19:18.270Z","level":40,"svc":"api","method":"POST","route":"/v1/checkout/pay","reqId":"req-e6db","status":402,"durationMs":455,"msg":"payment declined by issuer (insufficient_funds)"}
+{"id":"e0281","time":"2026-10-11T22:19:34.045Z","level":30,"svc":"api","method":"GET","route":"/v1/products/:id","reqId":"req-5aae","status":200,"durationMs":230,"msg":"request completed"}
+{"id":"e0282","time":"2026-10-11T22:19:48.426Z","level":30,"svc":"api","method":"GET","route":"/v1/search","reqId":"req-4a6e","status":200,"durationMs":213,"msg":"request completed"}
+{"id":"e0283","time":"2026-10-11T22:20:09.808Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/address","reqId":"req-7bed","status":200,"durationMs":93,"msg":"request completed"}
+{"id":"e0284","time":"2026-10-11T22:20:23.277Z","level":30,"svc":"api","method":"POST","route":"/v1/shipping/rates","reqId":"req-e09c","status":200,"durationMs":27,"msg":"request completed"}
+{"id":"e0285","time":"2026-10-11T22:20:26.628Z","level":30,"svc":"api","method":"POST","route":"/v1/cart/items","reqId":"req-40af","status":200,"durationMs":331,"msg":"request completed"}
+{"id":"e0286","time":"2026-10-11T22:21:00.863Z","level":30,"svc":"api","method":"GET","route":"/healthz","reqId":"req-dcd6","status":200,"durationMs":4,"msg":"health check ok"}
+{"id":"e0287","time":"2026-10-11T22:21:07.512Z","level":30,"svc":"api","method":"GET","route":"/v1/reports/monthly","reqId":"req-ceaa","status":200,"durationMs":14210,"msg":"request completed"}
+{"id":"e0288","time":"2026-10-11T22:21:13.203Z","level":30,"svc":"api","method":"POST","route":"/v1/cart/items","reqId":"req-c26a","status":200,"durationMs":357,"msg":"request completed"}
+{"id":"e0289","time":"2026-10-11T22:21:46.773Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-e061","status":200,"durationMs":242,"msg":"request completed"}
+{"id":"e0290","time":"2026-10-11T22:21:53.146Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/quote","reqId":"req-94ac","status":200,"durationMs":170,"msg":"request completed"}
+{"id":"e0291","time":"2026-10-11T22:21:59.501Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/pay","reqId":"req-9b10","status":200,"durationMs":606,"msg":"request completed"}
+{"id":"e0292","time":"2026-10-11T22:22:07.071Z","level":30,"svc":"api","method":"GET","route":"/v1/cart","reqId":"req-d723","status":200,"durationMs":124,"msg":"request completed"}
+{"id":"e0293","time":"2026-10-11T22:22:11.349Z","level":30,"svc":"api","method":"GET","route":"/v1/account/profile","reqId":"req-8351","status":200,"durationMs":353,"msg":"request completed"}
+{"id":"e0294","time":"2026-10-11T22:22:24.011Z","level":30,"svc":"api","method":"POST","route":"/v1/cart/items","reqId":"req-9729","status":200,"durationMs":326,"msg":"request completed"}
+{"id":"e0295","time":"2026-10-11T22:22:29.550Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/quote","reqId":"req-2e37","status":200,"durationMs":219,"msg":"request completed"}
+{"id":"e0296","time":"2026-10-11T22:22:45.219Z","level":30,"svc":"api","method":"GET","route":"/v1/cart","reqId":"req-b845","status":200,"durationMs":336,"msg":"request completed"}
+{"id":"e0297","time":"2026-10-11T22:22:50.329Z","level":30,"svc":"api","method":"POST","route":"/v1/cart/items","reqId":"req-dfc0","status":200,"durationMs":273,"msg":"request completed"}
+{"id":"e0298","time":"2026-10-11T22:23:30.737Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-c29b","status":200,"durationMs":187,"msg":"request completed"}
+{"id":"e0299","time":"2026-10-11T22:24:00.270Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-5f33","status":200,"durationMs":164,"msg":"request completed"}
+{"id":"e0300","time":"2026-10-11T22:24:00.585Z","level":30,"svc":"api","method":"GET","route":"/healthz","reqId":"req-d872","status":200,"durationMs":1,"msg":"health check ok"}
+{"id":"e0301","time":"2026-10-11T22:24:38.363Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/address","reqId":"req-be79","status":200,"durationMs":174,"msg":"request completed"}
+{"id":"e0302","time":"2026-10-11T22:24:55.661Z","level":30,"svc":"api","method":"GET","route":"/v1/orders","reqId":"req-2c9a","status":200,"durationMs":304,"msg":"request completed"}
+{"id":"e0303","time":"2026-10-11T22:25:11.925Z","level":30,"svc":"api","method":"GET","route":"/v1/products/:id","reqId":"req-5e1e","status":200,"durationMs":18,"msg":"request completed"}
+{"id":"e0304","time":"2026-10-11T22:25:16.935Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/address","reqId":"req-ea41","status":200,"durationMs":231,"msg":"request completed"}
+{"id":"e0305","time":"2026-10-11T22:25:37.537Z","level":30,"svc":"api","method":"GET","route":"/v1/products/:id","reqId":"req-28ef","status":200,"durationMs":253,"msg":"request completed"}
+{"id":"e0306","time":"2026-10-11T22:25:41.726Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/pay","reqId":"req-9b62","status":200,"durationMs":420,"msg":"request completed"}
+{"id":"e0307","time":"2026-10-11T22:25:57.231Z","level":30,"svc":"api","method":"GET","route":"/v1/orders","reqId":"req-7902","status":200,"durationMs":345,"msg":"request completed"}
+{"id":"e0308","time":"2026-10-11T22:26:16.116Z","level":30,"svc":"api","method":"GET","route":"/v1/account/profile","reqId":"req-463c","status":200,"durationMs":86,"msg":"request completed"}
+{"id":"e0309","time":"2026-10-11T22:26:27.681Z","level":30,"svc":"api","method":"GET","route":"/v1/account/profile","reqId":"req-9fba","status":200,"durationMs":25,"msg":"request completed"}
+{"id":"e0310","time":"2026-10-11T22:26:38.090Z","level":30,"svc":"api","method":"GET","route":"/v1/orders","reqId":"req-78b4","status":200,"durationMs":148,"msg":"request completed"}
+{"id":"e0311","time":"2026-10-11T22:26:55.084Z","level":30,"svc":"api","method":"GET","route":"/v1/reports/monthly","reqId":"req-8627","status":200,"durationMs":9870,"msg":"request completed"}
+{"id":"e0312","time":"2026-10-11T22:27:00.407Z","level":30,"svc":"api","method":"GET","route":"/healthz","reqId":"req-a06a","status":200,"durationMs":1,"msg":"health check ok"}
+{"id":"e0313","time":"2026-10-11T22:27:20.221Z","level":30,"svc":"api","method":"GET","route":"/v1/categories","reqId":"req-f102","status":200,"durationMs":106,"msg":"request completed"}
+{"id":"e0314","time":"2026-10-11T22:27:27.371Z","level":30,"svc":"api","method":"POST","route":"/v1/shipping/rates","reqId":"req-2a58","status":200,"durationMs":272,"msg":"request completed"}
+{"id":"e0315","time":"2026-10-11T22:27:50.350Z","level":30,"svc":"api","method":"GET","route":"/v1/cart","reqId":"req-0b37","status":200,"durationMs":351,"msg":"request completed"}
+{"id":"e0316","time":"2026-10-11T22:27:51.398Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/address","reqId":"req-6759","status":200,"durationMs":197,"msg":"request completed"}
+{"id":"e0317","time":"2026-10-11T22:27:59.823Z","level":30,"svc":"api","method":"GET","route":"/v1/search","reqId":"req-0d4a","status":200,"durationMs":189,"msg":"request completed"}
+{"id":"e0318","time":"2026-10-11T22:28:02.670Z","level":30,"svc":"api","method":"GET","route":"/v1/search","reqId":"req-2feb","status":200,"durationMs":20,"msg":"request completed"}
+{"id":"e0319","time":"2026-10-11T22:28:25.351Z","level":30,"svc":"api","method":"GET","route":"/v1/products","reqId":"req-cffb","status":200,"durationMs":188,"msg":"request completed"}
+{"id":"e0320","time":"2026-10-11T22:28:27.342Z","level":30,"svc":"api","method":"POST","route":"/v1/cart/items","reqId":"req-8be7","status":200,"durationMs":291,"msg":"request completed"}
+{"id":"e0321","time":"2026-10-11T22:28:44.366Z","level":30,"svc":"api","method":"GET","route":"/v1/products/:id","reqId":"req-ea8f","status":200,"durationMs":357,"msg":"request completed"}
+{"id":"e0322","time":"2026-10-11T22:28:47.440Z","level":30,"svc":"api","method":"POST","route":"/v1/cart/items","reqId":"req-d875","status":200,"durationMs":120,"msg":"request completed"}
+{"id":"e0323","time":"2026-10-11T22:29:00.223Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/address","reqId":"req-cd7a","status":200,"durationMs":112,"msg":"request completed"}
+{"id":"e0324","time":"2026-10-11T22:29:02.716Z","level":30,"svc":"api","method":"GET","route":"/v1/products/:id","reqId":"req-042d","status":200,"durationMs":154,"msg":"request completed"}
+{"id":"e0325","time":"2026-10-11T22:29:37.389Z","level":30,"svc":"api","method":"POST","route":"/v1/checkout/pay","reqId":"req-a521","status":200,"durationMs":398,"msg":"request completed"}
+{"id":"e0326","time":"2026-10-11T22:29:43.082Z","level":30,"svc":"api","method":"GET","route":"/v1/account/profile","reqId":"req-8671","status":200,"durationMs":284,"msg":"request completed"}
+{"id":"e0327","time":"2026-10-11T22:29:52.490Z","level":30,"svc":"api","method":"GET","route":"/v1/products/:id","reqId":"req-9ba1","status":404,"durationMs":237,"msg":"product not found"}

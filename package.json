@@ -1,6 +1,6 @@
 {
   "name": "typesafe-mcp",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "module",
   "description": "MCP server exposing TypeSafe AI's Jev decision model (Choice / Score / Noul) as typed tools.",
   "license": "MIT",
@@ -56,7 +56,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/server": "^2.0.0",
-    "@typesafe-ai/sdk": "^0.6.0",
+    "@typesafe-ai/sdk": "^0.7.0",
     "zod": "^4"
   },
   "devDependencies": {

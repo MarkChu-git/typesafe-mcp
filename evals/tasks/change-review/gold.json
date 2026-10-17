@@ -1,0 +1,12 @@
+{
+  "violations": [
+    { "file": "src/checkout/expressCheckout.ts", "rule": 4 },
+    { "file": "src/checkout/expressCheckout.ts", "rule": 5 },
+    { "file": "src/checkout/giftCards.ts", "rule": 1 },
+    { "file": "src/checkout/giftCards.ts", "rule": 6 },
+    { "file": "src/customers/addressBook.ts", "rule": 3 },
+    { "file": "src/notifications/orderEmail.ts", "rule": 5 },
+    { "file": "src/orders/orderHistory.ts", "rule": 2 },
+    { "file": "src/pricing/tax.ts", "rule": 1 }
+  ]
+}

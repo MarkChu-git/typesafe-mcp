@@ -184,11 +184,12 @@ async function runInWorkspace(
     jsonSchema: Record<string, unknown>;
     config: EvalConfig;
     servers: ServerEntries;
+    serverEnv?: Record<string, string> | undefined;
   },
 ): Promise<{ metrics: RunMetrics; lines: Awaited<ReturnType<typeof runClaude>>["lines"] }> {
   const mcpPath = join(dirname(o.cwd), "mcp.json");
   const refEntry = o.arm.jev && o.arm.jev.ref ? o.servers.get(o.arm.jev.ref) : undefined;
-  writeFileSync(mcpPath, JSON.stringify(mcpConfig(o.arm, REPO_ROOT, refEntry)));
+  writeFileSync(mcpPath, JSON.stringify(mcpConfig(o.arm, REPO_ROOT, refEntry, o.serverEnv)));
   if (o.arm.sdk) await installSdk(o.cwd, REPO_ROOT);
   const args = buildArgs({
     prompt: o.prompt,
@@ -267,6 +268,7 @@ async function runTask(
       jsonSchema: task.jsonSchema(),
       config,
       servers,
+      serverEnv: task.serverEnv,
     });
     let metrics = raw;
     let score: number | null = null;

@@ -1,0 +1,60 @@
+{
+  "note": "Sample rows for local development and manual QA. Never loaded in production.",
+  "subscriptions": [
+    {
+      "id": "sub_seed_1",
+      "customerId": "cus_seed_1",
+      "planId": "team",
+      "status": "trialing",
+      "termMonths": 12,
+      "currentPeriodEnd": "2026-09-15T00:00:00.000Z"
+    },
+    {
+      "id": "sub_seed_2",
+      "customerId": "cus_seed_2",
+      "planId": "solo",
+      "status": "trialing",
+      "termMonths": 1,
+      "currentPeriodEnd": "2026-09-18T00:00:00.000Z"
+    },
+    {
+      "id": "sub_seed_3",
+      "customerId": "cus_seed_3",
+      "planId": "studio",
+      "status": "active",
+      "termMonths": 12,
+      "currentPeriodEnd": "2027-03-02T00:00:00.000Z"
+    }
+  ],
+  "trials": [
+    {
+      "id": "trial_seed_1",
+      "customerId": "cus_seed_1",
+      "subscriptionId": "sub_seed_1",
+      "planId": "team",
+      "startedAt": "2026-09-01T00:00:00.000Z",
+      "endsAt": "2026-09-15T00:00:00.000Z",
+      "cadence": "yearly"
+    },
+    {
+      "id": "trial_seed_2",
+      "customerId": "cus_seed_2",
+      "subscriptionId": "sub_seed_2",
+      "planId": "solo",
+      "startedAt": "2026-09-04T00:00:00.000Z",
+      "endsAt": "2026-09-18T00:00:00.000Z",
+      "cadence": "monthly"
+    }
+  ],
+  "invoices": [
+    {
+      "id": "inv_seed_1",
+      "customerId": "cus_seed_3",
+      "subscriptionId": "sub_seed_3",
+      "amountCents": 69000,
+      "currency": "usd",
+      "reason": "signup",
+      "issuedAt": "2026-03-02T00:00:00.000Z"
+    }
+  ]
+}

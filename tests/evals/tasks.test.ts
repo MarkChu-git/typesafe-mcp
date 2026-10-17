@@ -8,6 +8,9 @@ import {
   generate as generateRefundAudit,
   money,
 } from "../../evals/tasks/refund-promises-audit/generate.ts";
+import { generate as generateIncidentLogs } from "../../evals/tasks/incident-logs/generate.ts";
+import { generate as generateScreenshots, HEIGHT, SCREENS, WIDTH } from "../../evals/tasks/screenshot-triage/generate.ts";
+import { imageFormat, readImage } from "../../src/images.ts";
 
 const APPROVAL_WORDS = /approv|signed off|APR-/i;
 const MONEY_BACK = /back|refund|revers|return|credit/i;
@@ -30,8 +33,8 @@ const states = (text: string, cents: number): boolean =>
 
 describe("tasks", () => {
   describe("ALL_TASKS", () => {
-    it("has exactly 5 tasks", () => {
-      expect(ALL_TASKS.length).toBe(5);
+    it("has exactly 11 tasks", () => {
+      expect(ALL_TASKS.length).toBe(11);
     });
 
     it("has unique ids", () => {
@@ -336,6 +339,103 @@ describe("tasks", () => {
     it("every team lead has at least one V ticket", () => {
       const { gold } = generateRefundAudit();
       expect(gold.total_by_lead.length).toBe(4);
+    });
+  });
+
+  describe("incident-logs generator", () => {
+    const task = findTask("incident-logs");
+    if (!task) throw new Error("incident-logs task not found");
+    const root = task.workspaceDir;
+    // Relative paths with `/`, as generate() names them; readdirSync uses `\` on Windows.
+    const listFiles = (): string[] =>
+      readdirSync(root, { recursive: true })
+        .map((entry) => String(entry).split(sep).join("/"))
+        .filter((entry) => statSync(join(root, entry)).isFile())
+        .toSorted();
+
+    it("generate() output equals the workspace files on disk and gold.json", () => {
+      const { files, gold } = generateIncidentLogs();
+      expect(listFiles()).toEqual(Object.keys(files).toSorted());
+      for (const [path, content] of Object.entries(files)) {
+        expect(readFileSync(join(root, path), "utf8")).toBe(content);
+      }
+      expect(task.gold()).toEqual(gold);
+    });
+
+    it("every gold id is an entry in the log", () => {
+      const lines = readFileSync(join(root, "logs/api-2026-10-11.jsonl"), "utf8").trim().split("\n");
+      const ids = new Set(lines.map((line) => (JSON.parse(line) as { id: string }).id));
+      const { ids: gold } = task.gold() as { ids: string[] };
+      expect(gold.filter((id) => !ids.has(id))).toEqual([]);
+    });
+  });
+
+  describe("bug-files scoring", () => {
+    const task = findTask("bug-files");
+    if (!task) throw new Error("bug-files task not found");
+    const score = (files: string[]) => task.score({ files }, task.gold()).score;
+
+    it("accepts the one-file fix as well as all three defects", () => {
+      expect(score(["src/jobs/convertTrials.ts"])).toBe(1);
+      expect(score(["./src/jobs/convertTrials.ts", "src/trials/startTrial.ts"])).toBe(1);
+    });
+
+    it("counts other files as wrong and requires the conversion job", () => {
+      expect(score(["src/jobs/convertTrials.ts", "src/pricing/priceFor.ts"])).toBeLessThan(1);
+      expect(score(["src/trials/startTrial.ts", "src/billing/termLengths.ts"])).toBe(0);
+      expect(score([])).toBe(0);
+    });
+  });
+
+  describe("rename-callers gold", () => {
+    const task = findTask("rename-callers");
+    if (!task) throw new Error("rename-callers task not found");
+
+    it("every gold line holds a call through the name or the alias", () => {
+      const { calls } = task.gold() as { calls: string[] };
+      for (const call of calls) {
+        const at = call.lastIndexOf(":");
+        const line = readFileSync(join(task.workspaceDir, call.slice(0, at)), "utf8").split("\n")[Number(call.slice(at + 1)) - 1];
+        expect(line).toMatch(/\b(formatPrice|fmt)\(/);
+      }
+    });
+  });
+
+  describe("screenshot-triage", () => {
+    const task = findTask("screenshot-triage");
+    if (!task) throw new Error("screenshot-triage task not found");
+    const shots = join(task.workspaceDir, "screenshots");
+
+    it("gold.json is what generate() gives: 9 error pages and 5 that never loaded", () => {
+      const { gold } = generateScreenshots();
+      expect(task.gold()).toEqual(gold);
+      const problems = gold.broken.map((b) => b.problem);
+      expect(problems.filter((p) => p === "error")).toHaveLength(9);
+      expect(problems.filter((p) => p === "loading")).toHaveLength(5);
+    });
+
+    it("the workspace holds one screenshot per page and nothing else, each a PNG Jev can take", () => {
+      expect(readdirSync(task.workspaceDir)).toEqual(["screenshots"]);
+      const files = readdirSync(shots).toSorted();
+      expect(files).toEqual(SCREENS.map((s) => `${s.name}.png`).toSorted());
+      for (const file of files) {
+        const bytes = new Uint8Array(readFileSync(join(shots, file)));
+        expect(imageFormat(bytes)).toBe("png");
+        expect(readImage("png", bytes)).toMatchObject({ width: WIDTH, height: HEIGHT });
+      }
+    });
+
+    it("no file name gives away whether its page broke", () => {
+      for (const { name } of SCREENS) expect(name).not.toMatch(/error|fail|load|broke|spin|500|404|empty|ok/);
+    });
+
+    it("scores each broken page with its problem, whatever path form the answer uses", () => {
+      const gold = task.gold() as { broken: { file: string; problem: string }[] };
+      const score = (broken: { file: string; problem: string }[]) => task.score({ broken }, gold).score;
+      expect(score(gold.broken)).toBe(1);
+      expect(score(gold.broken.map(({ file, problem }) => ({ file: file.replace("screenshots/", "./Screenshots/"), problem })))).toBe(1);
+      expect(score(gold.broken.map(({ file, problem }) => ({ file, problem: problem === "error" ? "loading" : "error" })))).toBe(0);
+      expect(score([])).toBe(0);
     });
   });
 });

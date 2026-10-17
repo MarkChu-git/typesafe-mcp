@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/server";
 import type { ClientDeps } from "./client.ts";
 import { ENV, readConfig, SERVER_NAME, SERVER_VERSION, type ToolName } from "./config.ts";
-import { ASK_INSTRUCTIONS, registerAsk } from "./tools/ask.ts";
+import { askInstructions, registerAsk } from "./tools/ask.ts";
 import { registerCheck } from "./tools/check.ts";
 import { registerClassify } from "./tools/classify.ts";
 import { registerModels } from "./tools/models.ts";
@@ -17,10 +17,10 @@ const REGISTER: Record<ToolName, (server: McpServer, deps: ClientDeps) => void> 
 
 /** Registers the tools named by `TYPESAFE_TOOLS` (default: `jev_ask` only), with instructions when `jev_ask` is one. */
 export function createServer(deps: ClientDeps = {}): McpServer {
-  const { tools, unknownTools } = readConfig(deps.env);
+  const { tools, unknownTools, images } = readConfig(deps.env);
   const server = new McpServer(
     { name: SERVER_NAME, version: SERVER_VERSION },
-    tools.includes("jev_ask") ? { instructions: ASK_INSTRUCTIONS } : {},
+    tools.includes("jev_ask") ? { instructions: askInstructions(images) } : {},
   );
   if (unknownTools.length > 0) {
     console.error(`[typesafe-mcp] ${ENV.tools}: ignoring unknown tools ${unknownTools.join(", ")}`);

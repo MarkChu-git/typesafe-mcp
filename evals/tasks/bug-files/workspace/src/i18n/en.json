@@ -1,0 +1,28 @@
+{
+  "cadence": {
+    "monthly": "monthly",
+    "yearly": "yearly"
+  },
+  "pricingPage": {
+    "toggle": {
+      "monthly": "Pay monthly",
+      "yearly": "Pay yearly (2 months free)"
+    },
+    "trialButton": "Start your 14-day free trial",
+    "intervalLabel": "Billing interval",
+    "annualNote": "Billed once a year",
+    "perMonth": "per month",
+    "perYear": "per year"
+  },
+  "trialEnding": {
+    "subject": "Your {plan} trial ends soon",
+    "body": "Your {plan} trial ends on {date}. Unless you cancel before then, your card will be charged {amount} for the {cadence} term and your plan stays active."
+  },
+  "receipt": {
+    "subject": "Your receipt",
+    "subjectAfterTrial": "Your trial has ended: receipt",
+    "signup": "Thanks for subscribing.",
+    "trial_conversion": "Your trial has ended and your plan is now active.",
+    "renewal": "Your plan has been renewed."
+  }
+}

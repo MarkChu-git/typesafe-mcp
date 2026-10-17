@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Fetch } from "@typesafe-ai/sdk";
+import { sentJson } from "./sent.ts";
 
 export interface RecordedCall {
   url: string;
@@ -42,14 +43,7 @@ export function fakeFetch(routes: Record<string, FixtureResponse | FixtureRespon
   );
   const fetch: Fetch = async (input, init) => {
     const path = toPath(input);
-    let parsedBody: unknown;
-    if (init?.body) {
-      try {
-        parsedBody = typeof init.body === "string" ? JSON.parse(init.body) : init.body;
-      } catch {
-        parsedBody = init.body;
-      }
-    }
+    const parsedBody = await sentJson(init);
     calls.push({ url: input, init, body: parsedBody });
     const q = queues.get(path);
     const fx = q && (q.length > 1 ? q.shift() : q[0]);

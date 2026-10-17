@@ -1,0 +1,20 @@
+{
+  "failures": [
+    {"folder": "account-sends-password-reset-email-firefox", "cause": "environment"},
+    {"folder": "account-stays-signed-in-after-login-firefox", "cause": "environment"},
+    {"folder": "cart-keeps-items-after-reload-chromium", "cause": "environment"},
+    {"folder": "cart-shows-delivery-estimate-in-summary-chromium", "cause": "pr"},
+    {"folder": "cart-summary-matches-snapshot-chromium", "cause": "pr"},
+    {"folder": "checkout-chooses-express-shipping-firefox", "cause": "flaky"},
+    {"folder": "checkout-confirms-order-after-review-chromium", "cause": "flaky"},
+    {"folder": "checkout-guest-completes-purchase-as-a-guest-webkit", "cause": "pr"},
+    {"folder": "checkout-pays-with-gift-card-chromium", "cause": "flaky"},
+    {"folder": "checkout-pays-with-saved-card-chromium", "cause": "pr"},
+    {"folder": "checkout-sends-order-confirmation-email-chromium", "cause": "environment"},
+    {"folder": "checkout-shipping-step-shows-arrival-date-firefox", "cause": "pr"},
+    {"folder": "shipping-quote-responds-for-known-postcode-webkit", "cause": "environment"},
+    {"folder": "shipping-quote-returns-eta-chromium", "cause": "pr"},
+    {"folder": "store-locator-shows-pins-firefox", "cause": "flaky"},
+    {"folder": "support-chat-greeting-after-reconnect-chromium", "cause": "flaky"}
+  ]
+}

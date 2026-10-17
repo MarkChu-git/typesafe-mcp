@@ -9,6 +9,7 @@ import {
   disallowedTools,
   expectedSkills,
   expectedTools,
+  HOUSE_RULE_PROMPT,
   mcpConfig,
   RELEASED_REF,
   SDK_DIRECTED_PROMPT,
@@ -43,6 +44,17 @@ describe("eval arms", () => {
       mcpServers: { jev: { command: "bun", args: ["run", join("/repo", "src", "index.ts")], env: { TYPESAFE_TOOLS: "all" } } },
     });
     expect(expectedTools(ARMS["jev-all"])).toHaveLength(9);
+  });
+
+  test("a task's server env reaches every jev server under the arm's own env, and no server appears for it", () => {
+    const entry = join("/repo", "src", "index.ts");
+    expect(mcpConfig(ARMS.jev, "/repo", undefined, { TYPESAFE_IMAGES: "1" })).toEqual({
+      mcpServers: { jev: { command: "bun", args: ["run", entry], env: { TYPESAFE_IMAGES: "1" } } },
+    });
+    expect(mcpConfig(ARMS["jev-all"], "/repo", undefined, { TYPESAFE_IMAGES: "1", TYPESAFE_TOOLS: "ask" })).toEqual({
+      mcpServers: { jev: { command: "bun", args: ["run", entry], env: { TYPESAFE_IMAGES: "1", TYPESAFE_TOOLS: "all" } } },
+    });
+    expect(mcpConfig(ARMS.baseline, "/repo", undefined, { TYPESAFE_IMAGES: "1" })).toEqual({ mcpServers: {} });
   });
 
   test("the release arm runs the unpacked release and refuses to start without it", () => {
@@ -120,6 +132,20 @@ describe("eval arms", () => {
     expect(arm.extraPrompt).toBeUndefined();
     expect(allowedTools(arm)).toEqual(["mcp__jev", "Bash", "Edit", "Write"]);
     expect(armSettings(arm)).toMatchObject({ sandbox: { enabled: true, network: { allowedDomains: [] } } });
+  });
+
+  test("the rule arms are jev-code and jev-code-deferred plus one line a user wrote in CLAUDE.md or AGENTS.md", () => {
+    const pairs = [
+      ["jev-code-rule", "jev-code"],
+      ["jev-code-deferred-rule", "jev-code-deferred"],
+    ] as const;
+    for (const [id, base] of pairs) {
+      const arm = ARMS[id];
+      expect(expectedTools(arm)).toEqual(expectedTools(ARMS[base]));
+      expect(allowedTools(arm)).toEqual(allowedTools(ARMS[base]));
+      expect(arm.deferred).toBe(ARMS[base].deferred);
+      expect(arm.extraPrompt).toBe(HOUSE_RULE_PROMPT);
+    }
   });
 
   test("the code arm has the SDK arms' coding tools and sandbox but reaches Jev over MCP", () => {
