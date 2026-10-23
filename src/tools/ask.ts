@@ -30,8 +30,12 @@ export const ASK_DESCRIPTION = `Ask Jev, TypeSafe's decision model, typed questi
 /** Added to the description when `TYPESAFE_IMAGES` is on. */
 export const IMAGES_NOTE = `PNG and JPEG files reach Jev as images in \`content\`, ${MIN_SIDE}–${MAX_SIDE} px a side; an unsure image is only counted in \`more_unsure\`.`;
 
-/** Added with `IMAGES_NOTE`, since `box` is a question type only then. TypeSafe's Box has no "not found" answer. */
-export const BOX_NOTE = `A box answer is {top, bottom, left, right}, fractions of height and width from the top-left. Jev always gives a box, never "not found", so ask a noul in the same call whether the target is there.`;
+/**
+ * Added with `IMAGES_NOTE`, since `box` is a question type only then. TypeSafe's Box has no "not found" answer,
+ * and a box for a target the image lacks comes back unsure, so asking every file for every kind of target
+ * leaves each one in `more_unsure`.
+ */
+export const BOX_NOTE = `A box answer is {top, bottom, left, right}, fractions of height and width from the top-left. Jev gives a box even for a missing target, so ask one box per target, only of files known to show it, else pair it with a noul.`;
 
 export const askDescription = (images: boolean): string => (images ? `${ASK_DESCRIPTION} ${IMAGES_NOTE} ${BOX_NOTE}` : ASK_DESCRIPTION);
 

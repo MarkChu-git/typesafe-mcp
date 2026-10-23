@@ -110,7 +110,7 @@ describe("createServer", () => {
     // Each sentence costs every model call its tokens, and only sessions that turn images on pay it.
     expect(IMAGES_INSTRUCTIONS.length).toBeLessThanOrEqual(200);
     expect(IMAGES_NOTE.length).toBeLessThanOrEqual(150);
-    expect(BOX_NOTE.length).toBeLessThanOrEqual(200);
+    expect(BOX_NOTE.length).toBeLessThanOrEqual(220);
     const on = await inProcessClient({ env: { TYPESAFE_API_KEY: "test-key", TYPESAFE_IMAGES: "1" } });
     try {
       expect(on.client.getInstructions()).toBe(`${ASK_INSTRUCTIONS} ${IMAGES_INSTRUCTIONS}`);
@@ -126,11 +126,13 @@ describe("createServer", () => {
     }
   });
 
-  test("the box note says a box always comes back and to ask a noul whether the target is there", () => {
+  test("the box note says a box comes back even for a missing target, so to ask it only of files known to show it", () => {
     expect(BOX_NOTE).toContain("{top, bottom, left, right}");
     expect(BOX_NOTE).toContain("top-left");
-    expect(BOX_NOTE).toContain('never "not found"');
-    expect(BOX_NOTE).toMatch(/noul in the same call whether/);
+    expect(BOX_NOTE).toContain("even for a missing target");
+    // Asking every file for every kind of target leaves each file unsure about the kinds it lacks.
+    expect(BOX_NOTE).toContain("one box per target, only of files known to show it");
+    expect(BOX_NOTE).toContain("else pair it with a noul");
   });
 
   test("box is a question type only with TYPESAFE_IMAGES, so sessions without images pay nothing for it", async () => {
