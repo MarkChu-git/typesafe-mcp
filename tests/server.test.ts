@@ -13,15 +13,19 @@ const listNames = async (env: Record<string, string>): Promise<string[]> => {
   }
 };
 
-/** The question types jev_ask's definition lists, and whether the description of `type` mentions box. */
+/**
+ * The question types jev_ask's definition lists, whether the description of `type` mentions box, and whether
+ * the output schema has a box answer, whose edges are the only `bottom` in it.
+ */
 const typesListed = async (env: Record<string, string>): Promise<unknown> => {
   const { client, close } = await inProcessClient({ env: { TYPESAFE_API_KEY: "test-key", ...env } });
   try {
-    const schema = (await client.listTools()).tools[0]?.inputSchema as unknown as {
+    const [tool] = (await client.listTools()).tools;
+    const schema = tool?.inputSchema as unknown as {
       properties: { questions: { additionalProperties: { properties: { type: { enum: unknown; description: string } } } } };
     };
     const { type } = schema.properties.questions.additionalProperties.properties;
-    return { enum: type.enum, box: type.description.includes("box") };
+    return { enum: type.enum, box: type.description.includes("box"), answer: JSON.stringify(tool?.outputSchema).includes('"bottom"') };
   } finally {
     await close();
   }
@@ -133,9 +137,9 @@ describe("createServer", () => {
     expect(BOX_NOTE).toMatch(/noul in the same call whether/);
   });
 
-  test("box is a question type only with TYPESAFE_IMAGES, so sessions without images pay nothing for it", async () => {
-    expect(await typesListed({ TYPESAFE_IMAGES: "1" })).toEqual({ enum: ["noul", "choice", "score", "box"], box: true });
-    expect(await typesListed({})).toEqual({ enum: ["noul", "choice", "score"], box: false });
+  test("box is a question type and an answer only with TYPESAFE_IMAGES, so sessions without images pay nothing for it", async () => {
+    expect(await typesListed({ TYPESAFE_IMAGES: "1" })).toEqual({ enum: ["noul", "choice", "score", "box"], box: true, answer: true });
+    expect(await typesListed({})).toEqual({ enum: ["noul", "choice", "score"], box: false, answer: false });
   });
 
   test("TYPESAFE_TOOLS takes short or full names in any order and skips unknown ones", async () => {

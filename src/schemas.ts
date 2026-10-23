@@ -279,27 +279,34 @@ export const scoreOutput = z.object({ answer: z.number(), ...gateFields, probabi
 const edge = z.number().min(0).max(1);
 const boxOutput = z.object({ answer: z.object({ top: edge, bottom: edge, left: edge, right: edge }), ...gateFields });
 export const answerSchema = z.union([checkOutput, classifyOutput, scoreOutput, boxOutput]);
-const answersSchema = z.record(z.string(), answerSchema);
-export const askOutput = z.object({
-  /** With `state`: question id → answer. */
-  answers: answersSchema.optional(),
-  /** With `files`: record key → question id → answer; the best `top` in rank order, absent for `counts` alone. */
-  files: z.record(z.string(), answersSchema).optional(),
-  /** With `files` and `where`, `top` or `counts`: how many records were answered. */
-  total: z.number().optional(),
-  /** With `files` and `where`: how many records passed it, before `top` cuts them. */
-  matched: z.number().optional(),
-  /** With `files` and `counts`: question id → answer → how many records gave it. */
-  counts: z.record(z.string(), z.record(z.string(), z.number())).optional(),
-  /** With `files`: record key → its text, for small returned records with a review or abstain answer. */
-  unsure: z.record(z.string(), z.string()).optional(),
-  /** With `files`: how many returned records with a review or abstain answer have no text in `unsure`, being too large or past the call's budget. */
-  more_unsure: z.number().optional(),
-  /** With `files`: record key → why it has no answers, at most 20 of them. */
-  errors: z.record(z.string(), z.string()).optional(),
-  /** With `files`: how many more errors there were than `errors` lists. */
-  more_errors: z.number().optional(),
-});
+
+/** What `jev_ask` returns when its answers take the given shapes. */
+const askOutputOf = <A extends z.ZodType>(answer: A) => {
+  const answersSchema = z.record(z.string(), answer);
+  return z.object({
+    /** With `state`: question id → answer. */
+    answers: answersSchema.optional(),
+    /** With `files`: record key → question id → answer; the best `top` in rank order, absent for `counts` alone. */
+    files: z.record(z.string(), answersSchema).optional(),
+    /** With `files` and `where`, `top` or `counts`: how many records were answered. */
+    total: z.number().optional(),
+    /** With `files` and `where`: how many records passed it, before `top` cuts them. */
+    matched: z.number().optional(),
+    /** With `files` and `counts`: question id → answer → how many records gave it. */
+    counts: z.record(z.string(), z.record(z.string(), z.number())).optional(),
+    /** With `files`: record key → its text, for small returned records with a review or abstain answer. */
+    unsure: z.record(z.string(), z.string()).optional(),
+    /** With `files`: how many returned records with a review or abstain answer have no text in `unsure`, being too large or past the call's budget. */
+    more_unsure: z.number().optional(),
+    /** With `files`: record key → why it has no answers, at most 20 of them. */
+    errors: z.record(z.string(), z.string()).optional(),
+    /** With `files`: how many more errors there were than `errors` lists. */
+    more_errors: z.number().optional(),
+  });
+};
+/** Without a box answer, which only images give: with them off, `jev_ask` lists the output it had before Box. */
+export const askOutput = askOutputOf(z.union([checkOutput, classifyOutput, scoreOutput]));
+export const askImagesOutput = askOutputOf(answerSchema);
 
 export const modelsOutput = z.object({
   models: z.array(

@@ -10,7 +10,7 @@ import { MAX_SIDE, MIN_SIDE } from "../images.ts";
 import { buildQuestions, hasBox, takesBox, toState, type JevQuestions } from "../questions.ts";
 import { isPiece, MAX_RECORDS, splitFile, textOf, type ImagePiece, type Part, type Piece } from "../records.ts";
 import { ok } from "../result.ts";
-import { askImagesInput, askInput, askOutput, parseTop, parseWhere, type AskInput } from "../schemas.ts";
+import { askImagesInput, askImagesOutput, askInput, askOutput, parseTop, parseWhere, type AskInput } from "../schemas.ts";
 
 /**
  * Server instructions: hosts show them even while tool definitions are deferred, so they carry when to
@@ -162,7 +162,7 @@ export function registerAsk(server: McpServer, deps: ClientDeps = {}): void {
       title: "Ask Jev",
       description: askDescription(images),
       inputSchema: images ? askImagesInput : askInput,
-      outputSchema: askOutput,
+      outputSchema: images ? askImagesOutput : askOutput,
       annotations: { readOnlyHint: true, idempotentHint: true },
     },
     async (input, ctx) => {
@@ -179,7 +179,7 @@ export function registerAsk(server: McpServer, deps: ClientDeps = {}): void {
           const answers = Object.fromEntries(
             Object.entries(res.answers).map(([id, a]) => [id, toAnswer(a, thresholds, input.detailed)]),
           );
-          return ok(askOutput.parse({ answers }), { model: res.model, usage: res.usage, thresholds });
+          return ok(askImagesOutput.parse({ answers }), { model: res.model, usage: res.usage, thresholds });
         }
 
         const mode = input.items ?? "file";
@@ -210,7 +210,7 @@ export function registerAsk(server: McpServer, deps: ClientDeps = {}): void {
         const usage = answered.reduce<Usage>((u, r) => addUsage(u, r.usage), { input_tokens: 0, output_tokens: 0 });
         const selection = select(answered);
         const unsure = unsureTexts(selection.files, textsOf(parts));
-        return ok(askOutput.parse({ ...selection, ...unsure, ...capErrors(problems) }), {
+        return ok(askImagesOutput.parse({ ...selection, ...unsure, ...capErrors(problems) }), {
           model: answered[0]?.model ?? "",
           usage,
           thresholds,
