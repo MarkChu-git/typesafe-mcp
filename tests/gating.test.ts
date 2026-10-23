@@ -73,6 +73,23 @@ describe("toAnswer", () => {
     expect(toAnswer({ type: "noul", noul: 0.91234 }, defaults, true)).toMatchObject({ probability: 0.912 });
     expect(toAnswer(choice(0.9), defaults, true)).toMatchObject({ probabilities: { a: 0.612, b: 0.388 } });
   });
+
+  test("box: answer is the four edges, and the decision is taken on its confidence", () => {
+    const edges = { top: 0.4, bottom: 0.46, left: 0.74, right: 0.81 };
+    expect(toAnswer({ type: "box", box: edges, confidence: 0.91 }, defaults)).toEqual({ answer: edges, certainty: 0.91, decision: "act" });
+    expect(toAnswer({ type: "box", box: edges, confidence: 0.799 }, defaults)).toMatchObject({ certainty: 0.79, decision: "review" });
+    expect(toAnswer({ type: "box", box: edges, confidence: 0.3 }, defaults, true)).toEqual({ answer: edges, certainty: 0.3, decision: "abstain" });
+  });
+
+  test("box: a box without a confidence is never acted on", () => {
+    const edges = { top: 0.1, bottom: 0.2, left: 0.3, right: 0.4 };
+    expect(toAnswer({ type: "box", box: edges, confidence: null }, defaults)).toEqual({ answer: edges, certainty: 0, decision: "abstain" });
+  });
+
+  test("box: edges are rounded to 3 decimals and kept inside the image", () => {
+    const a = { type: "box" as const, box: { top: -0.002, bottom: 0.123456, left: 0.5, right: 1.0004 }, confidence: 0.9 };
+    expect(toAnswer(a, defaults).answer).toEqual({ top: 0, bottom: 0.123, left: 0.5, right: 1 });
+  });
 });
 
 describe("round", () => {

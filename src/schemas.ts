@@ -1,4 +1,5 @@
 import * as z from "zod/v4";
+import { ENV } from "./config.ts";
 
 // Input schemas become the tool definitions an agent reads on every model call, so descriptions
 // live in one place (the tool description or a single field) and nested values stay untyped.
@@ -56,35 +57,53 @@ export const refineThresholds = (
 const commonFields = { detailed: detailedField, model: modelField, ...thresholdsFields };
 
 export const QUESTION_TYPES = ["noul", "choice", "score"] as const;
+/** With `TYPESAFE_IMAGES` on, also `box`, which needs an image. */
+const IMAGE_QUESTION_TYPES = [...QUESTION_TYPES, "box"] as const;
+type QuestionType = (typeof IMAGE_QUESTION_TYPES)[number];
 
-/** The field each type requires; the other type-specific fields are rejected. */
-const TYPE_FIELD = { noul: "criteria", choice: "options", score: "levels" } as const;
+/** The field each type requires; the other type-specific fields are rejected, and a box takes none of them. */
+const TYPE_FIELD: Record<QuestionType, "criteria" | "options" | "levels" | undefined> = {
+  noul: "criteria",
+  choice: "options",
+  score: "levels",
+  box: undefined,
+};
+const FIELDS = ["criteria", "options", "levels"] as const;
 const REQUIRED = new Set(["options", "levels"]);
 
+const TYPE_HELP = "noul: yes/no; one per label when several can apply. choice: pick one key of options. score: rate on levels.";
+
+/** zod would list the types it takes; a box asked with images off gets the switch that turns them on instead. */
+const boxNeedsImages = (issue: { input?: unknown }): string | undefined =>
+  issue.input === "box" ? `box needs images: set ${ENV.images}=1 in the server env` : undefined;
+
 /** One flat object instead of a union, so the agent reads `question` and its guidance once. */
-export const askQuestionSchema = z
-  .strictObject({
-    type: z
-      .enum(QUESTION_TYPES)
-      .describe("noul: yes/no; one per label when several can apply. choice: pick one key of options. score: rate on levels."),
-    question: questionSchema,
-    options: optionsSchema
-      .optional()
-      .describe("choice only. Label → rubric or null, 2–255 labels. Add a none label if nothing may fit."),
-    levels: levelsSchema.optional().describe("score only. Rubric per level, index 0 first, 2–10 levels."),
-    criteria: criteriaSchema.optional().describe("noul only. What yes and no mean."),
-  })
-  .superRefine((q, ctx) => {
-    for (const field of Object.values(TYPE_FIELD)) {
-      const own = TYPE_FIELD[q.type] === field;
-      const present = q[field] !== undefined;
-      if (own && !present && REQUIRED.has(field)) {
-        ctx.addIssue({ code: "custom", path: [field], message: `required when type is ${q.type}` });
-      } else if (!own && present) {
-        ctx.addIssue({ code: "custom", path: [field], message: `not used when type is ${q.type}` });
+const askQuestionOf = (types: readonly [QuestionType, ...QuestionType[]], help: string) =>
+  z
+    .strictObject({
+      type: z.enum(types, { error: boxNeedsImages }).describe(help),
+      question: questionSchema,
+      options: optionsSchema
+        .optional()
+        .describe("choice only. Label → rubric or null, 2–255 labels. Add a none label if nothing may fit."),
+      levels: levelsSchema.optional().describe("score only. Rubric per level, index 0 first, 2–10 levels."),
+      criteria: criteriaSchema.optional().describe("noul only. What yes and no mean."),
+    })
+    .superRefine((q, ctx) => {
+      for (const field of FIELDS) {
+        const own = TYPE_FIELD[q.type] === field;
+        const present = q[field] !== undefined;
+        if (own && !present && REQUIRED.has(field)) {
+          ctx.addIssue({ code: "custom", path: [field], message: `required when type is ${q.type}` });
+        } else if (!own && present) {
+          ctx.addIssue({ code: "custom", path: [field], message: `not used when type is ${q.type}` });
+        }
       }
-    }
-  });
+    });
+
+export const askQuestionSchema = askQuestionOf(QUESTION_TYPES, TYPE_HELP);
+/** Only sessions with images on read `box` in the tool definition, so the others pay no tokens for it. */
+const askImageQuestionSchema = askQuestionOf(IMAGE_QUESTION_TYPES, `${TYPE_HELP} box: locate it in the image.`);
 
 export const decisionSchema = z.enum(["act", "review", "abstain"]);
 
@@ -191,34 +210,46 @@ export const countsSchema = z
 /** What a `files` call adds to the question: how to split the files and which answers to keep. */
 const FILES_ONLY = ["items", "where", "top", "counts"] as const;
 
-export const askInput = z
-  .strictObject({
-    state: stateSchema.optional(),
-    files: filesSchema.optional(),
-    context: contextSchema.optional(),
-    items: itemsSchema.optional(),
-    where: whereSchema.optional(),
-    top: topSchema.optional(),
-    counts: countsSchema.optional(),
-    questions: z
-      .record(z.string(), askQuestionSchema)
-      .refine((q) => Object.keys(q).length >= 1, "at least one question is required")
-      .describe("Your ids → questions. One request answers them all."),
-    ...commonFields,
-  })
-  .superRefine((v, ctx) => {
-    refineThresholds(v, ctx);
-    if ((v.state === undefined) === (v.files === undefined)) {
-      ctx.addIssue({ code: "custom", path: ["state"], message: "give exactly one of state or files" });
-    }
-    if (v.context !== undefined && v.files === undefined) {
-      ctx.addIssue({ code: "custom", path: ["context"], message: "context is only used with files" });
-    }
-    const stray = FILES_ONLY.find((field) => v[field] !== undefined);
-    if (stray !== undefined && v.files === undefined) {
-      ctx.addIssue({ code: "custom", path: [stray], message: "items, where, top and counts are only used with files" });
-    }
-  });
+const askInputOf = (question: typeof askQuestionSchema) =>
+  z
+    .strictObject({
+      state: stateSchema.optional(),
+      files: filesSchema.optional(),
+      context: contextSchema.optional(),
+      items: itemsSchema.optional(),
+      where: whereSchema.optional(),
+      top: topSchema.optional(),
+      counts: countsSchema.optional(),
+      questions: z
+        .record(z.string(), question)
+        .refine((q) => Object.keys(q).length >= 1, "at least one question is required")
+        .describe("Your ids → questions. One request answers them all."),
+      ...commonFields,
+    })
+    .superRefine((v, ctx) => {
+      refineThresholds(v, ctx);
+      if ((v.state === undefined) === (v.files === undefined)) {
+        ctx.addIssue({ code: "custom", path: ["state"], message: "give exactly one of state or files" });
+      }
+      if (v.context !== undefined && v.files === undefined) {
+        ctx.addIssue({ code: "custom", path: ["context"], message: "context is only used with files" });
+      }
+      const stray = FILES_ONLY.find((field) => v[field] !== undefined);
+      if (stray !== undefined && v.files === undefined) {
+        ctx.addIssue({ code: "custom", path: [stray], message: "items, where, top and counts are only used with files" });
+      }
+      // Only files reach Jev as images; state is text or JSON.
+      if (v.state === undefined) return;
+      for (const [id, q] of Object.entries(v.questions)) {
+        if (q.type === "box") {
+          ctx.addIssue({ code: "custom", path: ["questions", id], message: "box needs an image, so pass PNG or JPEG files in files instead of state" });
+        }
+      }
+    });
+
+export const askInput = askInputOf(askQuestionSchema);
+/** `jev_ask`'s input with `TYPESAFE_IMAGES` on: questions may also be `box`. */
+export const askImagesInput = askInputOf(askImageQuestionSchema);
 
 export const checkInput = z
   .strictObject({ state: stateSchema, question: questionSchema, criteria: criteriaSchema.optional(), ...commonFields })
@@ -244,28 +275,38 @@ export const checkOutput = z.object({
 });
 export const classifyOutput = z.object({ answer: z.string(), ...gateFields, probabilities: distribution });
 export const scoreOutput = z.object({ answer: z.number(), ...gateFields, probabilities: distribution });
-export const answerSchema = z.union([checkOutput, classifyOutput, scoreOutput]);
-const answersSchema = z.record(z.string(), answerSchema);
-export const askOutput = z.object({
-  /** With `state`: question id → answer. */
-  answers: answersSchema.optional(),
-  /** With `files`: record key → question id → answer; the best `top` in rank order, absent for `counts` alone. */
-  files: z.record(z.string(), answersSchema).optional(),
-  /** With `files` and `where`, `top` or `counts`: how many records were answered. */
-  total: z.number().optional(),
-  /** With `files` and `where`: how many records passed it, before `top` cuts them. */
-  matched: z.number().optional(),
-  /** With `files` and `counts`: question id → answer → how many records gave it. */
-  counts: z.record(z.string(), z.record(z.string(), z.number())).optional(),
-  /** With `files`: record key → its text, for small returned records with a review or abstain answer. */
-  unsure: z.record(z.string(), z.string()).optional(),
-  /** With `files`: how many returned records with a review or abstain answer have no text in `unsure`, being too large or past the call's budget. */
-  more_unsure: z.number().optional(),
-  /** With `files`: record key → why it has no answers, at most 20 of them. */
-  errors: z.record(z.string(), z.string()).optional(),
-  /** With `files`: how many more errors there were than `errors` lists. */
-  more_errors: z.number().optional(),
-});
+/** Each edge is a fraction of the image's height (top, bottom) or width (left, right), measured from its top-left corner. */
+const edge = z.number().min(0).max(1);
+const boxOutput = z.object({ answer: z.object({ top: edge, bottom: edge, left: edge, right: edge }), ...gateFields });
+export const answerSchema = z.union([checkOutput, classifyOutput, scoreOutput, boxOutput]);
+
+/** What `jev_ask` returns when its answers take the given shapes. */
+const askOutputOf = <A extends z.ZodType>(answer: A) => {
+  const answersSchema = z.record(z.string(), answer);
+  return z.object({
+    /** With `state`: question id → answer. */
+    answers: answersSchema.optional(),
+    /** With `files`: record key → question id → answer; the best `top` in rank order, absent for `counts` alone. */
+    files: z.record(z.string(), answersSchema).optional(),
+    /** With `files` and `where`, `top` or `counts`: how many records were answered. */
+    total: z.number().optional(),
+    /** With `files` and `where`: how many records passed it, before `top` cuts them. */
+    matched: z.number().optional(),
+    /** With `files` and `counts`: question id → answer → how many records gave it. */
+    counts: z.record(z.string(), z.record(z.string(), z.number())).optional(),
+    /** With `files`: record key → its text, for small returned records with a review or abstain answer. */
+    unsure: z.record(z.string(), z.string()).optional(),
+    /** With `files`: how many returned records with a review or abstain answer have no text in `unsure`, being too large or past the call's budget. */
+    more_unsure: z.number().optional(),
+    /** With `files`: record key → why it has no answers, at most 20 of them. */
+    errors: z.record(z.string(), z.string()).optional(),
+    /** With `files`: how many more errors there were than `errors` lists. */
+    more_errors: z.number().optional(),
+  });
+};
+/** Without a box answer, which only images give: with them off, `jev_ask` lists the output it had before Box. */
+export const askOutput = askOutputOf(z.union([checkOutput, classifyOutput, scoreOutput]));
+export const askImagesOutput = askOutputOf(answerSchema);
 
 export const modelsOutput = z.object({
   models: z.array(

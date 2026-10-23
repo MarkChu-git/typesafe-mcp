@@ -65,6 +65,7 @@
     "knip": "^6.40.0",
     "oxlint": "^1.83.0",
     "oxlint-tsgolint": "^7.0.2003",
+    "playwright-core": "^1.64.1",
     "typescript": "^7.0.2"
   }
 }

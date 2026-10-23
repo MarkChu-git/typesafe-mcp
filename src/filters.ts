@@ -1,4 +1,4 @@
-import type { ChoiceResponse, NoulResponse, ScoreResponse } from "@typesafe-ai/sdk";
+import type { BoxResponse, ChoiceResponse, NoulResponse, ScoreResponse } from "@typesafe-ai/sdk";
 import { FilesError } from "./errors.ts";
 import { ANY_OF, type AskInput, type AskQuestion, type Conditions, type JevAnswer, type Top, type Where } from "./schemas.ts";
 
@@ -14,7 +14,7 @@ export interface QuestionInfo {
 export type QuestionTypes = Readonly<Record<string, QuestionInfo>>;
 
 /** Jev's answer before rounding: `top` ranks by the exact probability or level. */
-export type RawAnswer = NoulResponse | ChoiceResponse | ScoreResponse;
+export type RawAnswer = NoulResponse | ChoiceResponse | ScoreResponse | BoxResponse;
 
 /** One record Jev answered. */
 export interface Answered {
@@ -55,7 +55,7 @@ const infoOf = (types: QuestionTypes, id: string): QuestionInfo | undefined => (
 /** `path` names the condition as the agent wrote it, e.g. `where.urgent` or `where.$or.1.urgent`. */
 const whereError = (path: string, message: string): FilesError => new FilesError(`${path}: ${message}`);
 
-const TAKES: Record<QuestionType, string> = { noul: "true or false", choice: "an option label", score: "min and max" };
+const TAKES: Record<QuestionType, string> = { noul: "true or false", choice: "an option label", score: "min and max", box: "only decision" };
 
 /** The noul description calls its answers yes and no, so agents write those as often as true and false. */
 const YES_NO = new Map([
@@ -82,6 +82,10 @@ function compileCondition(path: string, id: string, info: QuestionInfo | undefin
   if (info === undefined) throw whereError(path, "unknown question id");
   const { type, labels } = info;
   const { is, min, max, decision } = conditionOf(condition);
+  // A box's answer is four edges, which no value or range describes.
+  if (type === "box" && (is !== undefined || min !== undefined || max !== undefined)) {
+    throw whereError(path, `a box question takes ${TAKES.box}`);
+  }
   const checks: ((answer: JevAnswer) => boolean)[] = [];
   if (is !== undefined) {
     const wanted = type === "noul" ? [is].flat().map(asNoul) : [is].flat();
@@ -143,7 +147,7 @@ function compileTop(top: Top, types: QuestionTypes): (records: readonly Answered
   for (const [id, weight] of weights) {
     const type = infoOf(types, id)?.type;
     if (type === undefined) throw new FilesError(`top: ${id} is not a question id`);
-    if (type === "choice") throw new FilesError(`top: ${id} is a choice question; rank by a score or noul`);
+    if (type === "choice" || type === "box") throw new FilesError(`top: ${id} is a ${type} question; rank by a score or noul`);
     if (!Number.isFinite(weight)) throw new FilesError(`top: the weight of ${id} must be a finite number`);
   }
   const valueOf = (record: Answered): number => weights.reduce((sum, [id, weight]) => sum + weight * level(record.raw[id]), 0);
@@ -155,16 +159,22 @@ function compileTop(top: Top, types: QuestionTypes): (records: readonly Answered
       .map(({ record }) => record);
 }
 
-/** How many records gave each answer; a score counts under its nearest level. */
+/** What `counts` tallies an answer under: a box's decision, its edges being no value to count, a score's nearest level, else the answer. */
+function tallyKey(type: QuestionType, { answer, decision }: JevAnswer): string {
+  if (typeof answer === "object") return decision;
+  return String(type === "score" && typeof answer === "number" ? Math.round(answer) : answer);
+}
+
+/** How many records gave each answer; a score counts under its nearest level and a box under its decision. */
 function tally(records: readonly Answered[], types: QuestionTypes): Record<string, Record<string, number>> {
   return Object.fromEntries(
     Object.entries(types).map(([id, { type }]) => {
       const counts = new Map<string, number>();
       for (const record of records) {
-        const answer = record.answers[id]?.answer;
+        const answer = record.answers[id];
         if (answer === undefined) continue;
-        const value = type === "score" && typeof answer === "number" ? Math.round(answer) : answer;
-        counts.set(String(value), (counts.get(String(value)) ?? 0) + 1);
+        const key = tallyKey(type, answer);
+        counts.set(key, (counts.get(key) ?? 0) + 1);
       }
       return [id, Object.fromEntries(counts)];
     }),

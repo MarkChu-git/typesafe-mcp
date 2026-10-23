@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   buildQuestions,
+  takesBox,
   toChoiceQuestion,
   toNoulQuestion,
   toScoreQuestion,
@@ -55,7 +56,27 @@ describe("toSdkQuestion / buildQuestions", () => {
       question: "Team?",
       options: { a: "A desc", b: null },
     });
-    expect(q.instructions).toBe("Team?");
-    expect(q.criteria).toEqual({ a: "A desc", b: null });
+    expect(q).toEqual({ type: "choice", instructions: "Team?", criteria: { a: "A desc", b: null } });
+  });
+
+  test("a box question sends what to find as its instructions, and nothing else", () => {
+    expect(toSdkQuestion({ type: "box", question: "the Checkout button in `content`" })).toEqual({
+      type: "box",
+      instructions: "the Checkout button in `content`",
+    });
+  });
+});
+
+describe("takesBox", () => {
+  test("Jev versions before 1.14 do not take box questions", () => {
+    for (const model of ["jev-1.13.0", "jev-1.9.2", "jev-0.20.0", "JEV-1.13.0", " jev-1.13 "]) {
+      expect(takesBox(model)).toBe(false);
+    }
+  });
+
+  test("1.14 and later, and names without a version, go to the API", () => {
+    for (const model of ["jev-1.14.0", "jev-1.14.3", "jev-1.20.0", "jev-2.0.0", "jev-latest", "jev-preview"]) {
+      expect(takesBox(model)).toBe(true);
+    }
   });
 });

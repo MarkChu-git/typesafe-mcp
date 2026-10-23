@@ -87,4 +87,46 @@ describe.skipIf(!apiKey)("live TypeSafe API", () => {
     },
     30_000,
   );
+
+  test(
+    "with TYPESAFE_IMAGES, a box question finds a red square in a PNG",
+    async () => {
+      const root = mkdtempSync(join(tmpdir(), "live-box-"));
+      mkdirSync(join(root, "shots"));
+      // 800×600, the square 160 px a side at (200, 100): top .167, bottom .433, left .25, right .45.
+      const square = { left: 200, top: 100, width: 160, height: 160, rgb: [220, 30, 30] as const };
+      writeFileSync(join(root, "shots", "square.png"), png(800, 600, { rect: square }));
+      const { client, close } = await inProcessClient({
+        env: { TYPESAFE_API_KEY: apiKey, TYPESAFE_FILES_ROOT: root, TYPESAFE_IMAGES: "1" },
+      });
+      try {
+        const r = await client.callTool({
+          name: "jev_ask",
+          arguments: {
+            files: "shots/square.png",
+            questions: {
+              there: { type: "noul", question: "Is there a red square in `content`?" },
+              square: { type: "box", question: "the red square in `content`" },
+            },
+          },
+        });
+        expect(r.isError).toBeFalsy();
+        type Edges = { top: number; bottom: number; left: number; right: number };
+        const sc = r.structuredContent as { files: Record<string, { there: { answer: boolean }; square: { answer: Edges; certainty: number } }> };
+        const answers = sc.files["shots/square.png"];
+        if (!answers) throw new Error("no answers for shots/square.png");
+        expect(answers.there.answer).toBe(true);
+        // Within 0.05 of each true edge: 30–40 px here.
+        expect(answers.square.answer.top).toBeCloseTo(100 / 600, 1);
+        expect(answers.square.answer.bottom).toBeCloseTo(260 / 600, 1);
+        expect(answers.square.answer.left).toBeCloseTo(200 / 800, 1);
+        expect(answers.square.answer.right).toBeCloseTo(360 / 800, 1);
+        expect(answers.square.certainty).toBeGreaterThan(0);
+      } finally {
+        await close();
+        rmSync(root, { recursive: true, force: true });
+      }
+    },
+    30_000,
+  );
 });

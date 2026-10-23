@@ -7,10 +7,10 @@ import { capErrors, MAX_UNSURE_BYTES, selector, typesOf, unsureTexts, type Answe
 import { filesRoots, MAX_FILE_BYTES, MAX_SPLIT_FILE_BYTES, selectFiles, shown } from "../files.ts";
 import { ANSWER_NOTE, thresholdsFrom, toAnswer, type Thresholds } from "../gating.ts";
 import { MAX_SIDE, MIN_SIDE } from "../images.ts";
-import { buildQuestions, toState, type JevQuestions } from "../questions.ts";
+import { buildQuestions, hasBox, takesBox, toState, type JevQuestions } from "../questions.ts";
 import { isPiece, MAX_RECORDS, splitFile, textOf, type ImagePiece, type Part, type Piece } from "../records.ts";
 import { ok } from "../result.ts";
-import { askInput, askOutput, parseTop, parseWhere, type AskInput } from "../schemas.ts";
+import { askImagesInput, askImagesOutput, askInput, askOutput, parseTop, parseWhere, type AskInput } from "../schemas.ts";
 
 /**
  * Server instructions: hosts show them even while tool definitions are deferred, so they carry when to
@@ -30,10 +30,24 @@ export const ASK_DESCRIPTION = `Ask Jev, TypeSafe's decision model, typed questi
 /** Added to the description when `TYPESAFE_IMAGES` is on. */
 export const IMAGES_NOTE = `PNG and JPEG files reach Jev as images in \`content\`, ${MIN_SIDE}–${MAX_SIDE} px a side; an unsure image is only counted in \`more_unsure\`.`;
 
-export const askDescription = (images: boolean): string => (images ? `${ASK_DESCRIPTION} ${IMAGES_NOTE}` : ASK_DESCRIPTION);
+/** Added with `IMAGES_NOTE`, since `box` is a question type only then. TypeSafe's Box has no "not found" answer. */
+export const BOX_NOTE = `A box answer is {top, bottom, left, right}, fractions of height and width from the top-left. Jev always gives a box, never "not found", so ask a noul in the same call whether the target is there.`;
 
-/** TypeSafe's opt-in for a request that carries an image, which it still calls experimental. */
+export const askDescription = (images: boolean): string => (images ? `${ASK_DESCRIPTION} ${IMAGES_NOTE} ${BOX_NOTE}` : ASK_DESCRIPTION);
+
+/** TypeSafe's opt-in for a request that carries an image or a box question, which it still calls experimental. */
 const IMAGES_HEADER = { "TypeSafe-Danger-Zone-Images": "true" };
+
+/** Why a text record in a call with a box question is not sent. */
+const BOX_ON_TEXT = "text; box questions need a PNG or JPEG image";
+
+/** Jev before 1.14 answers a box question with a bare 400 "Invalid request.", so the call fails first, naming a model that takes it. */
+function checkBoxModel(asked: string | undefined, defaultModel: string): void {
+  const model = asked ?? defaultModel;
+  if (takesBox(model)) return;
+  const which = asked === undefined ? `${model} (the server's default model)` : model;
+  throw new FilesError(`box questions need Jev 1.14 or later, not ${which}; pass model "jev-1.14.0"`);
+}
 
 /** Jev requests in flight at once for a `files` call. */
 const REQUEST_CONCURRENCY = 8;
@@ -92,6 +106,7 @@ async function askRecords(
   signal: AbortSignal,
 ): Promise<Outcome[]> {
   let rejectedKey: unknown;
+  const boxes = hasBox(questions);
   return mapLimit(parts, REQUEST_CONCURRENCY, async (part): Promise<Outcome> => {
     if (!isPiece(part)) return part;
     if (signal.aborted) return { key: part.key, error: signal.reason };
@@ -104,7 +119,7 @@ async function askRecords(
     try {
       const res = await client.systemOne(
         { state, questions, ...(input.model ? { model: input.model } : {}) },
-        { signal, ...("image" in part ? { headers: IMAGES_HEADER } : {}) },
+        { signal, ...("image" in part || boxes ? { headers: IMAGES_HEADER } : {}) },
       );
       const answers = Object.fromEntries(
         Object.entries(res.answers).map(([id, a]) => [id, toAnswer(a, thresholds, input.detailed)]),
@@ -140,14 +155,14 @@ function problemOf(outcome: Outcome): [string, string][] {
 }
 
 export function registerAsk(server: McpServer, deps: ClientDeps = {}): void {
-  const { images } = readConfig(deps.env);
+  const { images, defaultModel } = readConfig(deps.env);
   server.registerTool(
     "jev_ask",
     {
       title: "Ask Jev",
       description: askDescription(images),
-      inputSchema: askInput,
-      outputSchema: askOutput,
+      inputSchema: images ? askImagesInput : askInput,
+      outputSchema: images ? askImagesOutput : askOutput,
       annotations: { readOnlyHint: true, idempotentHint: true },
     },
     async (input, ctx) => {
@@ -164,7 +179,7 @@ export function registerAsk(server: McpServer, deps: ClientDeps = {}): void {
           const answers = Object.fromEntries(
             Object.entries(res.answers).map(([id, a]) => [id, toAnswer(a, thresholds, input.detailed)]),
           );
-          return ok(askOutput.parse({ answers }), { model: res.model, usage: res.usage, thresholds });
+          return ok(askImagesOutput.parse({ answers }), { model: res.model, usage: res.usage, thresholds });
         }
 
         const mode = input.items ?? "file";
@@ -172,11 +187,15 @@ export function registerAsk(server: McpServer, deps: ClientDeps = {}): void {
         const where = input.where === undefined ? undefined : parseWhere(input.where);
         const top = input.top === undefined ? undefined : parseTop(input.top);
         const select = selector({ where, top, counts: input.counts }, typesOf(input.questions));
+        const boxes = hasBox(input.questions);
+        if (boxes) checkBoxModel(input.model, defaultModel);
         const patterns = typeof input.files === "string" ? [input.files] : input.files;
         const roots = await filesRoots(deps.env ?? process.env, () => listClientRoots(server), deps.cwd ?? process.cwd());
         const maxBytes = mode === "file" ? MAX_FILE_BYTES : MAX_SPLIT_FILE_BYTES;
         const { items, skipped } = await selectFiles(patterns, roots, maxBytes, images);
-        const parts = items.flatMap((item) => splitFile(item, mode));
+        const parts = items
+          .flatMap((item) => splitFile(item, mode))
+          .map((part): Part => (boxes && isPiece(part) && !("image" in part) ? { key: part.key, reason: BOX_ON_TEXT } : part));
         const records = parts.filter(isPiece).length;
         if (records > MAX_RECORDS) {
           throw new FilesError(`${shown(patterns)} give ${records} records; the limit is ${MAX_RECORDS} per call, so narrow the pattern`);
@@ -191,7 +210,7 @@ export function registerAsk(server: McpServer, deps: ClientDeps = {}): void {
         const usage = answered.reduce<Usage>((u, r) => addUsage(u, r.usage), { input_tokens: 0, output_tokens: 0 });
         const selection = select(answered);
         const unsure = unsureTexts(selection.files, textsOf(parts));
-        return ok(askOutput.parse({ ...selection, ...unsure, ...capErrors(problems) }), {
+        return ok(askImagesOutput.parse({ ...selection, ...unsure, ...capErrors(problems) }), {
           model: answered[0]?.model ?? "",
           usage,
           thresholds,

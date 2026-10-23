@@ -18,8 +18,10 @@ export interface EvalTask<A extends Record<string, unknown>> {
   title: string;
   category: TaskCategory;
   split: Split;
-  /** Absolute task directory holding `workspace/`, `gold.json` and (after human review) `REVIEW.md`. */
+  /** Absolute task directory holding `gold.json`, (after human review) `REVIEW.md` and, unless `workspace` names another, `workspace/`. */
   dir: string;
+  /** Absolute directory the agent works in, for a task that reuses another task's `workspace/`; defaults to its own. */
+  workspace?: string;
   /** User prompt for `claude -p`. Must tell the agent to return the answer as structured output. */
   prompt: string;
   /** Env for the jev server of every arm that has one, such as a switch the task needs; an arm's own env wins. */
@@ -61,7 +63,7 @@ export function defineTask<A extends Record<string, unknown>>(task: EvalTask<A>)
     dir: task.dir,
     prompt: task.prompt,
     ...(task.serverEnv ? { serverEnv: task.serverEnv } : {}),
-    workspaceDir: join(task.dir, "workspace"),
+    workspaceDir: task.workspace ?? join(task.dir, "workspace"),
     reviewed: existsSync(join(task.dir, "REVIEW.md")),
     jsonSchema() {
       const schema = z.toJSONSchema(task.answer) as Record<string, unknown>;

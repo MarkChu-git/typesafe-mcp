@@ -18,13 +18,31 @@ const concat = (parts: readonly Uint8Array[]): Uint8Array => {
   return out;
 };
 
-/** A valid PNG filled with one color; `animated` adds the `acTL` chunk that makes it an animated PNG. */
-export function png(width: number, height: number, options: { rgb?: readonly [number, number, number]; animated?: boolean } = {}): Uint8Array {
+type Rgb = readonly [number, number, number];
+
+/** A rectangle of pixels, in px from the top-left corner. */
+interface Rect {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  rgb: Rgb;
+}
+
+const inside = (rect: Rect, x: number, y: number): boolean =>
+  x >= rect.left && x < rect.left + rect.width && y >= rect.top && y < rect.top + rect.height;
+
+/**
+ * A valid PNG filled with one color; `rect` paints a rectangle of another color on it, and `animated`
+ * adds the `acTL` chunk that makes it an animated PNG.
+ */
+export function png(width: number, height: number, options: { rgb?: Rgb; rect?: Rect; animated?: boolean } = {}): Uint8Array {
   const rgb = options.rgb ?? [255, 255, 255];
+  const { rect } = options;
   const stride = 1 + width * 3;
   const raw = new Uint8Array(height * stride);
   for (let y = 0; y < height; y += 1) {
-    for (let x = 0; x < width; x += 1) raw.set(rgb, y * stride + 1 + x * 3);
+    for (let x = 0; x < width; x += 1) raw.set(rect && inside(rect, x, y) ? rect.rgb : rgb, y * stride + 1 + x * 3);
   }
   return concat([
     Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),

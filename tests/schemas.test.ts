@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { askInput, checkInput, classifyInput, modelsInput, scoreInput, stateSchema } from "../src/schemas.ts";
+import { askImagesInput, askInput, checkInput, classifyInput, modelsInput, scoreInput, stateSchema } from "../src/schemas.ts";
 
-const askIssues = (questions: Record<string, unknown>): string[] => {
-  const parsed = askInput.safeParse({ state: "Help!", questions });
-  return parsed.success ? [] : parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`);
-};
+const issuesOf = (parsed: ReturnType<typeof askInput.safeParse>): string[] =>
+  parsed.success ? [] : parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`);
+
+const askIssues = (questions: Record<string, unknown>): string[] => issuesOf(askInput.safeParse({ state: "Help!", questions }));
 
 describe("schemas batch 1", () => {
   test("rejects an empty string state", () => {
@@ -144,5 +144,31 @@ describe("schemas batch 2", () => {
       },
     });
     expect(parsed.success).toBe(true);
+  });
+});
+
+describe("box questions", () => {
+  const button = { type: "box", question: "the Checkout button in `content`" };
+  const there = { type: "noul", question: "Is there a Checkout button in `content`?" };
+
+  test("with images on, a box question takes only its question, next to the other types", () => {
+    expect(issuesOf(askImagesInput.safeParse({ files: "shots/*.png", questions: { there, button } }))).toEqual([]);
+    const extras = { files: "shots/*.png", questions: { button: { ...button, options: { a: null, b: null }, criteria: { true: "yes" } } } };
+    expect(issuesOf(askImagesInput.safeParse(extras))).toEqual([
+      "questions.button.criteria: not used when type is box",
+      "questions.button.options: not used when type is box",
+    ]);
+  });
+
+  test("a box question needs an image, so it is refused with state", () => {
+    expect(issuesOf(askImagesInput.safeParse({ state: "Help!", questions: { there, button } }))).toEqual([
+      "questions.button: box needs an image, so pass PNG or JPEG files in files instead of state",
+    ]);
+  });
+
+  test("with images off, a box question names the switch that turns it on", () => {
+    expect(issuesOf(askInput.safeParse({ files: "shots/*.png", questions: { button } }))).toEqual([
+      "questions.button.type: box needs images: set TYPESAFE_IMAGES=1 in the server env",
+    ]);
   });
 });

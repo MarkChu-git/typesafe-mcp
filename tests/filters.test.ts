@@ -392,3 +392,38 @@ describe("where: choice labels", () => {
     expect(() => select({ where: { dept: { is: ["billing", "sales"], decision: "act" } } }, declared)).not.toThrow();
   });
 });
+
+const box = (confidence: number | null): RawAnswer => ({ type: "box", box: { top: 0.4, bottom: 0.46, left: 0.74, right: 0.81 }, confidence });
+
+describe("box questions in where, top and counts", () => {
+  const declared = typesOf({ there: { type: "noul" }, button: { type: "box" } });
+  const shots = [
+    record("a.png", { there: noul(0.97), button: box(0.91) }),
+    record("b.png", { there: noul(0.6), button: box(0.62) }),
+    record("c.png", { there: noul(0.03), button: box(null) }),
+  ];
+  const keys = (options: Written): string[] => Object.keys(select(options, declared)(shots).files ?? {});
+
+  test("where takes a box question's decision", () => {
+    expect(keys({ where: { button: { decision: "act" } } })).toEqual(["a.png"]);
+    expect(keys({ where: { there: true, button: { decision: ["act", "review"] } } })).toEqual(["a.png", "b.png"]);
+  });
+
+  test("where refuses a value, min or max for a box question, which has no answer to compare them with", () => {
+    for (const condition of [true, "act", { is: false }, { min: 0.5 }, { max: 1, decision: "act" }]) {
+      expect(() => select({ where: { button: condition } }, declared)).toThrow("where.button: a box question takes only decision");
+    }
+  });
+
+  test("top refuses a box question", () => {
+    expect(() => select({ top: { by: "button", k: 1 } }, declared)).toThrow("top: button is a box question; rank by a score or noul");
+    expect(() => select({ top: { by: { there: 1, button: 1 }, k: 1 } }, declared)).toThrow("top: button is a box question");
+  });
+
+  test("counts tally a box question's decisions, a box having no value to count", () => {
+    expect(select({ counts: true }, declared)(shots).counts).toEqual({
+      there: { true: 2, false: 1 },
+      button: { act: 1, review: 1, abstain: 1 },
+    });
+  });
+});
