@@ -920,3 +920,117 @@ describe("jev_ask with images", () => {
     expect(sent).toHaveLength(1);
   });
 });
+
+/** Where the fake Jev puts every box: the Checkout button on a 1280×720 cart page. */
+const CHECKOUT = { top: 0.4, bottom: 0.46, left: 0.74, right: 0.81 };
+
+/** Answers a box with CHECKOUT, at confidence .91 in an image 1280 px wide and .62 in others, and a noul with .97. */
+function boxFetch() {
+  const sent: SentRequest[] = [];
+  const fetch: Fetch = async (_input, init) => {
+    const request = await sentRequest(init);
+    sent.push(request);
+    const { questions } = request.json as { questions: Record<string, { type: string }> };
+    const [image] = Object.values(request.parts);
+    const width = image === undefined ? 0 : new DataView(image.buffer, image.byteOffset).getUint32(16);
+    const confidence = width === 1280 ? 0.91 : 0.62;
+    const answers = Object.fromEntries(
+      Object.entries(questions).map(([id, q]) => [id, q.type === "box" ? { type: "box", box: CHECKOUT, confidence } : { type: "noul", noul: 0.97 }]),
+    );
+    const reply = { model: "jev-1.14.0", answers, usage: { input_tokens: 2800, output_tokens: 20 } };
+    return new Response(JSON.stringify(reply), { status: 200, headers: { "content-type": "application/json" } });
+  };
+  return { fetch, sent };
+}
+
+describe("jev_ask with box questions", () => {
+  afterEach(() => {
+    resetClient();
+  });
+
+  const button = { type: "box", question: "the Checkout button in `content`" };
+  const there = { type: "noul", question: "Is there a Checkout button in `content`?" };
+  const images = { TYPESAFE_IMAGES: "1" };
+
+  async function askBox(args: Record<string, unknown>, env: Record<string, string> = images, files: Record<string, string | Uint8Array> = {}) {
+    const ff = boxFetch();
+    const root = projectWith({ "shots/cart.png": png(1280, 720), "shots/home.png": png(1000, 1000), ...files });
+    const { client, close } = await inProcessClient({
+      fetch: ff.fetch,
+      env: { TYPESAFE_API_KEY: "test-key", TYPESAFE_FILES_ROOT: root, ...env },
+    });
+    try {
+      const result = await client.callTool({ name: "jev_ask", arguments: args });
+      return { result, sc: result.structuredContent as FilesResult, sent: ff.sent };
+    } finally {
+      await close();
+    }
+  }
+
+  test("a box answer is the four edges of its target, decided on Jev's confidence, in a request that opts in to images", async () => {
+    const { result, sc, sent } = await askBox({ files: "shots/*.png", questions: { there, button } });
+    expect(result.isError).toBeFalsy();
+    const found = { answer: true, certainty: 0.94, decision: "act" };
+    expect(sc.files).toEqual({
+      "shots/cart.png": { there: found, button: { answer: CHECKOUT, certainty: 0.91, decision: "act" } },
+      "shots/home.png": { there: found, button: { answer: CHECKOUT, certainty: 0.62, decision: "review" } },
+    });
+    // The box Jev was unsure about is an image, with no text to return.
+    expect(sc.more_unsure).toBe(1);
+    expect(sent).toHaveLength(2);
+    for (const request of sent) {
+      expect(request.headers.get("TypeSafe-Danger-Zone-Images")).toBe("true");
+      const { questions } = request.json as { questions: Record<string, unknown> };
+      expect(questions["button"]).toEqual({ type: "box", instructions: "the Checkout button in `content`" });
+    }
+  });
+
+  test("a text record in a box call is listed in errors and never sent; the images still answer", async () => {
+    const { sc, sent } = await askBox({ files: "shots/*", questions: { there, button } }, images, { "shots/notes.md": "Checkout looked fine." });
+    expect(Object.keys(sc.files ?? {})).toEqual(["shots/cart.png", "shots/home.png"]);
+    expect(sc.errors).toEqual({ "shots/notes.md": "text; box questions need a PNG or JPEG image" });
+    expect(sent).toHaveLength(2);
+  });
+
+  test("without TYPESAFE_IMAGES a box question is refused before any request, naming the switch", async () => {
+    const { result, sent } = await askBox({ files: "shots/*.png", questions: { button } }, {});
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).toContain("box needs images: set TYPESAFE_IMAGES=1 in the server env");
+    expect(sent).toHaveLength(0);
+  });
+
+  test("a box question with state is refused before any request", async () => {
+    const { result, sent } = await askBox({ state: "A cart page with a Checkout button.", questions: { button } });
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).toContain("box needs an image, so pass PNG or JPEG files in files instead of state");
+    expect(sent).toHaveLength(0);
+  });
+
+  test("a Jev version before 1.14 is refused before any request, whether the call or the server chose it", async () => {
+    const asked = await askBox({ files: "shots/*.png", questions: { there, button }, model: "jev-1.13.0" });
+    expect(asked.result.isError).toBe(true);
+    expect(textOf(asked.result)).toContain('VALIDATION: box questions need Jev 1.14 or later, not jev-1.13.0; pass model "jev-1.14.0"');
+    expect(asked.sent).toHaveLength(0);
+
+    const pinned = { ...images, TYPESAFE_DEFAULT_MODEL: "jev-1.13.0" };
+    const byDefault = await askBox({ files: "shots/*.png", questions: { there, button } }, pinned);
+    expect(textOf(byDefault.result)).toContain('box questions need Jev 1.14 or later, not jev-1.13.0 (the server\'s default model); pass model "jev-1.14.0"');
+    expect(byDefault.sent).toHaveLength(0);
+
+    const overridden = await askBox({ files: "shots/cart.png", questions: { there, button }, model: "jev-1.14.0" }, pinned);
+    expect(overridden.result.isError).toBeFalsy();
+    const [request] = overridden.sent;
+    expect((request?.json as { model?: string } | undefined)?.model).toBe("jev-1.14.0");
+  });
+
+  test("where keeps the images whose box Jev is sure of, and top refuses a box", async () => {
+    const kept = await askBox({ files: "shots/*.png", questions: { there, button }, where: { there: true, button: { decision: "act" } } });
+    expect(Object.keys(kept.sc.files ?? {})).toEqual(["shots/cart.png"]);
+    expect(kept.sc.matched).toBe(1);
+
+    const ranked = await askBox({ files: "shots/*.png", questions: { there, button }, top: { by: "button", k: 1 } });
+    expect(ranked.result.isError).toBe(true);
+    expect(textOf(ranked.result)).toContain("top: button is a box question; rank by a score or noul");
+    expect(ranked.sent).toHaveLength(0);
+  });
+});

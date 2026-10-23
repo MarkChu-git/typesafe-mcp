@@ -1,4 +1,4 @@
-import type { ChoiceResponse, NoulResponse, ScoreResponse } from "@typesafe-ai/sdk";
+import type { BoxCoordinates, BoxResponse, ChoiceResponse, NoulResponse, ScoreResponse } from "@typesafe-ai/sdk";
 import { DEFAULT_THRESHOLDS } from "./config.ts";
 import type { JevAnswer } from "./schemas.ts";
 
@@ -13,7 +13,7 @@ export interface Thresholds {
   review_above: number;
 }
 
-type Answer = NoulResponse | ChoiceResponse | ScoreResponse;
+type Answer = NoulResponse | ChoiceResponse | ScoreResponse | BoxResponse;
 
 export function thresholdsFrom(input: {
   act_above?: number | undefined;
@@ -25,10 +25,12 @@ export function thresholdsFrom(input: {
   };
 }
 
-/** Choice/Score use API `confidence`; Noul uses distance from 0.5, scaled to [0, 1]. */
+const clamp01 = (x: number): number => Math.min(1, Math.max(0, x));
+
+/** Choice/Score/Box use API `confidence`, a box without one counting as 0; Noul uses distance from 0.5, scaled to [0, 1]. */
 export function certaintyOf(a: Answer): number {
-  if (a.type === "noul") return Math.min(1, Math.max(0, Math.abs(a.noul - 0.5) * 2));
-  return Math.min(1, Math.max(0, a.confidence));
+  if (a.type === "noul") return clamp01(Math.abs(a.noul - 0.5) * 2);
+  return clamp01(a.confidence ?? 0);
 }
 
 export function decide(certainty: number, th: Thresholds): Decision {
@@ -51,10 +53,18 @@ export const roundDown = (x: number, digits: number): number => {
 const rounded = (record: Record<PropertyKey, number>): Record<string, number> =>
   Object.fromEntries(Object.entries(record).map(([k, v]) => [k, round(v, 3)]));
 
+/** A box's edges inside the image, to 3 decimals: under 2 px on Jev's largest image, 1568 px a side. */
+const edges = (box: BoxCoordinates): BoxCoordinates => ({
+  top: round(clamp01(box.top), 3),
+  bottom: round(clamp01(box.bottom), 3),
+  left: round(clamp01(box.left), 3),
+  right: round(clamp01(box.right), 3),
+});
+
 /**
  * What the agent reads for one question: the answer, a certainty rounded down to 2 decimals and the
  * decision taken on that value, so the two never disagree and the gate is never looser than its
- * thresholds. `detailed` adds the probabilities behind the answer.
+ * thresholds. `detailed` adds the probabilities behind the answer, which a box does not have.
  */
 export function toAnswer(a: Answer, th: Thresholds, detailed = false): JevAnswer {
   const certainty = roundDown(certaintyOf(a), 2);
@@ -66,5 +76,7 @@ export function toAnswer(a: Answer, th: Thresholds, detailed = false): JevAnswer
       return { answer: a.choice, ...gate, ...(detailed ? { probabilities: rounded(a.probabilities) } : {}) };
     case "score":
       return { answer: round(a.score, 2), ...gate, ...(detailed ? { probabilities: rounded(a.probabilities) } : {}) };
+    case "box":
+      return { answer: edges(a.box), ...gate };
   }
 }

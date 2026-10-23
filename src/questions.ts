@@ -1,7 +1,9 @@
 import {
+  box,
   choice,
   noul,
   score,
+  type BoxQuestion,
   type ChoiceQuestion,
   type EntryType,
   type NoulQuestion,
@@ -12,9 +14,24 @@ import type { AskInput, AskQuestion } from "./schemas.ts";
 /** Tool arguments arrive as parsed JSON, so the untyped nested values of `state` are JSON values. */
 export const toState = (state: AskInput["state"]): NonNullable<EntryType> => state as NonNullable<EntryType>;
 
-/** The question types this server asks; SDK 0.7.0 adds `box`, which needs an image. */
-export type JevQuestion = NoulQuestion | ChoiceQuestion | ScoreQuestion;
+/** The question types this server asks; `box` needs an image. */
+export type JevQuestion = NoulQuestion | ChoiceQuestion | ScoreQuestion | BoxQuestion;
 export type JevQuestions = Record<string, JevQuestion>;
+
+/** Whether a call asks a box question, which only an image can answer. */
+export const hasBox = (questions: Readonly<Record<string, { type: string }>>): boolean =>
+  Object.values(questions).some((q) => q.type === "box");
+
+/**
+ * Whether `model` answers box questions. Jev before 1.14 answers one with a bare 400 "Invalid request.";
+ * a name without a version, such as `jev-latest`, is left to the API.
+ */
+export function takesBox(model: string): boolean {
+  const version = /^jev-(\d+)\.(\d+)/i.exec(model.trim());
+  if (version === null) return true;
+  const major = Number(version[1]);
+  return major > 1 || (major === 1 && Number(version[2]) >= 14);
+}
 
 export interface NoulQuestionInput {
   question: string;
@@ -60,6 +77,8 @@ export function toSdkQuestion(q: AskQuestion): JevQuestion {
     case "score":
       if (!q.levels) throw new Error("levels is required when type is score");
       return toScoreQuestion({ question: q.question, levels: q.levels });
+    case "box":
+      return box(q.question);
   }
 }
 
