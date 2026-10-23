@@ -29,8 +29,8 @@ interface Rect {
   rgb: Rgb;
 }
 
-const inside = (rect: Rect | undefined, x: number, y: number): rect is Rect =>
-  rect !== undefined && x >= rect.left && x < rect.left + rect.width && y >= rect.top && y < rect.top + rect.height;
+const inside = (rect: Rect, x: number, y: number): boolean =>
+  x >= rect.left && x < rect.left + rect.width && y >= rect.top && y < rect.top + rect.height;
 
 /**
  * A valid PNG filled with one color; `rect` paints a rectangle of another color on it, and `animated`
@@ -42,7 +42,7 @@ export function png(width: number, height: number, options: { rgb?: Rgb; rect?: 
   const stride = 1 + width * 3;
   const raw = new Uint8Array(height * stride);
   for (let y = 0; y < height; y += 1) {
-    for (let x = 0; x < width; x += 1) raw.set(inside(rect, x, y) ? rect.rgb : rgb, y * stride + 1 + x * 3);
+    for (let x = 0; x < width; x += 1) raw.set(rect && inside(rect, x, y) ? rect.rgb : rgb, y * stride + 1 + x * 3);
   }
   return concat([
     Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),

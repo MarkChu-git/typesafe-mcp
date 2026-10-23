@@ -56,7 +56,7 @@ describe("toSdkQuestion / buildQuestions", () => {
       question: "Team?",
       options: { a: "A desc", b: null },
     });
-    expect(q).toMatchObject({ instructions: "Team?", criteria: { a: "A desc", b: null } });
+    expect(q).toEqual({ type: "choice", instructions: "Team?", criteria: { a: "A desc", b: null } });
   });
 
   test("a box question sends what to find as its instructions, and nothing else", () => {
