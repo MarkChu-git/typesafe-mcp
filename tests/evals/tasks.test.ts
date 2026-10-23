@@ -31,10 +31,30 @@ const escapeRegExp = (text: string): string => text.replaceAll(/[$()*+.?[\]\\^{|
 const states = (text: string, cents: number): boolean =>
   [0, 1, 2, 3].some((style) => new RegExp(`${escapeRegExp(money(cents, style))}(?!\\d|[.,]\\d)`).test(text));
 
+interface Box {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+/** A screenshot-locate answer for one page. */
+interface Located {
+  file: string;
+  box: Box;
+}
+
+const shifted = (box: Box, dx: number, dy: number): Box => ({
+  left: box.left + dx,
+  top: box.top + dy,
+  right: box.right + dx,
+  bottom: box.bottom + dy,
+});
+
 describe("tasks", () => {
   describe("ALL_TASKS", () => {
-    it("has exactly 11 tasks", () => {
-      expect(ALL_TASKS.length).toBe(11);
+    it("has exactly 12 tasks", () => {
+      expect(ALL_TASKS.length).toBe(12);
     });
 
     it("has unique ids", () => {
@@ -436,6 +456,55 @@ describe("tasks", () => {
       expect(score(gold.broken.map(({ file, problem }) => ({ file: file.replace("screenshots/", "./Screenshots/"), problem })))).toBe(1);
       expect(score(gold.broken.map(({ file, problem }) => ({ file, problem: problem === "error" ? "loading" : "error" })))).toBe(0);
       expect(score([])).toBe(0);
+    });
+  });
+
+  describe("screenshot-locate", () => {
+    const task = findTask("screenshot-locate");
+    const triage = findTask("screenshot-triage");
+    if (!task || !triage) throw new Error("screenshot tasks not found");
+    const gold = task.gold() as { problems: Located[] };
+    const broken = (triage.gold() as { broken: { file: string; problem: string }[] }).broken;
+    const score = (problems: Located[]) => task.score({ problems }, gold);
+
+    it("looks at screenshot-triage's screenshots", () => {
+      expect(task.workspaceDir).toBe(triage.workspaceDir);
+    });
+
+    it("gold has one box per page screenshot-triage marks broken, inside the screenshot", () => {
+      expect(gold.problems.map((p) => p.file)).toEqual(broken.map((b) => b.file));
+      for (const { box } of gold.problems) {
+        expect(box.left).toBeGreaterThanOrEqual(0);
+        expect(box.top).toBeGreaterThanOrEqual(0);
+        expect(box.right).toBeLessThanOrEqual(WIDTH);
+        expect(box.bottom).toBeLessThanOrEqual(HEIGHT);
+        expect(box.right - box.left).toBeGreaterThan(0);
+        expect(box.bottom - box.top).toBeGreaterThan(0);
+      }
+    });
+
+    it("the prompt names every broken page and its problem", () => {
+      for (const { file, problem } of broken) expect(task.prompt).toContain(`${file}: ${problem}`);
+    });
+
+    it("locates a page when its box's centre is within 16 px of the gold box, whatever path form the answer uses", () => {
+      expect(score(gold.problems)).toMatchObject({ score: 1, passed: true, details: { located: 14, of: 14, iou: 1 } });
+      expect(score(gold.problems.map(({ file, box }) => ({ file: file.replace("screenshots/", "./Screenshots/"), box }))).score).toBe(1);
+      const centreRightBy = (by: number) => gold.problems.map(({ file, box }) => ({ file, box: shifted(box, (box.right - box.left) / 2 + by, 0) }));
+      expect(score(centreRightBy(15)).score).toBe(1);
+      expect(score(centreRightBy(17)).score).toBe(0);
+      expect(score([]).score).toBe(0);
+    });
+
+    it("scores only the first box given for a page, and only a box with area", () => {
+      const [first, ...rest] = gold.problems;
+      if (!first) throw new Error("no gold");
+      const { left, top, right, bottom } = first.box;
+      const away = { file: first.file, box: shifted(first.box, 0, HEIGHT) };
+      expect(score([away, first, ...rest]).score).toBeCloseTo(13 / 14);
+      expect(score([{ file: first.file, box: { left: right, top, right: left, bottom } }, ...rest]).score).toBeCloseTo(13 / 14);
+      const point = { left: (left + right) / 2, right: (left + right) / 2, top, bottom };
+      expect(score([{ file: first.file, box: point }, ...rest]).score).toBeCloseTo(13 / 14);
     });
   });
 });

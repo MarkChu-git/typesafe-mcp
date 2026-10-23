@@ -147,7 +147,10 @@ bend evals/laws/PROOF.bend --check-only
 - `workspace/`：agent 能看到的全部数据。它就是 agent 的工作目录，所以提示里的路径要相对于它写。
 - `REVIEW.md`：人工复核标准答案后再加。
 - `serverEnv`（可选）：任务需要的 jev 服务器环境变量，所有带 jev 服务器的组都会加上；组自己设的变量优先。`screenshot-triage` 用它设 `TYPESAFE_IMAGES=1`，这样 Jev 才能看截图。
+- `workspace`（可选）：要用另一个任务的 `workspace/` 时，写它的绝对路径，省得复制一份。
 
 `screenshot-triage` 的工作区只有 40 张商城页面截图（1280×720 PNG）：26 张正常，9 张报错，5 张一直没加载完，答案只在图像里。截图由 `generate.ts` 用无头 Chrome 渲染，改了页面要重新运行它（`CHROME` 可指定别的浏览器）。
+
+`screenshot-locate` 用同一批截图。提示里直接列出 14 张坏掉的页面和原因，agent 要给每张框出问题在哪，用像素坐标。框的中心落在标准框里（四边各放宽 16 像素）算找到，得分是找到的比例。标准框由它的 `generate.ts` 用 Playwright 在同一个 Chrome 里量出来，量之前先核对 Playwright 截的图和工作区里的截图逐字节相同；`screenshot-triage` 的截图重新生成后，它也要重新运行。
 
 数据用英文、全部合成；工作区里不放 `AGENTS.md`、`CLAUDE.md`，也不放 `*.test.*`、`*.spec.*` 这类文件名。`bun test` 会检查标准答案用自身评分规则能得 1.0。

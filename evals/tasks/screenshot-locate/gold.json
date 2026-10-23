@@ -1,0 +1,130 @@
+{
+  "problems": [
+    {
+      "file": "screenshots/account-orders.png",
+      "box": {
+        "left": 40,
+        "top": 142,
+        "right": 1240,
+        "bottom": 190
+      }
+    },
+    {
+      "file": "screenshots/account-settings.png",
+      "box": {
+        "left": 65,
+        "top": 175,
+        "right": 575,
+        "bottom": 455
+      }
+    },
+    {
+      "file": "screenshots/category-garden.png",
+      "box": {
+        "left": 57,
+        "top": 159,
+        "right": 1223,
+        "bottom": 359
+      }
+    },
+    {
+      "file": "screenshots/checkout-billing.png",
+      "box": {
+        "left": 65,
+        "top": 167,
+        "right": 575,
+        "bottom": 215
+      }
+    },
+    {
+      "file": "screenshots/checkout-payment.png",
+      "box": {
+        "left": 65,
+        "top": 203,
+        "right": 575,
+        "bottom": 265
+      }
+    },
+    {
+      "file": "screenshots/help-contact.png",
+      "box": {
+        "left": 470,
+        "top": 203,
+        "right": 810,
+        "bottom": 443
+      }
+    },
+    {
+      "file": "screenshots/order-tracking.png",
+      "box": {
+        "left": 546,
+        "top": 274,
+        "right": 734,
+        "bottom": 366
+      }
+    },
+    {
+      "file": "screenshots/product-chair.png",
+      "box": {
+        "left": 573,
+        "top": 242,
+        "right": 707,
+        "bottom": 334
+      }
+    },
+    {
+      "file": "screenshots/product-kettle-reviews.png",
+      "box": {
+        "left": 40,
+        "top": 142,
+        "right": 1240,
+        "bottom": 190
+      }
+    },
+    {
+      "file": "screenshots/product-kettle.png",
+      "box": {
+        "left": 843,
+        "top": 643,
+        "right": 1248,
+        "bottom": 688
+      }
+    },
+    {
+      "file": "screenshots/returns-start.png",
+      "box": {
+        "left": 453,
+        "top": 203,
+        "right": 827,
+        "bottom": 443
+      }
+    },
+    {
+      "file": "screenshots/search-mugs.png",
+      "box": {
+        "left": 40,
+        "top": 142,
+        "right": 1240,
+        "bottom": 190
+      }
+    },
+    {
+      "file": "screenshots/sign-in.png",
+      "box": {
+        "left": 65,
+        "top": 279,
+        "right": 575,
+        "bottom": 341
+      }
+    },
+    {
+      "file": "screenshots/store-locator.png",
+      "box": {
+        "left": 548,
+        "top": 274,
+        "right": 732,
+        "bottom": 366
+      }
+    }
+  ]
+}
