@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { imageFormat, MAX_SIDE, MIN_PIXELS, MIN_SIDE, readImage } from "../src/images.ts";
+import { imageFormat, MAX_SIDE, readImage } from "../src/images.ts";
 import { jpeg, png } from "./helpers/images.ts";
 
 const sizeOf = (read: ReturnType<typeof readImage>) => ("skipped" in read ? read : { width: read.width, height: read.height });
@@ -29,14 +29,18 @@ describe("readImage", () => {
   test("the size limits include both ends", () => {
     expect(sizeOf(readImage("png", png(MAX_SIDE, MAX_SIDE)))).toEqual({ width: MAX_SIDE, height: MAX_SIDE });
     expect(sizeOf(readImage("png", png(280, 280)))).toEqual({ width: 280, height: 280 });
-    expect(280 * 280).toBe(MIN_PIXELS);
+    expect(sizeOf(readImage("png", png(280, MAX_SIDE)))).toEqual({ width: 280, height: MAX_SIDE });
   });
 
   test("says how a screenshot outside Jev's limits has to change", () => {
     expect(readImage("png", png(1600, 900))).toEqual({ skipped: "1600×900 px PNG; Jev takes at most 1568 px a side, so scale it down first" });
     expect(readImage("jpeg", jpeg(2560, 1440))).toEqual({ skipped: "2560×1440 px JPEG; Jev takes at most 1568 px a side, so scale it down first" });
-    expect(readImage("png", png(300, 200))).toEqual({ skipped: `300×200 px PNG; Jev takes at least ${MIN_SIDE} px a side` });
-    expect(readImage("png", png(256, 300))).toEqual({ skipped: "256×300 px PNG; Jev takes at least 78,400 pixels" });
+    expect(readImage("png", png(300, 200))).toEqual({ skipped: "300×200 px PNG; Jev takes at least 280 px a side" });
+  });
+
+  test("refuses a side under 280 px, which the API rejects", () => {
+    expect(readImage("png", png(256, 300))).toEqual({ skipped: "256×300 px PNG; Jev takes at least 280 px a side" });
+    expect(readImage("png", png(279, 1568))).toEqual({ skipped: "279×1568 px PNG; Jev takes at least 280 px a side" });
   });
 
   test("refuses animated PNGs and files whose size cannot be read", () => {

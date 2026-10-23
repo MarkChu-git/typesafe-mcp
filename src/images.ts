@@ -9,10 +9,12 @@ export interface ImageFile {
   bytes: Uint8Array;
 }
 
-/** TypeSafe's limits for one image (docs: Images → Limits). The API rejects an image outside them and never resizes it. */
-export const MIN_SIDE = 256;
+/**
+ * TypeSafe's limits for one image (docs: Images → Limits). The API rejects an image outside them and never resizes it.
+ * Its pixel limits, 78,400 to 2,458,624, are the areas of the smallest and largest squares, so the sides cover them.
+ */
+export const MIN_SIDE = 280;
 export const MAX_SIDE = 1568;
-export const MIN_PIXELS = 78_400;
 /** The API's limit for one image file. */
 export const MAX_IMAGE_BYTES = 16 * 1024 * 1024;
 
@@ -89,6 +91,5 @@ export function readImage(format: ImageFormat, bytes: Uint8Array): ImageFile | {
   const dims = `${width}×${height} px ${name}`;
   if (width > MAX_SIDE || height > MAX_SIDE) return { skipped: `${dims}; Jev takes at most ${MAX_SIDE} px a side, so scale it down first` };
   if (width < MIN_SIDE || height < MIN_SIDE) return { skipped: `${dims}; Jev takes at least ${MIN_SIDE} px a side` };
-  if (width * height < MIN_PIXELS) return { skipped: `${dims}; Jev takes at least ${MIN_PIXELS.toLocaleString("en-US")} pixels` };
   return { format, width, height, bytes };
 }
