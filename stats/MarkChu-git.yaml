@@ -1,5 +1,5 @@
 username: MarkChu-git
-updatedAt: 2026-10-23T10:30:45.871Z
+updatedAt: 2026-10-23T10:43:50.456Z
 skills:
   superpowers:test-driven-development:
     count: 2
@@ -23,19 +23,19 @@ skills:
     count: 1
     lastUsed: 2026-10-13T03:49:35.257Z
   typesafe:typesafe-ai:
-    count: 1
-    lastUsed: 2026-10-15T06:48:08.296Z
+    count: 2
+    lastUsed: 2026-10-23T10:31:52.568Z
 interventions:
-  sessions: 15
+  sessions: 16
   interrupt: 2
   toolReject: 2
   correction: 4
 prompts: 281
 tokens:
-  input: 4724
-  output: 4213025
-  cacheRead: 696455194
-  cacheCreation: 12587784
+  input: 4768
+  output: 4277842
+  cacheRead: 699370480
+  cacheCreation: 12747106
 daily:
   2026-09-21:
     sessionsEnded: 12
@@ -177,4 +177,15 @@ daily:
     costMicros: 6462165
     cacheReadTokens: 5928642
     cacheEligibleInputTokens: 6100552
+    priceVersion: anthropic-2026-09-09
+  2026-10-23:
+    sessionsEnded: 1
+    sessionsSucceeded: 1
+    promptTurns: 1
+    durationMs: 757338
+    sessionsCorrected: 0
+    pricedRequests: 22
+    costMicros: 4074053
+    cacheReadTokens: 2915286
+    cacheEligibleInputTokens: 3074652
     priceVersion: anthropic-2026-09-09
