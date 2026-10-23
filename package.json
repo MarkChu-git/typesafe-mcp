@@ -55,12 +55,12 @@
     "eval": "bun run evals/run.ts"
   },
   "dependencies": {
-    "@modelcontextprotocol/server": "^2.0.0",
+    "@modelcontextprotocol/server": "^2.3.1",
     "@typesafe-ai/sdk": "^0.7.0",
     "zod": "^4"
   },
   "devDependencies": {
-    "@modelcontextprotocol/client": "^2.0.0",
+    "@modelcontextprotocol/client": "^2.3.1",
     "@types/bun": "^1.4.2",
     "knip": "^6.40.0",
     "oxlint": "^1.83.0",
