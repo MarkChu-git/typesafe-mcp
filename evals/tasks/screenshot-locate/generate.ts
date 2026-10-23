@@ -1,9 +1,9 @@
 // Gold boxes for screenshot-locate: where each page that screenshot-triage marks broken shows its problem.
 // Run: bun run evals/tasks/screenshot-locate/generate.ts (drives Google Chrome through Playwright; set CHROME to another binary)
 //
-// Playwright loads each broken page from screenshot-triage's generate.ts with the flags that rendered the
-// screenshots and stops unless its screenshot is byte for byte the committed one, so every box fits the
-// image the agent sees. A box is the union of the problem's parts, rounded out to whole pixels:
+// Playwright loads each broken page from screenshot-triage's generate.ts at the screenshots' size, with GPU
+// compositing off and scrollbars hidden as when they were rendered, and stops unless its screenshot is byte
+// for byte the committed one, so every box fits the image the agent sees. A box is the union of the problem's parts, rounded out to whole pixels:
 // - the element's box for a part with its own background or border: an alert, the toast, a failed field
 //   and its message, a spinner, placeholder blocks, a button;
 // - the text's box for centred text in a full-width block, a loading message or an error page's lines,

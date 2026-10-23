@@ -18,7 +18,7 @@ export interface EvalTask<A extends Record<string, unknown>> {
   title: string;
   category: TaskCategory;
   split: Split;
-  /** Absolute task directory holding `workspace/`, `gold.json` and (after human review) `REVIEW.md`. */
+  /** Absolute task directory holding `gold.json`, (after human review) `REVIEW.md` and, unless `workspace` names another, `workspace/`. */
   dir: string;
   /** Absolute directory the agent works in, for a task that reuses another task's `workspace/`; defaults to its own. */
   workspace?: string;

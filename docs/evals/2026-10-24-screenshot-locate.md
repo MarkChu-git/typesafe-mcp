@@ -1,6 +1,6 @@
 # 截图定位：让 Jev 框出问题在哪
 
-2026-10-24，Sonnet（claude-sonnet-5-5），Claude Code 2.1.294，每组跑 2 次，每次最多 40 轮。代码是 `feature/ask-box` 分支（PR #42）：第一轮的 jev 服务器和 `a646f50` 相同，即 `jev_ask` 的 Box 问题加上这次新加的任务；重跑用的是改了 Box 说明的 `b3706b1`，这句说明后来改回了原样。Jev 用默认的 `jev-latest`，现在指向 jev-1.14.0。标准答案还没经过人工复核，所以这里的得分只用来比较各组之间的差别。
+2026-10-24，Sonnet（claude-sonnet-5-5），Claude Code 2.1.294，每组跑 2 次，每次最多 40 轮。代码是 PR #42：第一轮用的是其中的 `a646f50`，即 `jev_ask` 的 Box 问题加上这次新加的任务；重跑用的是改了 Box 说明的 `b3706b1`，这句说明后来改回了原样。两个提交都在 PR #42 里。Jev 用默认的 `jev-latest`，现在指向 jev-1.14.0。标准答案还没经过人工复核，所以这里的得分只用来比较各组之间的差别。
 
 ## 问题
 
@@ -74,7 +74,7 @@ agent 最后交上来的框里，24 个直接用了 Jev 的，IoU 中位数 0.71
 
 ## 改说明后重跑
 
-针对第 1 点，把 `jev_ask` 说明里 Box 那句改成：Jev 对图里没有的目标也会给框，所以每种目标只问一个 Box，只问已知有这个目标的文件，否则配一个是非题。这句从 195 个字符变成 220 个，没开图片时工具定义不变。jev 和 jev-code-deferred 各重跑 2 次，花了约 $0.47：
+针对第 1 点，把 `jev_ask` 说明里 Box 那段的第二句换成 "Jev gives a box even for a missing target, so ask one box per target, only of files known to show it, else pair it with a noul."，意思是 Jev 对图里没有的目标也会给框，所以每种目标只问一个 Box，只问已知有这个目标的文件，否则配一个是非题。这段从 195 个字符变成 220 个，没开图片时工具定义不变。jev 和 jev-code-deferred 各重跑 2 次，花了约 $0.47：
 
 | 组别 | 第几次 | token | 自己打开的截图 | 没把握的文件 | 用了 Jev 的框 | 平均 IoU |
 | --- | --- | --- | --- | --- | --- | --- |
