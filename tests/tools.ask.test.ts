@@ -924,8 +924,8 @@ describe("jev_ask with images", () => {
 /** Where the fake Jev puts every box: the Checkout button on a 1280×720 cart page. */
 const CHECKOUT = { top: 0.4, bottom: 0.46, left: 0.74, right: 0.81 };
 
-/** Answers a box with CHECKOUT, at confidence .91 in an image 1280 px wide and .62 in others, and a noul with .97. */
-function boxFetch() {
+/** Answers a box with CHECKOUT, at confidence .91 in an image 1280 px wide and .62 in others, and a noul with `noul` of the width. */
+function boxFetch(noul: (width: number) => number = () => 0.97) {
   const sent: SentRequest[] = [];
   const fetch: Fetch = async (_input, init) => {
     const request = await sentRequest(init);
@@ -935,13 +935,16 @@ function boxFetch() {
     const width = image === undefined ? 0 : new DataView(image.buffer, image.byteOffset).getUint32(16);
     const confidence = width === 1280 ? 0.91 : 0.62;
     const answers = Object.fromEntries(
-      Object.entries(questions).map(([id, q]) => [id, q.type === "box" ? { type: "box", box: CHECKOUT, confidence } : { type: "noul", noul: 0.97 }]),
+      Object.entries(questions).map(([id, q]) => [id, q.type === "box" ? { type: "box", box: CHECKOUT, confidence } : { type: "noul", noul: noul(width) }]),
     );
     const reply = { model: "jev-1.14.0", answers, usage: { input_tokens: 2800, output_tokens: 20 } };
     return new Response(JSON.stringify(reply), { status: 200, headers: { "content-type": "application/json" } });
   };
   return { fetch, sent };
 }
+
+/** The Checkout button is on the 1280 px cart page, not on the 1000 px home page, and Jev is unsure of the 800 px menu. */
+const onCartOnly = (width: number): number => (width === 1280 ? 0.97 : width === 1000 ? 0.03 : 0.4);
 
 describe("jev_ask with box questions", () => {
   afterEach(() => {
@@ -952,8 +955,13 @@ describe("jev_ask with box questions", () => {
   const there = { type: "noul", question: "Is there a Checkout button in `content`?" };
   const images = { TYPESAFE_IMAGES: "1" };
 
-  async function askBox(args: Record<string, unknown>, env: Record<string, string> = images, files: Record<string, string | Uint8Array> = {}) {
-    const ff = boxFetch();
+  async function askBox(
+    args: Record<string, unknown>,
+    env: Record<string, string> = images,
+    files: Record<string, string | Uint8Array> = {},
+    noul?: (width: number) => number,
+  ) {
+    const ff = boxFetch(noul);
     const root = projectWith({ "shots/cart.png": png(1280, 720), "shots/home.png": png(1000, 1000), ...files });
     const { client, close } = await inProcessClient({
       fetch: ff.fetch,
@@ -1021,6 +1029,31 @@ describe("jev_ask with box questions", () => {
     expect(overridden.result.isError).toBeFalsy();
     const [request] = overridden.sent;
     expect((request?.json as { model?: string } | undefined)?.model).toBe("jev-1.14.0");
+  });
+
+  const menu = { "shots/menu.png": png(800, 600) };
+  const paired = { there, button: { ...button, if: "there" } };
+
+  test("a box with if is left out where its noul answers no, so only an unsure noul leaves that image unsure", async () => {
+    const { sc, sent } = await askBox({ files: "shots/*.png", questions: paired }, images, menu, onCartOnly);
+    expect(sc.files).toEqual({
+      "shots/cart.png": { there: { answer: true, certainty: 0.94, decision: "act" }, button: { answer: CHECKOUT, certainty: 0.91, decision: "act" } },
+      "shots/home.png": { there: { answer: false, certainty: 0.94, decision: "act" } },
+      "shots/menu.png": { there: { answer: false, certainty: 0.2, decision: "abstain" } },
+    });
+    expect(sc.more_unsure).toBe(1);
+    // Jev still answers every question; the link stays on the server.
+    for (const request of sent) {
+      const { questions } = request.json as { questions: Record<string, unknown> };
+      expect(questions["button"]).toEqual({ type: "box", instructions: "the Checkout button in `content`" });
+    }
+  });
+
+  test("where and counts pass over a box that if left out", async () => {
+    const args = { files: "shots/*.png", questions: paired, where: { button: { decision: ["act", "review", "abstain"] } }, counts: true };
+    const { sc } = await askBox(args, images, menu, onCartOnly);
+    expect(Object.keys(sc.files ?? {})).toEqual(["shots/cart.png"]);
+    expect(sc.counts).toEqual({ there: { true: 1, false: 2 }, button: { act: 1 } });
   });
 
   test("where keeps the images whose box Jev is sure of, and top refuses a box", async () => {

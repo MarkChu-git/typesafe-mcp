@@ -18,10 +18,12 @@ export interface EvalTask<A extends Record<string, unknown>> {
   title: string;
   category: TaskCategory;
   split: Split;
-  /** Absolute task directory holding `gold.json`, (after human review) `REVIEW.md` and, unless `workspace` names another, `workspace/`. */
+  /** Absolute task directory holding (after human review) `REVIEW.md` and, unless `goldFile` or `workspace` names another, `gold.json` and `workspace/`. */
   dir: string;
   /** Absolute directory the agent works in, for a task that reuses another task's `workspace/`; defaults to its own. */
   workspace?: string;
+  /** Absolute path of the gold answer, for a task that reuses another task's `gold.json`; defaults to its own. */
+  goldFile?: string;
   /** User prompt for `claude -p`. Must tell the agent to return the answer as structured output. */
   prompt: string;
   /** Env for the jev server of every arm that has one, such as a switch the task needs; an arm's own env wins. */
@@ -85,7 +87,7 @@ export function defineTask<A extends Record<string, unknown>>(task: EvalTask<A>)
       return { ok: true, answer: parsed.data, feedback: typeof feedback === "string" ? feedback : null };
     },
     gold() {
-      const raw: unknown = JSON.parse(readFileSync(join(task.dir, "gold.json"), "utf8"));
+      const raw: unknown = JSON.parse(readFileSync(task.goldFile ?? join(task.dir, "gold.json"), "utf8"));
       return task.answer.parse(raw);
     },
     score(answer, gold) {

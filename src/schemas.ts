@@ -61,14 +61,14 @@ export const QUESTION_TYPES = ["noul", "choice", "score"] as const;
 const IMAGE_QUESTION_TYPES = [...QUESTION_TYPES, "box"] as const;
 type QuestionType = (typeof IMAGE_QUESTION_TYPES)[number];
 
-/** The field each type requires; the other type-specific fields are rejected, and a box takes none of them. */
-const TYPE_FIELD: Record<QuestionType, "criteria" | "options" | "levels" | undefined> = {
+const FIELDS = ["criteria", "options", "levels", "if"] as const;
+/** The field each type takes; the other type-specific fields are rejected, and a box takes only `if`. */
+const TYPE_FIELD: Record<QuestionType, (typeof FIELDS)[number]> = {
   noul: "criteria",
   choice: "options",
   score: "levels",
-  box: undefined,
+  box: "if",
 };
-const FIELDS = ["criteria", "options", "levels"] as const;
 const REQUIRED = new Set(["options", "levels"]);
 
 const TYPE_HELP = "noul: yes/no; one per label when several can apply. choice: pick one key of options. score: rate on levels.";
@@ -77,33 +77,40 @@ const TYPE_HELP = "noul: yes/no; one per label when several can apply. choice: p
 const boxNeedsImages = (issue: { input?: unknown }): string | undefined =>
   issue.input === "box" ? `box needs images: set ${ENV.images}=1 in the server env` : undefined;
 
-/** One flat object instead of a union, so the agent reads `question` and its guidance once. */
-const askQuestionOf = (types: readonly [QuestionType, ...QuestionType[]], help: string) =>
-  z
-    .strictObject({
-      type: z.enum(types, { error: boxNeedsImages }).describe(help),
-      question: questionSchema,
-      options: optionsSchema
-        .optional()
-        .describe("choice only. Label → rubric or null, 2–255 labels. Add a none label if nothing may fit."),
-      levels: levelsSchema.optional().describe("score only. Rubric per level, index 0 first, 2–10 levels."),
-      criteria: criteriaSchema.optional().describe("noul only. What yes and no mean."),
-    })
-    .superRefine((q, ctx) => {
-      for (const field of FIELDS) {
-        const own = TYPE_FIELD[q.type] === field;
-        const present = q[field] !== undefined;
-        if (own && !present && REQUIRED.has(field)) {
-          ctx.addIssue({ code: "custom", path: [field], message: `required when type is ${q.type}` });
-        } else if (!own && present) {
-          ctx.addIssue({ code: "custom", path: [field], message: `not used when type is ${q.type}` });
-        }
-      }
-    });
+/** The fields every question type shares, and each type's own. */
+const questionFields = (types: readonly [QuestionType, ...QuestionType[]], help: string) => ({
+  type: z.enum(types, { error: boxNeedsImages }).describe(help),
+  question: questionSchema,
+  options: optionsSchema.optional().describe("choice only. Label → rubric or null, 2–255 labels. Add a none label if nothing may fit."),
+  levels: levelsSchema.optional().describe("score only. Rubric per level, index 0 first, 2–10 levels."),
+  criteria: criteriaSchema.optional().describe("noul only. What yes and no mean."),
+});
 
-export const askQuestionSchema = askQuestionOf(QUESTION_TYPES, TYPE_HELP);
-/** Only sessions with images on read `box` in the tool definition, so the others pay no tokens for it. */
-const askImageQuestionSchema = askQuestionOf(IMAGE_QUESTION_TYPES, `${TYPE_HELP} box: locate it in the image.`);
+/** Each type's own field required where it must be, and the other types' fields rejected. */
+function refineQuestion(q: { type: QuestionType } & Partial<Record<(typeof FIELDS)[number], unknown>>, ctx: z.RefinementCtx): void {
+  for (const field of FIELDS) {
+    const own = TYPE_FIELD[q.type] === field;
+    const present = q[field] !== undefined;
+    if (own && !present && REQUIRED.has(field)) {
+      ctx.addIssue({ code: "custom", path: [field], message: `required when type is ${q.type}` });
+    } else if (!own && present) {
+      ctx.addIssue({ code: "custom", path: [field], message: `not used when type is ${q.type}` });
+    }
+  }
+}
+
+/** One flat object instead of a union, so the agent reads `question` and its guidance once. */
+export const askQuestionSchema = z.strictObject(questionFields(QUESTION_TYPES, TYPE_HELP)).superRefine(refineQuestion);
+/** Only sessions with images on read `box` and its `if` in the tool definition, so the others pay no tokens for them. */
+const askImageQuestionSchema = z
+  .strictObject({
+    ...questionFields(IMAGE_QUESTION_TYPES, `${TYPE_HELP} box: locate it in the image.`),
+    if: z.string().optional().describe("box only. Id of a noul in this call; where it answers no, the box is left out."),
+  })
+  .superRefine(refineQuestion);
+
+/** The noul a box question names in `if`, the only question type that takes one. */
+export const linkOf = (q: object): string | undefined => ("if" in q && typeof q.if === "string" ? q.if : undefined);
 
 export const decisionSchema = z.enum(["act", "review", "abstain"]);
 
@@ -210,7 +217,7 @@ export const countsSchema = z
 /** What a `files` call adds to the question: how to split the files and which answers to keep. */
 const FILES_ONLY = ["items", "where", "top", "counts"] as const;
 
-const askInputOf = (question: typeof askQuestionSchema) =>
+const askInputOf = (question: typeof askQuestionSchema | typeof askImageQuestionSchema) =>
   z
     .strictObject({
       state: stateSchema.optional(),
@@ -237,6 +244,14 @@ const askInputOf = (question: typeof askQuestionSchema) =>
       const stray = FILES_ONLY.find((field) => v[field] !== undefined);
       if (stray !== undefined && v.files === undefined) {
         ctx.addIssue({ code: "custom", path: [stray], message: "items, where, top and counts are only used with files" });
+      }
+      for (const [id, q] of Object.entries(v.questions)) {
+        const link = linkOf(q);
+        if (q.type !== "box" || link === undefined) continue;
+        const named = Object.hasOwn(v.questions, link) ? v.questions[link] : undefined;
+        if (named?.type === "noul") continue;
+        const message = named === undefined ? `${link} is not a question id` : `${link} is a ${named.type} question; name a noul`;
+        ctx.addIssue({ code: "custom", path: ["questions", id, "if"], message });
       }
       // Only files reach Jev as images; state is text or JSON.
       if (v.state === undefined) return;

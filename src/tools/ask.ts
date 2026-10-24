@@ -3,7 +3,7 @@ import { image, type EntryType, type TypeSafeClient, type Usage } from "@typesaf
 import { getClient, type ClientDeps } from "../client.ts";
 import { readConfig } from "../config.ts";
 import { classify, FilesError, redact, toToolError } from "../errors.ts";
-import { capErrors, MAX_UNSURE_BYTES, selector, typesOf, unsureTexts, type Answered } from "../filters.ts";
+import { capErrors, leaveOutBoxes, MAX_UNSURE_BYTES, selector, typesOf, unsureTexts, type Answered } from "../filters.ts";
 import { filesRoots, MAX_FILE_BYTES, MAX_SPLIT_FILE_BYTES, selectFiles, shown } from "../files.ts";
 import { ANSWER_NOTE, thresholdsFrom, toAnswer, type Thresholds } from "../gating.ts";
 import { MAX_SIDE, MIN_SIDE } from "../images.ts";
@@ -31,7 +31,7 @@ export const ASK_DESCRIPTION = `Ask Jev, TypeSafe's decision model, typed questi
 export const IMAGES_NOTE = `PNG and JPEG files reach Jev as images in \`content\`, ${MIN_SIDE}–${MAX_SIDE} px a side; an unsure image is only counted in \`more_unsure\`.`;
 
 /** Added with `IMAGES_NOTE`, since `box` is a question type only then. TypeSafe's Box has no "not found" answer. */
-export const BOX_NOTE = `A box answer is {top, bottom, left, right}, fractions of height and width from the top-left. Jev always gives a box, never "not found", so ask a noul in the same call whether the target is there.`;
+export const BOX_NOTE = `A box answer is {top, bottom, left, right}, fractions of height and width from the top-left. Jev always gives a box, never "not found", so set its \`if\` to a noul asking whether the target is there.`;
 
 export const askDescription = (images: boolean): string => (images ? `${ASK_DESCRIPTION} ${IMAGES_NOTE} ${BOX_NOTE}` : ASK_DESCRIPTION);
 
@@ -208,7 +208,7 @@ export function registerAsk(server: McpServer, deps: ClientDeps = {}): void {
 
         const problems = [...Object.entries(skipped), ...outcomes.flatMap(problemOf)];
         const usage = answered.reduce<Usage>((u, r) => addUsage(u, r.usage), { input_tokens: 0, output_tokens: 0 });
-        const selection = select(answered);
+        const selection = select(leaveOutBoxes(answered, input.questions));
         const unsure = unsureTexts(selection.files, textsOf(parts));
         return ok(askImagesOutput.parse({ ...selection, ...unsure, ...capErrors(problems) }), {
           model: answered[0]?.model ?? "",

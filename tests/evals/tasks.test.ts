@@ -9,7 +9,7 @@ import {
   money,
 } from "../../evals/tasks/refund-promises-audit/generate.ts";
 import { generate as generateIncidentLogs } from "../../evals/tasks/incident-logs/generate.ts";
-import { generate as generateScreenshots, HEIGHT, SCREENS, WIDTH } from "../../evals/tasks/screenshot-triage/generate.ts";
+import { fileOf, generate as generateScreenshots, HEIGHT, SCREENS, WIDTH } from "../../evals/tasks/screenshot-triage/generate.ts";
 import { imageFormat, readImage } from "../../src/images.ts";
 
 const APPROVAL_WORDS = /approv|signed off|APR-/i;
@@ -53,8 +53,8 @@ const shifted = (box: Box, dx: number, dy: number): Box => ({
 
 describe("tasks", () => {
   describe("ALL_TASKS", () => {
-    it("has exactly 12 tasks", () => {
-      expect(ALL_TASKS.length).toBe(12);
+    it("has exactly 13 tasks", () => {
+      expect(ALL_TASKS.length).toBe(13);
     });
 
     it("has unique ids", () => {
@@ -505,6 +505,34 @@ describe("tasks", () => {
       expect(score([{ file: first.file, box: { left: right, top, right: left, bottom } }, ...rest]).score).toBeCloseTo(13 / 14);
       const point = { left: (left + right) / 2, right: (left + right) / 2, top, bottom };
       expect(score([{ file: first.file, box: point }, ...rest]).score).toBeCloseTo(13 / 14);
+    });
+  });
+
+  describe("screenshot-find", () => {
+    const task = findTask("screenshot-find");
+    const locate = findTask("screenshot-locate");
+    if (!task || !locate) throw new Error("screenshot tasks not found");
+    const gold = task.gold() as { problems: Located[] };
+    const score = (problems: Located[]) => task.score({ problems }, gold);
+
+    it("looks at screenshot-triage's screenshots and scores against screenshot-locate's boxes", () => {
+      expect(task.workspaceDir).toBe(locate.workspaceDir);
+      expect(gold).toEqual(locate.gold() as { problems: Located[] });
+    });
+
+    it("the prompt names no screenshot, so the agent has to find the broken pages itself", () => {
+      for (const { name } of SCREENS) expect(task.prompt).not.toContain(fileOf(name));
+    });
+
+    it("scores the broken pages located out of the broken pages plus the fine ones boxed, each counted once", () => {
+      expect(score(gold.problems)).toMatchObject({ score: 1, passed: true, details: { located: 14, of: 14, extra: 0, iou: 1 } });
+      const [home, cart] = SCREENS.filter((s) => !s.problem).map((s) => fileOf(s.name));
+      if (!home || !cart) throw new Error("no fine pages");
+      const box = { left: 0, top: 0, right: 10, bottom: 10 };
+      const fine = [home, home, cart].map((file) => ({ file: file.replace("screenshots/", "./Screenshots/"), box }));
+      expect(score([...gold.problems, ...fine])).toMatchObject({ score: 14 / 16, passed: true, details: { located: 14, extra: 2 } });
+      expect(score(gold.problems.slice(1)).score).toBeCloseTo(13 / 14);
+      expect(score([]).score).toBe(0);
     });
   });
 });

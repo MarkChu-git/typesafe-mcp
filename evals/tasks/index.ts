@@ -11,6 +11,7 @@ import incidentLogs from "./incident-logs/task.ts";
 import renameCallers from "./rename-callers/task.ts";
 import screenshotTriage from "./screenshot-triage/task.ts";
 import screenshotLocate from "./screenshot-locate/task.ts";
+import screenshotFind from "./screenshot-find/task.ts";
 
 export const ALL_TASKS: readonly RegisteredTask[] = [
   triageTickets,
@@ -25,6 +26,7 @@ export const ALL_TASKS: readonly RegisteredTask[] = [
   renameCallers,
   screenshotTriage,
   screenshotLocate,
+  screenshotFind,
 ];
 
 export function findTask(id: string): RegisteredTask | undefined {
