@@ -14,8 +14,8 @@ const listNames = async (env: Record<string, string>): Promise<string[]> => {
 };
 
 /**
- * The question types jev_ask's definition lists, whether the description of `type` mentions box, and whether
- * the output schema has a box answer, whose edges are the only `bottom` in it.
+ * The question types jev_ask's definition lists, whether the description of `type` mentions box, whether a
+ * question takes `if`, and whether the output schema has a box answer, whose edges are the only `bottom` in it.
  */
 const typesListed = async (env: Record<string, string>): Promise<unknown> => {
   const { client, close } = await inProcessClient({ env: { TYPESAFE_API_KEY: "test-key", ...env } });
@@ -24,8 +24,14 @@ const typesListed = async (env: Record<string, string>): Promise<unknown> => {
     const schema = tool?.inputSchema as unknown as {
       properties: { questions: { additionalProperties: { properties: { type: { enum: unknown; description: string } } } } };
     };
-    const { type } = schema.properties.questions.additionalProperties.properties;
-    return { enum: type.enum, box: type.description.includes("box"), answer: JSON.stringify(tool?.outputSchema).includes('"bottom"') };
+    const { properties } = schema.properties.questions.additionalProperties;
+    const { type } = properties;
+    return {
+      enum: type.enum,
+      box: type.description.includes("box"),
+      if: Object.hasOwn(properties, "if"),
+      answer: JSON.stringify(tool?.outputSchema).includes('"bottom"'),
+    };
   } finally {
     await close();
   }
@@ -130,16 +136,16 @@ describe("createServer", () => {
     }
   });
 
-  test("the box note says a box always comes back and to ask a noul whether the target is there", () => {
+  test("the box note says a box always comes back and to link it through if to a noul asking whether the target is there", () => {
     expect(BOX_NOTE).toContain("{top, bottom, left, right}");
     expect(BOX_NOTE).toContain("top-left");
     expect(BOX_NOTE).toContain('never "not found"');
-    expect(BOX_NOTE).toMatch(/noul in the same call whether/);
+    expect(BOX_NOTE).toMatch(/set its `if` to a noul asking whether/);
   });
 
-  test("box is a question type and an answer only with TYPESAFE_IMAGES, so sessions without images pay nothing for it", async () => {
-    expect(await typesListed({ TYPESAFE_IMAGES: "1" })).toEqual({ enum: ["noul", "choice", "score", "box"], box: true, answer: true });
-    expect(await typesListed({})).toEqual({ enum: ["noul", "choice", "score"], box: false, answer: false });
+  test("box, its if and its answer are in the definition only with TYPESAFE_IMAGES, so sessions without images pay nothing for them", async () => {
+    expect(await typesListed({ TYPESAFE_IMAGES: "1" })).toEqual({ enum: ["noul", "choice", "score", "box"], box: true, if: true, answer: true });
+    expect(await typesListed({})).toEqual({ enum: ["noul", "choice", "score"], box: false, if: false, answer: false });
   });
 
   test("TYPESAFE_TOOLS takes short or full names in any order and skips unknown ones", async () => {

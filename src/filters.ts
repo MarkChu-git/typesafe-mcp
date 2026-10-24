@@ -1,6 +1,6 @@
 import type { BoxResponse, ChoiceResponse, NoulResponse, ScoreResponse } from "@typesafe-ai/sdk";
 import { FilesError } from "./errors.ts";
-import { ANY_OF, type AskInput, type AskQuestion, type Conditions, type JevAnswer, type Top, type Where } from "./schemas.ts";
+import { ANY_OF, linkOf, type AskInput, type AskQuestion, type Conditions, type JevAnswer, type Top, type Where } from "./schemas.ts";
 
 type QuestionType = AskQuestion["type"];
 
@@ -202,6 +202,25 @@ export function selector(options: SelectOptions, types: QuestionTypes): (records
       ...(counting ? { counts: tally(records, types) } : {}),
     };
   };
+}
+
+/**
+ * Each record without the boxes whose `if` noul answered no: Jev gives a box even for a target that is not
+ * in the image, and left out, that box neither makes the record unsure nor matches `where`.
+ */
+export function leaveOutBoxes(records: readonly Answered[], questions: Readonly<Record<string, AskQuestion>>): readonly Answered[] {
+  const links = Object.entries(questions).flatMap(([id, q]) => {
+    const link = q.type === "box" ? linkOf(q) : undefined;
+    return link === undefined ? [] : [[id, link] as const];
+  });
+  if (links.length === 0) return records;
+  return records.map((record) => {
+    const absent = new Set(links.filter(([, noul]) => record.answers[noul]?.answer === false).map(([id]) => id));
+    if (absent.size === 0) return record;
+    const kept = <T>(byId: Readonly<Record<string, T>>): Record<string, T> =>
+      Object.fromEntries(Object.entries(byId).filter(([id]) => !absent.has(id)));
+    return { ...record, answers: kept(record.answers), raw: kept(record.raw) };
+  });
 }
 
 /** Largest record text `unsure` carries, in UTF-8 bytes; a larger record stays out, for the agent to open if it must. */

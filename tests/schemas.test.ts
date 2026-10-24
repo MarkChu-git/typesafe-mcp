@@ -160,6 +160,27 @@ describe("box questions", () => {
     ]);
   });
 
+  test("with images on, a box takes if, the id of a noul in the same call, and only a box takes it", () => {
+    expect(issuesOf(askImagesInput.safeParse({ files: "shots/*.png", questions: { there, button: { ...button, if: "there" } } }))).toEqual([]);
+    const questions = {
+      there: { ...there, if: "there" },
+      size: { type: "score", question: "How big is it?", levels: ["Small", "Big"] },
+      button: { ...button, if: "nope" },
+      logo: { ...button, if: "size" },
+    };
+    expect(issuesOf(askImagesInput.safeParse({ files: "shots/*.png", questions }))).toEqual([
+      "questions.there.if: not used when type is noul",
+      "questions.button.if: nope is not a question id",
+      "questions.logo.if: size is a score question; name a noul",
+    ]);
+  });
+
+  test("with images off, no question takes if", () => {
+    expect(issuesOf(askInput.safeParse({ state: "Help!", questions: { there: { ...there, if: "there" } } }))).toEqual([
+      'questions.there: Unrecognized key: "if"',
+    ]);
+  });
+
   test("a box question needs an image, so it is refused with state", () => {
     expect(issuesOf(askImagesInput.safeParse({ state: "Help!", questions: { there, button } }))).toEqual([
       "questions.button: box needs an image, so pass PNG or JPEG files in files instead of state",
