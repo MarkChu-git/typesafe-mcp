@@ -148,9 +148,12 @@ bend evals/laws/PROOF.bend --check-only
 - `REVIEW.md`：人工复核标准答案后再加。
 - `serverEnv`（可选）：任务需要的 jev 服务器环境变量，所有带 jev 服务器的组都会加上；组自己设的变量优先。`screenshot-triage` 用它设 `TYPESAFE_IMAGES=1`，这样 Jev 才能看截图。
 - `workspace`（可选）：要用另一个任务的 `workspace/` 时，写它的绝对路径，省得复制一份。
+- `goldFile`（可选）：要用另一个任务的 `gold.json` 时，写它的绝对路径。
 
 `screenshot-triage` 的工作区只有 40 张商城页面截图（1280×720 PNG）：26 张正常，9 张报错，5 张一直没加载完，答案只在图像里。截图由 `generate.ts` 用无头 Chrome 渲染，改了页面要重新运行它（`CHROME` 可指定别的浏览器）。
 
 `screenshot-locate` 用同一批截图。提示里直接列出 14 张坏掉的页面和原因，agent 要给每张框出问题在哪，用像素坐标。框的中心落在标准框里（四边各放宽 16 像素）算找到，得分是找到的比例。标准框由它的 `generate.ts` 用 Playwright 在同一个 Chrome 里量出来，量之前先核对 Playwright 截的图和工作区里的截图逐字节相同；`screenshot-triage` 的截图重新生成后，它也要重新运行。
+
+`screenshot-find` 也用这批截图和 `screenshot-locate` 的标准框，但提示里不说哪些页面坏了：agent 得先从 40 张里找出坏掉的 14 张，再框出问题。得分是找到的页数除以坏页数加上框了的正常页数，所以 40 张全框上并不划算。Box 对图里没有的目标也会给框，这个任务就用来看 agent 在不知道目标在不在的时候，怎么配是非题、用不用 `if`。
 
 数据用英文、全部合成；工作区里不放 `AGENTS.md`、`CLAUDE.md`，也不放 `*.test.*`、`*.spec.*` 这类文件名。`bun test` 会检查标准答案用自身评分规则能得 1.0。

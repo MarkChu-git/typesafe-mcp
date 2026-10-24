@@ -6,7 +6,7 @@ import { fileOf, HEIGHT, SCREENS, WIDTH } from "../screenshot-triage/generate.ts
 
 const boxSchema = z.object({ left: z.number(), top: z.number(), right: z.number(), bottom: z.number() });
 
-const answerSchema = z.object({
+export const answerSchema = z.object({
   problems: z.array(z.object({ file: z.string(), box: boxSchema })),
 });
 
@@ -38,6 +38,26 @@ function pointsAt(b: Box, gold: Box): boolean {
   return x >= gold.left - MARGIN && x <= gold.right + MARGIN && y >= gold.top - MARGIN && y <= gold.bottom + MARGIN;
 }
 
+/**
+ * How many gold pages the answer locates, a page counting when its first box has area and its centre points
+ * at the problem; the mean IoU over the gold pages; and how many other pages it gave a box for.
+ */
+export function locate(answer: AnswerType, gold: AnswerType): { located: number; iou: number; extra: number } {
+  const given = new Map<string, Box>();
+  for (const { file, box } of answer.problems) if (!given.has(pageOf(file))) given.set(pageOf(file), box);
+  let located = 0;
+  let overlap = 0;
+  for (const { file, box } of gold.problems) {
+    const b = given.get(pageOf(file));
+    if (!b || b.left >= b.right || b.top >= b.bottom) continue;
+    if (pointsAt(b, box)) located += 1;
+    overlap += iou(b, box);
+  }
+  const broken = new Set(gold.problems.map(({ file }) => pageOf(file)));
+  const extra = [...given.keys()].filter((page) => !broken.has(page)).length;
+  return { located, iou: overlap / gold.problems.length, extra };
+}
+
 const BROKEN = SCREENS.flatMap((s) => (s.problem ? [`- ${fileOf(s.name)}: ${s.problem}`] : []))
   .toSorted()
   .join("\n");
@@ -65,19 +85,9 @@ List each page once, as screenshots/<name>.png.
 
 Return your final answer as structured output.`,
   answer: answerSchema,
-  // A page counts as located when its first box is a box whose centre points at the problem.
   score(answer: AnswerType, gold: AnswerType) {
-    const given = new Map<string, Box>();
-    for (const { file, box } of answer.problems) if (!given.has(pageOf(file))) given.set(pageOf(file), box);
-    let located = 0;
-    let overlap = 0;
-    for (const { file, box } of gold.problems) {
-      const b = given.get(pageOf(file));
-      if (!b || b.left >= b.right || b.top >= b.bottom) continue;
-      if (pointsAt(b, box)) located += 1;
-      overlap += iou(b, box);
-    }
+    const { located, iou: overlap } = locate(answer, gold);
     const of = gold.problems.length;
-    return { score: located / of, passed: located / of >= 0.8, details: { located, of, iou: overlap / of } };
+    return { score: located / of, passed: located / of >= 0.8, details: { located, of, iou: overlap } };
   },
 });
